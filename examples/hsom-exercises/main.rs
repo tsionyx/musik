@@ -3,6 +3,7 @@
 mod ch1;
 mod ch2;
 mod ch3;
+mod ch4;
 
 fn simple<A, B, C, D, E>(x: A, y: B, z: C) -> E
 where

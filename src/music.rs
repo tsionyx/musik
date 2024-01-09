@@ -389,6 +389,12 @@ impl Dur {
     }
 }
 
+impl From<Ratio<u8>> for Dur {
+    fn from(value: Ratio<u8>) -> Self {
+        Self::new(*value.numer(), *value.denom())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Primitive<P> {
     Note(Dur, P),
@@ -406,11 +412,10 @@ pub enum Mode {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Control {
-    Tempo(Dur), // scale the tempo
+    Tempo(Ratio<u8>), // scale the tempo
     Transpose(AbsPitch),
     Instrument(StandartMidiInstrument),
-    //FIXME: implement later
-    //Phrase(Vec<PhraseAttribute>),
+    //TODO: Phrase(Vec<PhraseAttribute>),
     Player(PlayerName),
     KeySig(PitchClass, Mode), // key signature and mode
 }
@@ -471,28 +476,28 @@ impl<P> Music<P> {
         Self::Prim(Primitive::Rest(duration))
     }
 
-    pub fn tempo(duration: Dur, music: Self) -> Self {
-        Self::Modify(Control::Tempo(duration), Box::new(music))
+    pub fn with_tempo(self, tempo: Ratio<u8>) -> Self {
+        Self::Modify(Control::Tempo(tempo), Box::new(self))
     }
 
-    pub fn transpose(abs_pitch: AbsPitch, music: Self) -> Self {
-        Self::Modify(Control::Transpose(abs_pitch), Box::new(music))
+    pub fn with_transpose(self, abs_pitch: AbsPitch) -> Self {
+        Self::Modify(Control::Transpose(abs_pitch), Box::new(self))
     }
 
-    pub fn instrument(name: StandartMidiInstrument, music: Self) -> Self {
-        Self::Modify(Control::Instrument(name), Box::new(music))
+    pub fn with_instrument(self, name: StandartMidiInstrument) -> Self {
+        Self::Modify(Control::Instrument(name), Box::new(self))
     }
 
-    //fn phrase(attributes: Vec<PhraseAttribute>, music: Self) -> Self {
-    //    Music::Modify(Control::Phrase(attributes), Box::new(music))
+    //fn with_phrase(self, attributes: Vec<PhraseAttribute>) -> Self {
+    //    Music::Modify(Control::Phrase(attributes), Box::new(self))
     //}
 
-    pub fn player(name: PlayerName, music: Self) -> Self {
-        Self::Modify(Control::Player(name), Box::new(music))
+    pub fn with_player(self, name: PlayerName) -> Self {
+        Self::Modify(Control::Player(name), Box::new(self))
     }
 
-    pub fn key_sig(pitch_class: PitchClass, mode: Mode, music: Self) -> Self {
-        Self::Modify(Control::KeySig(pitch_class, mode), Box::new(music))
+    pub fn with_key_sig(self, pitch_class: PitchClass, mode: Mode) -> Self {
+        Self::Modify(Control::KeySig(pitch_class, mode), Box::new(self))
     }
 }
 
@@ -511,15 +516,29 @@ impl Music {
     /// (as part of the `Control` data type, which in turn is part of the `Music`),
     /// this function actually changes each note in a `Music<Pitch>` value by
     /// transposing it by the interval specified.
-    pub fn trans(self, abs_pitch: AbsPitch) -> Self {
+    pub fn trans(self, delta: Interval) -> Self {
         match self {
             Self::Prim(Primitive::Note(duration, pitch)) => {
-                Self::note(duration, pitch.trans(abs_pitch.into()))
+                Self::note(duration, pitch.trans(delta))
             }
             Self::Prim(Primitive::Rest(duration)) => Self::rest(duration),
-            Self::Sequential(m1, m2) => m1.trans(abs_pitch) & m2.trans(abs_pitch),
-            Self::Parallel(m1, m2) => m1.trans(abs_pitch) | m2.trans(abs_pitch),
-            Self::Modify(control, m) => Self::Modify(control, Box::new(m.trans(abs_pitch))),
+            Self::Sequential(m1, m2) => m1.trans(delta) & m2.trans(delta),
+            Self::Parallel(m1, m2) => m1.trans(delta) | m2.trans(delta),
+            Self::Modify(control, m) => Self::Modify(control, Box::new(m.trans(delta))),
+        }
+    }
+
+    pub fn grace_note(&self, offset: AbsPitch, grace_fraction: Ratio<u8>) -> Result<Self, String> {
+        if let Self::Prim(Primitive::Note(d, p)) = self {
+            Ok(Self::note(
+                (grace_fraction * d.into_rational()).into(),
+                p.trans(offset.into()),
+            ) & Self::note(
+                ((Ratio::from_integer(1) - grace_fraction) * d.into_rational()).into(),
+                *p,
+            ))
+        } else {
+            Err("Can only add a grace note to a note".into())
         }
     }
 }
@@ -535,6 +554,23 @@ impl<P> Music<P> {
         musics
             .into_iter()
             .fold(Self::rest(Dur::ZERO), |acc, m| acc | m)
+    }
+
+    pub fn with_dur(pitches: Vec<P>, dur: Dur) -> Self {
+        Self::line(
+            pitches
+                .into_iter()
+                .map(|pitch| Self::note(dur, pitch))
+                .collect(),
+        )
+    }
+}
+
+impl<P: Clone> Music<P> {
+    pub fn times(&self, n: usize) -> Self {
+        std::iter::repeat(self.clone())
+            .take(n)
+            .fold(Self::rest(Dur::ZERO), |acc, m| acc & m)
     }
 }
 
