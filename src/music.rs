@@ -541,6 +541,35 @@ impl Music {
             Err("Can only add a grace note to a note".into())
         }
     }
+
+    pub fn invert(self) -> Self {
+        let line = Vec::from(self.clone());
+        if let Some(Self::Prim(Primitive::Note(_, first_pitch))) = line.first() {
+            let first_pitch = *first_pitch;
+            let inv = |m| {
+                if let Self::Prim(Primitive::Note(d, p)) = m {
+                    // prevent i8 overflow
+                    let inverted_pitch = 2 * i16::from(first_pitch.abs().get_inner())
+                        - i16::from(p.abs().get_inner());
+                    let inverted_pitch = AbsPitch::from(inverted_pitch as i8);
+                    Self::note(d, inverted_pitch.into())
+                } else {
+                    m
+                }
+            };
+            Self::line(line.into_iter().map(inv).collect())
+        } else {
+            self
+        }
+    }
+
+    pub fn retro_invert(self) -> Self {
+        self.invert().retrograde()
+    }
+
+    pub fn invert_retro(self) -> Self {
+        self.retrograde().invert()
+    }
 }
 
 impl<P> Music<P> {
@@ -564,6 +593,14 @@ impl<P> Music<P> {
                 .collect(),
         )
     }
+
+    pub fn with_delay(self, dur: Dur) -> Self {
+        Self::rest(dur) & self
+    }
+
+    pub fn retrograde(self) -> Self {
+        Self::line(Vec::from(self).into_iter().rev().collect())
+    }
 }
 
 impl<P: Clone> Music<P> {
@@ -571,6 +608,18 @@ impl<P: Clone> Music<P> {
         std::iter::repeat(self.clone())
             .take(n)
             .fold(Self::rest(Dur::ZERO), |acc, m| acc & m)
+    }
+}
+
+impl<P> From<Music<P>> for Vec<Music<P>> {
+    fn from(value: Music<P>) -> Self {
+        match value {
+            Music::Prim(Primitive::Rest(Dur::ZERO)) => vec![],
+            Music::Sequential(m1, m2) => {
+                Self::from(*m1).into_iter().chain(Self::from(*m2)).collect()
+            }
+            other => vec![other],
+        }
     }
 }
 
