@@ -47,6 +47,10 @@ impl Interval {
     pub const fn tone() -> Self {
         Self(2)
     }
+
+    pub const fn get_inner(self) -> i8 {
+        self.0
+    }
 }
 
 impl From<i8> for Interval {
@@ -224,6 +228,14 @@ macro_rules! def_pitch_constructor {
 impl Pitch {
     pub const fn new(class: PitchClass, octave: Octave) -> Self {
         Self { class, octave }
+    }
+
+    pub const fn octave(self) -> Octave {
+        self.octave
+    }
+
+    pub const fn class(self) -> PitchClass {
+        self.class
     }
 
     def_pitch_constructor![Aff, Af, A, As, Ass];
