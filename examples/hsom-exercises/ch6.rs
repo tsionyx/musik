@@ -179,8 +179,9 @@ fn retro_pitches(m: Music) -> Option<Music> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use musik::{Dur, Octave};
+
+    use super::*;
 
     #[test]
     fn test_retro_pitches() {
@@ -198,6 +199,16 @@ mod tests {
                 M::rest(Dur::SN),
                 M::C(oc4, Dur::QN),
             ])
+        );
+    }
+
+    #[test]
+    fn strip_zeros() {
+        let oc4 = Octave::ONE_LINED;
+        let m = M::C(oc4, Dur::EN) & M::D(oc4, Dur::EN).times(16);
+        assert_eq!(
+            m.drop(Dur::HN).take(Dur::HN).remove_zeros(),
+            M::D(oc4, Dur::EN).times(4).remove_zeros()
         );
     }
 }

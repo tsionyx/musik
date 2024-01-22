@@ -1,6 +1,7 @@
 use std::{
+    cmp::Ordering,
     convert::TryFrom,
-    ops::{Add, AddAssign, BitAnd, BitOr, Sub},
+    ops::{Add, AddAssign, BitAnd, BitOr, Div, Mul, Sub},
 };
 
 use num_rational::Ratio;
@@ -333,6 +334,18 @@ impl From<AbsPitch> for Pitch {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dur(u8, u8);
 
+impl PartialOrd for Dur {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Dur {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.into_rational().cmp(&other.into_rational())
+    }
+}
+
 impl Dur {
     const fn from_integer(i: u8) -> Self {
         Self(i, 1)
@@ -399,11 +412,67 @@ impl Dur {
             Self::new(self.0, self.1 << 1)
         }
     }
+
+    pub fn saturating_sub(self, rhs: Self) -> Self {
+        if self > rhs {
+            self - rhs
+        } else {
+            Self::ZERO
+        }
+    }
 }
 
 impl From<Ratio<u8>> for Dur {
     fn from(value: Ratio<u8>) -> Self {
         Self::new(*value.numer(), *value.denom())
+    }
+}
+
+impl Add<Self> for Dur {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        (self.into_rational() + rhs.into_rational()).into()
+    }
+}
+
+impl Sub<Self> for Dur {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        (self.into_rational() - rhs.into_rational()).into()
+    }
+}
+
+impl Mul<u8> for Dur {
+    type Output = Self;
+
+    fn mul(self, rhs: u8) -> Self::Output {
+        (self.into_rational() * rhs).into()
+    }
+}
+
+impl Mul<Ratio<u8>> for Dur {
+    type Output = Self;
+
+    fn mul(self, rhs: Ratio<u8>) -> Self::Output {
+        (self.into_rational() * rhs).into()
+    }
+}
+
+impl Div<u8> for Dur {
+    type Output = Self;
+
+    fn div(self, rhs: u8) -> Self::Output {
+        (self.into_rational() / rhs).into()
+    }
+}
+
+impl Div<Ratio<u8>> for Dur {
+    type Output = Self;
+
+    fn div(self, rhs: Ratio<u8>) -> Self::Output {
+        (self.into_rational() / rhs).into()
     }
 }
 
@@ -542,13 +611,8 @@ impl Music {
 
     pub fn grace_note(&self, offset: AbsPitch, grace_fraction: Ratio<u8>) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
-            Ok(Self::note(
-                (grace_fraction * d.into_rational()).into(),
-                p.trans(offset.into()),
-            ) & Self::note(
-                ((Ratio::from_integer(1) - grace_fraction) * d.into_rational()).into(),
-                *p,
-            ))
+            Ok(Self::note(*d * grace_fraction, p.trans(offset.into()))
+                & Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
         } else {
             Err("Can only add a grace note to a note".into())
         }
@@ -612,6 +676,94 @@ impl<P> Music<P> {
 
     pub fn retrograde(self) -> Self {
         Self::line(Vec::from(self).into_iter().rev().collect())
+    }
+
+    pub fn duration(&self) -> Dur {
+        match self {
+            Self::Prim(Primitive::Note(d, _)) => *d,
+            Self::Prim(Primitive::Rest(d)) => *d,
+            Self::Sequential(m1, m2) => m1.duration() + m2.duration(),
+            Self::Parallel(m1, m2) => m1.duration().max(m2.duration()),
+            Self::Modify(Control::Tempo(r), m) => m.duration() / *r,
+            Self::Modify(_, m) => m.duration(),
+        }
+    }
+
+    pub fn reverse(self) -> Self {
+        match self {
+            n @ Self::Prim(_) => n,
+            Self::Sequential(m1, m2) => m2.reverse() & m1.reverse(),
+            Self::Parallel(m1, m2) => {
+                let d1 = m1.duration();
+                let d2 = m2.duration();
+                if d1 > d2 {
+                    m1.reverse() | (Self::rest(d1 - d2) & m2.reverse())
+                } else {
+                    (Self::rest(d2 - d1) & m1.reverse()) | m2.reverse()
+                }
+            }
+            Self::Modify(c, m) => Self::Modify(c, Box::new(m.reverse())),
+        }
+    }
+
+    /// Take the first N whole beats and drop the other
+    pub fn take(self, n: Dur) -> Self {
+        if n == Dur::ZERO {
+            return Self::rest(Dur::ZERO);
+        }
+
+        match self {
+            Self::Prim(Primitive::Note(d, p)) => Self::note(d.min(n), p),
+            Self::Prim(Primitive::Rest(d)) => Self::rest(d.min(n)),
+            Self::Sequential(m1, m2) => {
+                let m1 = m1.take(n);
+                let m2 = m2.take(n - m1.duration());
+                m1 & m2
+            }
+            Self::Parallel(m1, m2) => m1.take(n) | m2.take(n),
+            Self::Modify(Control::Tempo(r), m) => m.take(n * r).with_tempo(r),
+            Self::Modify(c, m) => Self::Modify(c, Box::new(m.take(n))),
+        }
+    }
+
+    /// Drop the first N whole beats and take the other
+    pub fn drop(self, n: Dur) -> Self {
+        if n == Dur::ZERO {
+            return self;
+        }
+
+        match self {
+            Self::Prim(Primitive::Note(d, p)) => Self::note(d.saturating_sub(n), p),
+            Self::Prim(Primitive::Rest(d)) => Self::rest(d.saturating_sub(n)),
+            Self::Sequential(m1, m2) => {
+                let m2 = (*m2).drop(n.saturating_sub(m1.duration()));
+                (*m1).drop(n) & m2
+            }
+            Self::Parallel(m1, m2) => (*m1).drop(n) | (*m2).drop(n),
+            Self::Modify(Control::Tempo(r), m) => (*m).drop(n * r).with_tempo(r),
+            Self::Modify(c, m) => Self::Modify(c, Box::new((*m).drop(n))),
+        }
+    }
+
+    pub fn remove_zeros(self) -> Self {
+        match self {
+            n @ Self::Prim(_) => n,
+            Self::Sequential(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
+                (Self::Prim(Primitive::Note(Dur::ZERO, _)), m) => m,
+                (Self::Prim(Primitive::Rest(Dur::ZERO)), m) => m,
+                (m, Self::Prim(Primitive::Note(Dur::ZERO, _))) => m,
+                (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
+                (m1, m2) => m1 & m2,
+            },
+            Self::Parallel(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
+                (Self::Prim(Primitive::Note(Dur::ZERO, _)), m) => m,
+                (Self::Prim(Primitive::Rest(Dur::ZERO)), m) => m,
+                (m, Self::Prim(Primitive::Note(Dur::ZERO, _))) => m,
+                (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
+                (m1, m2) => m1 | m2,
+            },
+            Self::Modify(c, m) => Self::Modify(c, Box::new(m.remove_zeros())),
+        }
     }
 }
 
