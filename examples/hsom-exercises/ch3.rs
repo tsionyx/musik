@@ -52,7 +52,7 @@ fn staccato(musics: Vec<Music>) -> Vec<Music> {
         .map(|music| {
             if let Music::Prim(Primitive::Note(duration, pitch)) = music {
                 let halved = duration.halve();
-                Music::note(halved, pitch) & Music::rest(halved)
+                Music::note(halved, pitch) + Music::rest(halved)
             } else {
                 music
             }
@@ -548,7 +548,7 @@ mod chromatic {
         let current_note = Music::note(Dur::QN, p1);
 
         current_note
-            & match interval.cmp(&Interval::zero()) {
+            + match interval.cmp(&Interval::zero()) {
                 Ordering::Less => chrom(p1.prev(), p2),
                 Ordering::Equal => Music::rest(Dur::ZERO),
                 Ordering::Greater => chrom(p1.next(), p2),
@@ -564,10 +564,10 @@ mod chromatic {
         assert_eq!(
             res,
             Music::C(oc, d)
-                & (Music::Cs(oc, d)
-                    & (Music::D(oc, d)
-                        & (Music::Ds(oc, d)
-                            & (Music::E(oc, d) & (Music::F(oc, d) & Music::rest(Dur::ZERO))))))
+                + (Music::Cs(oc, d)
+                    + (Music::D(oc, d)
+                        + (Music::Ds(oc, d)
+                            + (Music::E(oc, d) + (Music::F(oc, d) + Music::rest(Dur::ZERO))))))
         );
     }
 
@@ -581,8 +581,8 @@ mod chromatic {
         assert_eq!(
             res,
             Music::C(o4, d)
-                & (Music::B(o3, d)
-                    & (Music::As(o3, d) & (Music::A(o3, d) & Music::rest(Dur::ZERO))))
+                + (Music::B(o3, d)
+                    + (Music::As(o3, d) + (Music::A(o3, d) + Music::rest(Dur::ZERO))))
         );
     }
 }
@@ -600,7 +600,7 @@ fn mk_scale(p: Pitch, dur: Dur, ints: &[Interval]) -> Music {
             (Music::note(dur, p), Interval::zero()),
             |(music, acc_int), int| {
                 let acc_int = acc_int + *int;
-                (music & Music::note(dur, p.trans(acc_int)), acc_int)
+                (music + Music::note(dur, p.trans(acc_int)), acc_int)
             },
         )
         .0
@@ -617,12 +617,12 @@ fn test_mk_scale_at_7_major() {
     assert_eq!(
         res,
         Music::C(oc, d)
-            & Music::D(oc, d)
-            & Music::E(oc, d)
-            & Music::F(oc, d)
-            & Music::G(oc, d)
-            & Music::A(oc, d)
-            & Music::B(oc, d)
+            + Music::D(oc, d)
+            + Music::E(oc, d)
+            + Music::F(oc, d)
+            + Music::G(oc, d)
+            + Music::A(oc, d)
+            + Music::B(oc, d)
     );
 }
 
@@ -677,13 +677,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::C(oc, d)
-                & Music::D(oc, d)
-                & Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
-                & Music::B(oc, d)
-                & Music::C(oc5, d)
+                + Music::D(oc, d)
+                + Music::E(oc, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
+                + Music::B(oc, d)
+                + Music::C(oc5, d)
         );
     }
 
@@ -697,13 +697,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::D(oc, d)
-                & Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
-                & Music::B(oc, d)
-                & Music::C(oc5, d)
-                & Music::D(oc5, d)
+                + Music::E(oc, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
+                + Music::B(oc, d)
+                + Music::C(oc5, d)
+                + Music::D(oc5, d)
         );
     }
 
@@ -717,13 +717,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
-                & Music::B(oc, d)
-                & Music::C(oc5, d)
-                & Music::D(oc5, d)
-                & Music::E(oc5, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
+                + Music::B(oc, d)
+                + Music::C(oc5, d)
+                + Music::D(oc5, d)
+                + Music::E(oc5, d)
         );
     }
 
@@ -737,13 +737,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
-                & Music::B(oc, d)
-                & Music::C(oc5, d)
-                & Music::D(oc5, d)
-                & Music::E(oc5, d)
-                & Music::F(oc5, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
+                + Music::B(oc, d)
+                + Music::C(oc5, d)
+                + Music::D(oc5, d)
+                + Music::E(oc5, d)
+                + Music::F(oc5, d)
         );
     }
 
@@ -757,13 +757,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::G(oc3, d)
-                & Music::A(oc3, d)
-                & Music::B(oc3, d)
-                & Music::C(oc, d)
-                & Music::D(oc, d)
-                & Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
+                + Music::A(oc3, d)
+                + Music::B(oc3, d)
+                + Music::C(oc, d)
+                + Music::D(oc, d)
+                + Music::E(oc, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
         );
     }
 
@@ -777,13 +777,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::A(oc3, d)
-                & Music::B(oc3, d)
-                & Music::C(oc, d)
-                & Music::D(oc, d)
-                & Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
+                + Music::B(oc3, d)
+                + Music::C(oc, d)
+                + Music::D(oc, d)
+                + Music::E(oc, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
         );
     }
 
@@ -797,13 +797,13 @@ mod major_scale {
         assert_eq!(
             res,
             Music::B(oc3, d)
-                & Music::C(oc, d)
-                & Music::D(oc, d)
-                & Music::E(oc, d)
-                & Music::F(oc, d)
-                & Music::G(oc, d)
-                & Music::A(oc, d)
-                & Music::B(oc, d)
+                + Music::C(oc, d)
+                + Music::D(oc, d)
+                + Music::E(oc, d)
+                + Music::F(oc, d)
+                + Music::G(oc, d)
+                + Music::A(oc, d)
+                + Music::B(oc, d)
         );
     }
 }
@@ -864,7 +864,7 @@ mod brother_john {
     }
 
     fn sequential(musics: impl Iterator<Item = Music>) -> Music {
-        musics.fold(Music::rest(Dur::ZERO), |melody, m| melody & m)
+        musics.fold(Music::rest(Dur::ZERO), |melody, m| melody + m)
     }
 
     fn parallel(musics: impl Iterator<Item = Music>) -> Music {

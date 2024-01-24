@@ -51,7 +51,7 @@ mod harmonic {
 
     fn harmonic_list(d: Dur, pitches: &[Pitch], i: Interval) -> Music {
         pitches.iter().fold(Music::rest(Dur::ZERO), |prev, p| {
-            prev & harmonic_note(d, *p, i)
+            prev + harmonic_note(d, *p, i)
         })
     }
 

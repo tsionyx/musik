@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr};
+use std::ops::{Add, BitOr};
 
 use num_rational::Ratio;
 
@@ -55,10 +55,10 @@ impl<P> From<Primitive<P>> for Music<P> {
 }
 
 /// Sequential composition
-impl<P> BitAnd for Music<P> {
+impl<P> Add for Music<P> {
     type Output = Self;
 
-    fn bitand(self, rhs: Self) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::Sequential(Box::new(self), Box::new(rhs))
     }
 }

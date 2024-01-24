@@ -13,7 +13,7 @@ fn child_song_6() -> Music {
     let b1 = M::with_dur(vec![P::B(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)], Dur::QN);
     let b2 = M::with_dur(vec![P::B(oc3), P::Es(oc4), P::Fs(oc4), P::Es(oc4)], Dur::QN);
     let b3 = M::with_dur(vec![P::As(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)], Dur::QN);
-    let bass_line = b1.times(3) & b2.times(2) & b3.times(4) & b1.times(5);
+    let bass_line = b1.times(3) + b2.times(2) + b3.times(4) + b1.times(5);
 
     let oc5 = Octave::TWO_LINED;
     let v1a = M::with_dur(
@@ -33,10 +33,10 @@ fn child_song_6() -> Music {
 
     let default_grace_note_fraction = Ratio::new(1, 8);
     let v1 = v1a
-        & M::D(oc5, Dur::QN)
+        + M::D(oc5, Dur::QN)
             .grace_note((-1).into(), default_grace_note_fraction)
             .unwrap()
-        & v1b; // bars 1-2
+        + v1b; // bars 1-2
 
     let oc6 = Octave::THREE_LINED;
     let v2 = vec![
@@ -53,8 +53,8 @@ fn child_song_6() -> Music {
         ]),
         // bars 12-13
         M::with_dur(vec![P::Fs(oc5), P::E(oc5), P::Cs(oc5), P::As(oc4)], Dur::EN)
-            & M::A(oc4, Dur::DQN)
-            & M::with_dur(
+            + M::A(oc4, Dur::DQN)
+            + M::with_dur(
                 vec![P::As(oc4), P::Cs(oc5), P::Fs(oc5), P::E(oc5), P::Fs(oc5)],
                 Dur::EN,
             ),
@@ -66,9 +66,9 @@ fn child_song_6() -> Music {
             M::Cs(oc6, Dur::EN),
             M::D(oc6, Dur::EN),
             M::Cs(oc6, Dur::EN),
-        ]) & M::E(oc5, Dur::EN)
-            & rests::EN
-            & M::line(vec![
+        ]) + M::E(oc5, Dur::EN)
+            + rests::EN
+            + M::line(vec![
                 M::As(oc5, Dur::EN),
                 M::A(oc5, Dur::EN),
                 M::G(oc5, Dur::EN),
@@ -126,10 +126,10 @@ fn child_song_6() -> Music {
         ]),
         // bars 24-28
         M::with_dur(vec![P::Cs(oc5), P::D(oc5), P::Cs(oc5)], Dur::EN).with_tempo(Ratio::new(3, 2))
-            & M::B(oc4, Dur::DHN).times(3)
-            & M::B(oc4, Dur::HN),
+            + M::B(oc4, Dur::DHN).times(3)
+            + M::B(oc4, Dur::HN),
     ];
-    let main_voice = v1.times(3) & M::line(v2);
+    let main_voice = v1.times(3) + M::line(v2);
     let t = (Dur::DHN.into_rational() / Dur::QN.into_rational()) * Ratio::new(69, 120);
     (bass_line | main_voice)
         .with_tempo(t)
@@ -174,7 +174,7 @@ fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
     .with_transpose(12.into());
     let m = m1.with_instrument(StandartMidiInstrument::Flute)
         | m2.with_instrument(StandartMidiInstrument::VoiceOohs);
-    m.clone() & m.clone().with_transpose(5.into()) & m
+    m.clone() + m.clone().with_transpose(5.into()) + m
 }
 
 fn prefixed_mel_1() -> Music {

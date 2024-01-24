@@ -19,7 +19,7 @@ impl Music {
                 Self::note(duration, pitch.trans(delta))
             }
             Self::Prim(Primitive::Rest(duration)) => Self::rest(duration),
-            Self::Sequential(m1, m2) => m1.trans(delta) & m2.trans(delta),
+            Self::Sequential(m1, m2) => m1.trans(delta) + m2.trans(delta),
             Self::Parallel(m1, m2) => m1.trans(delta) | m2.trans(delta),
             Self::Modify(control, m) => Self::Modify(control, Box::new(m.trans(delta))),
         }
@@ -28,7 +28,7 @@ impl Music {
     pub fn grace_note(&self, offset: AbsPitch, grace_fraction: Ratio<u8>) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
             Ok(Self::note(*d * grace_fraction, p.trans(offset.into()))
-                & Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
+                + Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
         } else {
             Err("Can only add a grace note to a note".into())
         }
@@ -68,7 +68,7 @@ impl<P> Music<P> {
     pub fn line(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc & m)
+            .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
     }
 
     pub fn chord(musics: Vec<Self>) -> Self {
@@ -87,7 +87,7 @@ impl<P> Music<P> {
     }
 
     pub fn with_delay(self, dur: Dur) -> Self {
-        Self::rest(dur) & self
+        Self::rest(dur) + self
     }
 
     pub fn retrograde(self) -> Self {
@@ -97,14 +97,14 @@ impl<P> Music<P> {
     pub fn reverse(self) -> Self {
         match self {
             n @ Self::Prim(_) => n,
-            Self::Sequential(m1, m2) => m2.reverse() & m1.reverse(),
+            Self::Sequential(m1, m2) => m2.reverse() + m1.reverse(),
             Self::Parallel(m1, m2) => {
                 let d1 = m1.duration();
                 let d2 = m2.duration();
                 if d1 > d2 {
-                    m1.reverse() | (Self::rest(d1 - d2) & m2.reverse())
+                    m1.reverse() | (Self::rest(d1 - d2) + m2.reverse())
                 } else {
-                    (Self::rest(d2 - d1) & m1.reverse()) | m2.reverse()
+                    (Self::rest(d2 - d1) + m1.reverse()) | m2.reverse()
                 }
             }
             Self::Modify(c, m) => Self::Modify(c, Box::new(m.reverse())),
@@ -123,7 +123,7 @@ impl<P> Music<P> {
             Self::Sequential(m1, m2) => {
                 let m1 = m1.take(n);
                 let m2 = m2.take(n - m1.duration());
-                m1 & m2
+                m1 + m2
             }
             Self::Parallel(m1, m2) => m1.take(n) | m2.take(n),
             Self::Modify(Control::Tempo(r), m) => m.take(n * r).with_tempo(r),
@@ -142,7 +142,7 @@ impl<P> Music<P> {
             Self::Prim(Primitive::Rest(d)) => Self::rest(d.saturating_sub(n)),
             Self::Sequential(m1, m2) => {
                 let m2 = (*m2).drop(n.saturating_sub(m1.duration()));
-                (*m1).drop(n) & m2
+                (*m1).drop(n) + m2
             }
             Self::Parallel(m1, m2) => (*m1).drop(n) | (*m2).drop(n),
             Self::Modify(Control::Tempo(r), m) => (*m).drop(n * r).with_tempo(r),
@@ -158,7 +158,7 @@ impl<P> Music<P> {
                 (Self::Prim(Primitive::Rest(Dur::ZERO)), m) => m,
                 (m, Self::Prim(Primitive::Note(Dur::ZERO, _))) => m,
                 (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
-                (m1, m2) => m1 & m2,
+                (m1, m2) => m1 + m2,
             },
             Self::Parallel(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
                 (Self::Prim(Primitive::Note(Dur::ZERO, _)), m) => m,
@@ -177,7 +177,7 @@ impl<P: Clone> Music<P> {
         // TODO: think about an 'infinite' Music
         std::iter::repeat(self.clone())
             .take(n)
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc & m)
+            .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
     }
 }
 

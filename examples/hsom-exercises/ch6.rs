@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn strip_zeros() {
         let oc4 = Octave::ONE_LINED;
-        let m = M::C(oc4, Dur::EN) & M::D(oc4, Dur::EN).times(16);
+        let m = M::C(oc4, Dur::EN) + M::D(oc4, Dur::EN).times(16);
         assert_eq!(
             m.drop(Dur::HN).take(Dur::HN).remove_zeros(),
             M::D(oc4, Dur::EN).times(4).remove_zeros()

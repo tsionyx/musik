@@ -9,7 +9,7 @@ fn t251() -> Music {
     let g_major = Music::G(oc4, Dur::WN) | Music::B(oc4, Dur::WN) | Music::D(oc5, Dur::WN);
     let c_major = Music::C(oc4, Dur::BN) | Music::E(oc4, Dur::BN) | Music::G(oc4, Dur::BN);
 
-    d_minor & g_major & c_major
+    d_minor + g_major + c_major
 }
 
 /// Exercise 2.1
@@ -45,7 +45,7 @@ fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
         .map(|&index| Music::note(double_duration, first_major[index]))
         .fold(Music::note(double_duration, pitch), |acc, x| acc | x);
 
-    second_minor_chord & fifth_major_chord & first_major_chord
+    second_minor_chord + fifth_major_chord + first_major_chord
 }
 
 #[test]
@@ -156,7 +156,7 @@ mod blues {
     fn melody() -> Music {
         let oc = Octave::from(4);
         let blues_melody = (ro(oc, Dur::QN) | ms(oc, Dur::QN))
-            & (mt(oc, Dur::HN) | fi(oc, Dur::HN) | fo(oc, Dur::HN));
+            + (mt(oc, Dur::HN) | fi(oc, Dur::HN) | fo(oc, Dur::HN));
         blues_into_western(blues_melody)
     }
 }
