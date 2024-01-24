@@ -1,6 +1,6 @@
 use std::{
     convert::TryFrom,
-    ops::{Add, AddAssign, Sub},
+    ops::{Add, AddAssign, Neg, Sub},
 };
 
 use super::pitch::PitchClass;
@@ -76,6 +76,14 @@ impl Interval {
 impl From<i8> for Interval {
     fn from(val: i8) -> Self {
         Self(val)
+    }
+}
+
+impl Neg for Interval {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self(-self.0)
     }
 }
 

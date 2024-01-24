@@ -87,6 +87,11 @@ impl Dur {
         }
     }
 
+    pub const fn dotted(self) -> Self {
+        let self_ = self.halve();
+        Self::new(self_.0 * 3, self_.1)
+    }
+
     pub fn saturating_sub(self, rhs: Self) -> Self {
         if self > rhs {
             self - rhs

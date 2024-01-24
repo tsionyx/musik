@@ -1,3 +1,5 @@
+use std::iter;
+
 use num_rational::Ratio;
 
 use super::{
@@ -61,6 +63,71 @@ impl Music {
 
     pub fn invert_retro(self) -> Self {
         self.retrograde().invert()
+    }
+
+    pub fn trill(&self, interval: Interval, opts: impl Into<TrillOptions>) -> Result<Self, String> {
+        match self {
+            Self::Prim(Primitive::Note(d, p)) => {
+                let dur_seq: Box<dyn Iterator<Item = Dur>> = match opts.into() {
+                    TrillOptions::Duration(single) => {
+                        let mut left_dur = *d;
+                        Box::new(iter::from_fn(move || {
+                            if left_dur == Dur::ZERO {
+                                return None;
+                            }
+                            let dur = left_dur.min(single);
+                            left_dur = left_dur.saturating_sub(single);
+                            Some(dur)
+                        }))
+                    }
+                    TrillOptions::Count(n) => {
+                        let single = *d / n;
+                        Box::new(iter::repeat(single).take(usize::from(n)))
+                    }
+                };
+                Ok(Self::line(
+                    dur_seq
+                        .enumerate()
+                        .map(|(i, dur)| {
+                            // odd are trills
+                            let trill_pitch = i % 2 == 1;
+                            let pitch = if trill_pitch { p.trans(interval) } else { *p };
+                            Self::note(dur, pitch)
+                        })
+                        .collect(),
+                ))
+            }
+            Self::Prim(Primitive::Rest(_)) => Err("Cannot construct trill from the Rest".into()),
+            Self::Sequential(_, _) | Self::Parallel(_, _) => {
+                Err("Cannot construct trill from the complex".into())
+            }
+            Self::Modify(Control::Tempo(r), m) => {
+                let single = match opts.into() {
+                    TrillOptions::Duration(single) => single,
+                    TrillOptions::Count(n) => m.duration() / n,
+                };
+                m.trill(interval, single * *r).map(|m| m.with_tempo(*r))
+            }
+            Self::Modify(c, m) => m
+                .trill(interval, opts)
+                .map(|m| Self::Modify(c.clone(), Box::new(m))),
+        }
+    }
+
+    pub fn roll(&self, opts: impl Into<TrillOptions>) -> Result<Self, String> {
+        self.trill(Interval::zero(), opts)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum TrillOptions {
+    Duration(Dur),
+    Count(u8),
+}
+
+impl From<Dur> for TrillOptions {
+    fn from(value: Dur) -> Self {
+        Self::Duration(value)
     }
 }
 
@@ -190,5 +257,45 @@ impl<P> From<Music<P>> for Vec<Music<P>> {
             }
             other => vec![other],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{super::interval::Octave, *};
+
+    #[test]
+    fn trill() {
+        let oc4 = Octave::ONE_LINED;
+        let m = Music::C(oc4, Dur::WN);
+
+        assert_eq!(
+            m.trill(Interval::tone(), Dur::EN.dotted()).unwrap(),
+            Music::line(vec![
+                Music::C(oc4, Dur::DEN),
+                Music::D(oc4, Dur::DEN),
+                Music::C(oc4, Dur::DEN),
+                Music::D(oc4, Dur::DEN),
+                Music::C(oc4, Dur::DEN),
+                Music::D(oc4, Dur::SN),
+            ])
+        );
+    }
+
+    #[test]
+    fn trill_count() {
+        let oc4 = Octave::ONE_LINED;
+        let m = Music::C(oc4, Dur::WN);
+
+        assert_eq!(
+            m.trill(Interval::semi_tone(), TrillOptions::Count(4))
+                .unwrap(),
+            Music::line(vec![
+                Music::C(oc4, Dur::QN),
+                Music::Cs(oc4, Dur::QN),
+                Music::C(oc4, Dur::QN),
+                Music::Cs(oc4, Dur::QN),
+            ])
+        );
     }
 }

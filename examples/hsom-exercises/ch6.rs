@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use musik::{music::Primitive, Interval, Music};
+use musik::{
+    instruments::StandartMidiInstrument, music::Primitive, Dur, Interval, Music, Octave,
+    TrillOptions,
+};
 
 type M = Music;
 
@@ -210,5 +213,92 @@ mod tests {
             m.drop(Dur::HN).take(Dur::HN).remove_zeros(),
             M::D(oc4, Dur::EN).times(4).remove_zeros()
         );
+    }
+}
+
+// TODO: play me
+fn stars_and_stripes() -> Music {
+    type M = Music;
+
+    let oc5 = Octave::TWO_LINED;
+    let oc6 = Octave::THREE_LINED;
+    let oc7 = Octave::FOUR_LINED;
+
+    let melody = Music::line(vec![
+        // bar 1
+        M::Bf(oc6, Dur::EN)
+            .trill(Interval::tone(), TrillOptions::Count(5))
+            .unwrap(),
+        M::Ef(oc7, Dur::EN),
+        M::Ef(oc6, Dur::EN),
+        M::Ef(oc7, Dur::EN),
+        // bar 2
+        M::Bf(oc6, Dur::SN),
+        M::C(oc7, Dur::SN),
+        M::Bf(oc6, Dur::SN),
+        M::G(oc6, Dur::SN),
+        M::Ef(oc6, Dur::EN),
+        M::Bf(oc5, Dur::EN),
+        // bar 3
+        M::Ef(oc6, Dur::SN),
+        M::F(oc6, Dur::SN),
+        M::G(oc6, Dur::SN),
+        M::Af(oc6, Dur::SN),
+        M::Bf(oc6, Dur::EN),
+        M::Ef(oc7, Dur::EN),
+        // bar 4
+        M::Bf(oc6, Dur::QN)
+            .trill(Interval::tone(), Dur::TN)
+            .unwrap(),
+        M::Bf(oc6, Dur::SN),
+        M::rest(Dur::DEN),
+    ]);
+
+    melody.with_instrument(StandartMidiInstrument::Flute)
+}
+
+/// Exercise 6.6
+///
+/// Related to trills and grace notes in Western classical music
+/// are the notions of `mordent`, `turn`, and `appoggiatura`.
+///
+/// <https://en.wikipedia.org/wiki/Ornament_(music)>
+mod ornamentations {
+    use super::*;
+
+    fn mordent(music: Music, upper: bool) -> Result<Music, String> {
+        if let Music::Prim(Primitive::Note(d, p)) = music {
+            let other = if upper {
+                Interval::tone()
+            } else {
+                -Interval::tone()
+            };
+            Ok(Music::line(vec![
+                Music::note(d / 8, p),
+                Music::note(d / 8, p.trans(other)),
+                Music::note(d / 4, p),
+                Music::note(d / 2, p),
+            ]))
+        } else {
+            Err("Can only construct a mordent from a note".into())
+        }
+    }
+
+    fn turn(music: Music, upper: bool) -> Result<Music, String> {
+        if let Music::Prim(Primitive::Note(d, p)) = music {
+            let other = if upper {
+                Interval::tone()
+            } else {
+                -Interval::tone()
+            };
+            Ok(Music::line(vec![
+                Music::note(d / 4, p.trans(other)),
+                Music::note(d / 4, p),
+                Music::note(d / 4, p.trans(-other)),
+                Music::note(d / 4, p),
+            ]))
+        } else {
+            Err("Can only construct a turn from a note".into())
+        }
     }
 }

@@ -4,7 +4,7 @@ use num_rational::Ratio;
 
 use super::instruments::StandartMidiInstrument;
 
-mod adapters;
+pub(crate) mod adapters;
 pub(crate) mod duration;
 pub(crate) mod interval;
 pub(crate) mod pitch;
