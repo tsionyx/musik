@@ -122,7 +122,7 @@ impl<P> Music<P> {
             Self::Prim(Primitive::Rest(d)) => Self::rest(d.min(n)),
             Self::Sequential(m1, m2) => {
                 let m1 = m1.take(n);
-                let m2 = m2.take(n - m1.duration());
+                let m2 = m2.take(n.saturating_sub(m1.duration()));
                 m1 + m2
             }
             Self::Parallel(m1, m2) => m1.take(n) | m2.take(n),
