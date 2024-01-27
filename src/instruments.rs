@@ -6,6 +6,8 @@
 use enum_iterator::Sequence;
 use enum_map::Enum;
 
+use crate::{AbsPitch, Dur, Music};
+
 pub trait Instrument {
     // TODO
 }
@@ -141,12 +143,70 @@ pub enum StandartMidiInstrument {
     Helicopter,
     Applause,
     Gunshot,
+    /// Marks the pitches in the [`Music`] as the specific [`PercussionSound`].
+    Percussion,
 }
 
 impl Instrument for StandartMidiInstrument {}
 
 // custom instruments could be added the same way
 
-pub struct Percussion;
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Sequence)]
+pub enum PercussionSound {
+    AcousticBassDrum,
+    BassDrum1,
+    SideStick,
+    AcousticSnare,
+    HandClap,
+    ElectricSnare,
+    LowFloorTom,
+    ClosedHiHat,
+    HighFloorTom,
+    PedalHiHat,
+    LowTom,
+    OpenHiHat,
+    LowMidTom,
+    HiMidTom,
+    CrashCymbal1,
+    HighTom,
+    RideCymbal1,
+    ChineseCymbal,
+    RideBell,
+    Tambourine,
+    SplashCymbal,
+    Cowbell,
+    CrashCymbal2,
+    Vibraslap,
+    RideCymbal2,
+    HiBongo,
+    LowBongo,
+    MuteHiConga,
+    OpenHiConga,
+    LowConga,
+    HighTimbale,
+    LowTimbale,
+    HighAgogo,
+    LowAgogo,
+    Cabasa,
+    Maracas,
+    ShortWhistle,
+    LongWhistle,
+    ShortGuiro,
+    LongGuiro,
+    Claves,
+    HiWoodBlock,
+    LowWoodBlock,
+    MuteCuica,
+    OpenCuica,
+    MuteTriangle,
+    OpenTriangle,
+}
 
-impl Instrument for Percussion {}
+impl Instrument for PercussionSound {}
+
+impl PercussionSound {
+    pub fn note(self, dur: Dur) -> Music {
+        let midi_key = i8::try_from(self.into_usize()).unwrap() + 35;
+        Music::note(dur, AbsPitch::from(midi_key).into())
+    }
+}

@@ -21,6 +21,18 @@ pub enum Primitive<P> {
     Rest(Dur),
 }
 
+impl<P> Primitive<P> {
+    pub fn map<U, F>(self, mut f: F) -> Primitive<U>
+    where
+        F: FnMut(P) -> U,
+    {
+        match self {
+            Self::Note(d, p) => Primitive::Note(d, f(p)),
+            Self::Rest(d) => Primitive::Rest(d),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PlayerName(String);
 
@@ -108,8 +120,8 @@ impl<P> Music<P> {
         Self::Prim(Primitive::Rest(duration))
     }
 
-    pub fn with_tempo(self, tempo: Ratio<u8>) -> Self {
-        Self::Modify(Control::Tempo(tempo), Box::new(self))
+    pub fn with_tempo(self, tempo: impl Into<Ratio<u8>>) -> Self {
+        Self::Modify(Control::Tempo(tempo.into()), Box::new(self))
     }
 
     pub fn with_transpose(self, abs_pitch: AbsPitch) -> Self {
@@ -141,6 +153,37 @@ impl<P> Music<P> {
             Self::Modify(Control::Tempo(r), m) => m.duration() / *r,
             Self::Modify(_, m) => m.duration(),
         }
+    }
+
+    pub fn map<U, F>(self, f: F) -> Music<U>
+    where
+        F: FnMut(P) -> U + Clone,
+    {
+        match self {
+            Self::Prim(p) => Music::Prim(p.map(f)),
+            Self::Sequential(m1, m2) => m1.map(f.clone()) + m2.map(f),
+            Self::Parallel(m1, m2) => m1.map(f.clone()) | m2.map(f),
+            Self::Modify(c, m) => Music::Modify(c, Box::new(m.map(f))),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Volume(pub u8);
+
+impl Volume {
+    pub const fn softest() -> Self {
+        Self(0)
+    }
+
+    pub const fn loudest() -> Self {
+        Self(127)
+    }
+}
+
+impl Music {
+    pub fn with_volume(self, vol: Volume) -> Music<(Pitch, Volume)> {
+        self.map(|p| (p, vol))
     }
 }
 

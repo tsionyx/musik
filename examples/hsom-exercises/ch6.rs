@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 
+use num_rational::Ratio;
+
 use musik::{
-    instruments::StandartMidiInstrument, music::Primitive, Dur, Interval, Music, Octave,
-    TrillOptions,
+    instruments::{PercussionSound, StandartMidiInstrument},
+    music::{Primitive, Volume},
+    rests, Dur, Interval, Music, Octave, Pitch, TrillOptions,
 };
 
 type M = Music;
@@ -301,4 +304,71 @@ mod ornamentations {
             Err("Can only construct a turn from a note".into())
         }
     }
+}
+
+// TODO: play me
+fn funk_groove() -> Music {
+    let p1 = PercussionSound::LowTom.note(Dur::QN);
+    let p2 = PercussionSound::AcousticSnare.note(Dur::EN);
+    let m1 = Music::line(vec![
+        p1.clone(),
+        rests::QN,
+        p2.clone(),
+        rests::QN,
+        p2.clone(),
+        p1.clone(),
+        p1,
+        rests::QN,
+        p2,
+        rests::EN,
+    ]);
+    let m2 = PercussionSound::ClosedHiHat
+        .note(Dur::BN)
+        .roll(Dur::EN)
+        .unwrap();
+
+    (m1 | m2)
+        .times(4)
+        .take(Dur::from(8))
+        .with_instrument(StandartMidiInstrument::Percussion)
+        .with_tempo(3)
+}
+
+/// Exercise 6.7
+/// Write a program that generates all of the General MIDI
+/// percussion sounds, playing through each of them one at a time.
+fn sequence_all_percussions() -> Music {
+    let dur = Dur::QN;
+    Music::line(
+        enum_iterator::all::<PercussionSound>()
+            .map(|s| s.note(dur))
+            .collect(),
+    )
+}
+
+// TODO: Exercise 6.8
+//  https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295
+
+// TODO: play me
+fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
+    type M = Music;
+
+    let oc4 = Octave::ONE_LINED;
+    Music::line(vec![
+        M::C(oc4, Dur::QN),
+        M::D(oc4, Dur::QN),
+        M::E(oc4, Dur::QN),
+        M::C(oc4, Dur::QN),
+    ])
+    .with_volume(vol)
+}
+
+/// Exercise 6.9
+/// Using mMap, define a function that
+/// scales the volume of each note in `m` by the factor `s`.
+fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume)> {
+    m.map(|(p, v)| {
+        let new = (Ratio::from_integer(v.0) * s).to_integer();
+        (p, Volume(new))
+    })
 }

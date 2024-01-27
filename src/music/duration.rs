@@ -101,6 +101,12 @@ impl Dur {
     }
 }
 
+impl From<u8> for Dur {
+    fn from(value: u8) -> Self {
+        Self::new(value, 1)
+    }
+}
+
 impl From<Ratio<u8>> for Dur {
     fn from(value: Ratio<u8>) -> Self {
         Self::new(*value.numer(), *value.denom())
