@@ -23,7 +23,7 @@ impl Music {
             Self::Prim(Primitive::Rest(duration)) => Self::rest(duration),
             Self::Sequential(m1, m2) => m1.trans(delta) + m2.trans(delta),
             Self::Parallel(m1, m2) => m1.trans(delta) | m2.trans(delta),
-            Self::Modify(control, m) => Self::Modify(control, Box::new(m.trans(delta))),
+            Self::Modify(control, m) => m.trans(delta).with(control),
         }
     }
 
@@ -108,9 +108,7 @@ impl Music {
                 };
                 m.trill(interval, single * *r).map(|m| m.with_tempo(*r))
             }
-            Self::Modify(c, m) => m
-                .trill(interval, opts)
-                .map(|m| Self::Modify(c.clone(), Box::new(m))),
+            Self::Modify(c, m) => m.trill(interval, opts).map(|m| m.with(c.clone())),
         }
     }
 
@@ -174,7 +172,7 @@ impl<P> Music<P> {
                     (Self::rest(d2 - d1) + m1.reverse()) | m2.reverse()
                 }
             }
-            Self::Modify(c, m) => Self::Modify(c, Box::new(m.reverse())),
+            Self::Modify(c, m) => m.reverse().with(c),
         }
     }
 
@@ -194,7 +192,7 @@ impl<P> Music<P> {
             }
             Self::Parallel(m1, m2) => m1.take(n) | m2.take(n),
             Self::Modify(Control::Tempo(r), m) => m.take(n * r).with_tempo(r),
-            Self::Modify(c, m) => Self::Modify(c, Box::new(m.take(n))),
+            Self::Modify(c, m) => m.take(n).with(c),
         }
     }
 
@@ -213,7 +211,7 @@ impl<P> Music<P> {
             }
             Self::Parallel(m1, m2) => (*m1).drop(n) | (*m2).drop(n),
             Self::Modify(Control::Tempo(r), m) => (*m).drop(n * r).with_tempo(r),
-            Self::Modify(c, m) => Self::Modify(c, Box::new((*m).drop(n))),
+            Self::Modify(c, m) => (*m).drop(n).with(c),
         }
     }
 
@@ -234,7 +232,7 @@ impl<P> Music<P> {
                 (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
                 (m1, m2) => m1 | m2,
             },
-            Self::Modify(c, m) => Self::Modify(c, Box::new(m.remove_zeros())),
+            Self::Modify(c, m) => m.remove_zeros().with(c),
         }
     }
 }

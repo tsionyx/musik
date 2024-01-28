@@ -120,28 +120,32 @@ impl<P> Music<P> {
         Self::Prim(Primitive::Rest(duration))
     }
 
+    pub fn with(self, control: Control) -> Self {
+        Self::Modify(control, Box::new(self))
+    }
+
     pub fn with_tempo(self, tempo: impl Into<Ratio<u8>>) -> Self {
-        Self::Modify(Control::Tempo(tempo.into()), Box::new(self))
+        self.with(Control::Tempo(tempo.into()))
     }
 
     pub fn with_transpose(self, abs_pitch: AbsPitch) -> Self {
-        Self::Modify(Control::Transpose(abs_pitch), Box::new(self))
+        self.with(Control::Transpose(abs_pitch))
     }
 
     pub fn with_instrument(self, name: StandartMidiInstrument) -> Self {
-        Self::Modify(Control::Instrument(name), Box::new(self))
+        self.with(Control::Instrument(name))
     }
 
     //fn with_phrase(self, attributes: Vec<PhraseAttribute>) -> Self {
-    //    Music::Modify(Control::Phrase(attributes), Box::new(self))
+    //    self.with(Control::Phrase(attributes))
     //}
 
     pub fn with_player(self, name: PlayerName) -> Self {
-        Self::Modify(Control::Player(name), Box::new(self))
+        self.with(Control::Player(name))
     }
 
     pub fn with_key_sig(self, pitch_class: PitchClass, mode: Mode) -> Self {
-        Self::Modify(Control::KeySig(pitch_class, mode), Box::new(self))
+        self.with(Control::KeySig(pitch_class, mode))
     }
 
     pub fn duration(&self) -> Dur {
@@ -163,7 +167,7 @@ impl<P> Music<P> {
             Self::Prim(p) => Music::Prim(p.map(f)),
             Self::Sequential(m1, m2) => m1.map(f.clone()) + m2.map(f),
             Self::Parallel(m1, m2) => m1.map(f.clone()) | m2.map(f),
-            Self::Modify(c, m) => Music::Modify(c, Box::new(m.map(f))),
+            Self::Modify(c, m) => m.map(f).with(c),
         }
     }
 }
