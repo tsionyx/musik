@@ -372,3 +372,71 @@ fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume
         (p, Volume(new))
     })
 }
+
+/// Exercise 6.10
+/// Redefine `revM` from Section 6.6 using `mFold`.
+pub fn rev<P>(m: Music<P>) -> Music<P> {
+    m.fold(
+        Music::Prim,
+        |m1, m2| m2 + m1,
+        |m1, m2| {
+            let d1 = m1.duration();
+            let d2 = m2.duration();
+            if d1 > d2 {
+                m1 | (Music::rest(d1 - d2) + m2)
+            } else {
+                (Music::rest(d2 - d1) + m1) | m2
+            }
+        },
+        |c, m| m.with(c),
+    )
+}
+
+/// Exercise 6.11
+/// Define a function `inside_out` that inverts
+/// the role of serial and parallel composition in a `Music` value.
+/// Using `inside_out`, see if you can:
+/// - find a non-trivial value `Music<Pitch>` such that
+///   m is “musically equivalent” to (i.e. sounds the same as)
+///   `inside_out(m)`;
+/// - find a value `Music<Pitch>` such that
+///   `m + inside_out(m) + m` sounds interesting.
+///   (You are free to define what “sounds interesting” means.)
+mod inside_out {
+    use super::*;
+
+    fn inside_out(m: Music) -> Music {
+        m.fold(
+            Music::Prim,
+            |m1, m2| m1 | m2,
+            |m1, m2| m1 + m2,
+            |c, m| m.with(c),
+        )
+    }
+
+    /// If we represent the `Music` value as a matrix
+    /// where every row represents a single parallel voice
+    /// and every cell represent a single Note, then the
+    /// `inside_out` function is the transpose of this matrix.
+    ///
+    /// So, the `Music` resistant to the transposition
+    /// is represented with the symmetric matrix.
+    /// E.g.:
+    ///           1st QN   2nd QN   3rd QN
+    /// voice1     C4        -         D4
+    /// voice2     -         -         D4
+    /// voice3     D4        D4        E4
+    fn example() -> Music {
+        let oc4 = Octave::ONE_LINED;
+        Music::line(vec![
+            Music::C(oc4, Dur::QN),
+            rests::QN,
+            Music::D(oc4, Dur::QN),
+        ]) | Music::line(vec![rests::QN, rests::QN, Music::D(oc4, Dur::QN)])
+            | Music::line(vec![
+                Music::D(oc4, Dur::QN),
+                Music::D(oc4, Dur::QN),
+                Music::E(oc4, Dur::QN),
+            ])
+    }
+}
