@@ -440,3 +440,267 @@ mod inside_out {
             ])
     }
 }
+
+mod crazy_recursion {
+    use super::*;
+
+    fn rep<P, F, G>(m: Music<P>, f: F, g: G, n: usize) -> Music<P>
+    where
+        P: Clone,
+        F: Fn(Music<P>) -> Music<P>,
+        G: Fn(Music<P>) -> Music<P> + Clone,
+    {
+        if n == 0 {
+            return Music::rest(Dur::ZERO);
+        }
+
+        m.clone() | g.clone()(rep(f(m), f, g, n - 1))
+    }
+
+    // TODO: play me
+    fn example1() -> Music {
+        let oc4 = Octave::ONE_LINED;
+        let run = rep(
+            Music::C(oc4, Dur::TN),
+            |m| m.with_transpose(5.into()),
+            |m| m.with_delay(Dur::TN),
+            8,
+        );
+        let cascade = rep(
+            run,
+            |m| m.with_transpose(4.into()),
+            |m| m.with_delay(Dur::EN),
+            8,
+        );
+        let cascades = rep(cascade, |m| m, |m| m.with_delay(Dur::SN), 2);
+        cascades.clone() + cascades.reverse()
+    }
+
+    fn example2() -> Music {
+        let oc4 = Octave::ONE_LINED;
+        let run = rep(
+            Music::C(oc4, Dur::TN),
+            |m| m.with_delay(Dur::TN),
+            |m| m.with_transpose(5.into()),
+            8,
+        );
+        let cascade = rep(
+            run,
+            |m| m.with_delay(Dur::EN),
+            |m| m.with_transpose(4.into()),
+            8,
+        );
+        let cascades = rep(cascade, |m| m.with_delay(Dur::SN), |m| m, 2);
+        cascades.clone() + cascades.reverse()
+    }
+}
+
+/// Exercise 6.12
+/// 1. Define a function `to_intervals` that takes a list of N numbers,
+/// and generates a list of N lists, such that the i-th list is
+/// the sequence of differences between the adjacent items of the previous sequence.
+/// 2. Define a function `get_heads` that takes a list of N lists
+/// and returns a list of N numbers such that the i-th element
+/// is the head of the i-th list.
+/// 3. Compose the above two functions in a suitable way
+/// to define a function `interval_closure` that takes an N-element list
+/// and returns its interval closure.
+/// 4. Define a function `interval_closures` that takes an N-element list
+/// and returns an infinite sequence of interval closures.
+/// 5. Now for the open-ended part of this exercise:  // TODO and play
+/// Interpret the outputs of any of the functions above to create some “interesting” music.
+mod intervals {
+    fn adjacent_diff<T: Copy + std::ops::Sub<Output = T>>(numbers: &[T]) -> Vec<T> {
+        numbers
+            .iter()
+            .skip(1)
+            .zip(numbers.iter())
+            .map(|(next, prev)| *next - *prev)
+            .collect()
+    }
+
+    fn to_intervals<T: Copy + std::ops::Sub<Output = T>>(numbers: Vec<T>) -> Vec<Vec<T>> {
+        std::iter::successors(Some(numbers), |xs| {
+            (xs.len() > 1).then(|| adjacent_diff(xs))
+        })
+        .collect()
+    }
+
+    fn get_heads<T: Copy>(s: &[Vec<T>]) -> Vec<T> {
+        s.iter().filter_map(|xs| xs.first()).copied().collect()
+    }
+
+    fn interval_closure<T: Copy + std::ops::Sub<Output = T>>(numbers: Vec<T>) -> Vec<T> {
+        get_heads(&to_intervals(numbers))
+            .into_iter()
+            .rev()
+            .collect()
+    }
+
+    fn interval_closures<T: Copy + std::ops::Sub<Output = T>>(
+        numbers: Vec<T>,
+    ) -> impl Iterator<Item = Vec<T>> {
+        std::iter::successors(Some(numbers), |xs| Some(interval_closure(xs.clone())))
+    }
+
+    #[test]
+    fn intervals_example() {
+        assert_eq!(
+            to_intervals(vec![1, 5, 3, 6, 5, 0, 1, 1]),
+            [
+                vec![1, 5, 3, 6, 5, 0, 1, 1],
+                vec![4, -2, 3, -1, -5, 1, 0],
+                vec![-6, 5, -4, -4, 6, -1],
+                vec![11, -9, 0, 10, -7],
+                vec![-20, 9, 10, -17],
+                vec![29, 1, -27],
+                vec![-28, -28],
+                vec![0],
+            ]
+        );
+
+        assert_eq!(
+            interval_closure(vec![1, 5, 3, 6, 5, 0, 1, 1]),
+            vec![0, -28, 29, -20, 11, -6, 4, 1]
+        );
+    }
+}
+
+/// Exercise 6.13
+///
+/// Write a program that sounds like an infinitely
+/// descending (in pitch) sequence of musical lines.
+/// Each descending line should fade into the audible range
+/// as it begins its descent, and then fade out as it descends further.
+/// So the beginning and end of each line will be difficult to hear.
+/// And there will be many such lines, each starting at a different time,
+/// some perhaps descending a little faster than others, or perhaps using
+/// different instrument sounds, and so on.
+/// The effect will be that as the music is listened to,
+/// everything will seem to be falling, falling, falling with no end,
+/// but no beginning either.
+/// (This illusion is called the _Shepard Tone_, or _Shepard Scale_,
+/// first introduced by Roger Shepard in 1964 [She64].)
+///
+/// Try to parameterize things in such a way that, for example,
+/// with a simple change, you could generate an infinite _ascension_ as well.
+mod shepard_scale {
+    use std::iter;
+
+    use musik::{
+        instruments::StandartMidiInstrument, music::Volume, AbsPitch, Dur, Interval, Music, Octave,
+        Pitch,
+    };
+
+    fn interval_line(start: Pitch, dur: Dur, delta: Interval) -> impl Iterator<Item = Music> {
+        iter::successors(Some(start), move |prev| Some(prev.trans(delta)))
+            .map(move |p| Music::note(dur, p))
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    struct LineConfig {
+        start: Pitch,
+        /// Duration of a single note
+        dur: Dur,
+        /// Total number of notes played
+        size: u8,
+        delta: Interval,
+        /// Volume levels to increase on each note
+        /// at the beginning of the line (1..127)
+        fade_in_volume_step: u8,
+        /// Volume levels to decrease on each not
+        /// at the end of the line (1..127)
+        fade_out_volume_step: u8,
+
+        trailing_delay: Dur,
+    }
+
+    impl LineConfig {
+        fn from_number(seed: u16, delta: Interval) -> Self {
+            // C4..=B4
+            let oc4 = Octave::ONE_LINED;
+            let pitch_range: Vec<Pitch> = (Pitch::C(oc4).abs().get_inner()
+                ..=Pitch::B(oc4).abs().get_inner())
+                .map(|x| AbsPitch::from(x).into())
+                .collect();
+
+            // 1/16, 3/32, 1/8, 3/16, 1/4
+            let dur_range = [Dur::SN, Dur::DSN, Dur::EN, Dur::DEN, Dur::QN];
+
+            let size_range: Vec<_> = (12..=24).collect();
+            let fade_in_range: Vec<_> = (25..=40).collect();
+            let fade_out_range: Vec<_> = (25..=40).collect();
+            let delay_range = [Dur::EN, Dur::QN];
+
+            const fn choose_value<T>(xs: &[T], seed: u16) -> &T {
+                let index = seed as usize % xs.len();
+                &xs[index]
+            }
+
+            Self {
+                start: *choose_value(&pitch_range, seed),
+                dur: *choose_value(&dur_range, seed),
+                size: *choose_value(&size_range, seed),
+                delta,
+                fade_in_volume_step: *choose_value(&fade_in_range, seed),
+                fade_out_volume_step: *choose_value(&fade_out_range, seed),
+                trailing_delay: *choose_value(&delay_range, seed),
+            }
+        }
+
+        fn scale(&self) -> Music<(Pitch, Volume)> {
+            let max_volume = Volume::loudest().0;
+            let min_volume = Volume::softest().0;
+
+            let fade_out_parts = (max_volume / self.fade_out_volume_step).min(self.size);
+
+            let mut volume = min_volume;
+            Music::line(
+                interval_line(self.start, self.dur, self.delta)
+                    .take(self.size as usize)
+                    .zip(0..)
+                    .map(|(step, i)| {
+                        if i < self.size - fade_out_parts {
+                            volume = (volume + self.fade_in_volume_step).min(max_volume);
+                        } else {
+                            volume = volume.saturating_sub(self.fade_out_volume_step);
+                        }
+
+                        Music::with_volume(step, Volume(volume))
+                    })
+                    .chain(Some(Music::rest(self.trailing_delay)))
+                    .collect(),
+            )
+        }
+    }
+
+    const fn pseudo_random_gen(seed: u16) -> u16 {
+        let next = (seed.wrapping_mul(seed)).wrapping_add(seed).wrapping_add(1);
+        if next == seed {
+            next + 1
+        } else {
+            next
+        }
+    }
+
+    // TODO: test it with delta=+1,-1 and 3..5 Instruments
+    fn music(delta: Interval, lines: &[(StandartMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
+        Music::chord(
+            lines
+                .iter()
+                .map(|(instrument, seed)| {
+                    Music::line(
+                        iter::successors(Some(*seed), |x| Some(pseudo_random_gen(*x)))
+                            // TODO: make it infinite by changing
+                            //  Music::Sequential to wrap an Iterator<Item=Music>
+                            //  Without that `.take(638)` leads to stack overflow
+                            .take(100)
+                            .map(|x| LineConfig::from_number(x, delta).scale())
+                            .collect(),
+                    )
+                    .with_instrument(instrument.clone())
+                })
+                .collect(),
+        )
+    }
+}
