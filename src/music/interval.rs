@@ -5,7 +5,7 @@ use std::{
 
 use super::pitch::PitchClass;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 // 0..8 on piano
 pub struct Octave(pub(crate) i8);
 
@@ -145,7 +145,7 @@ impl From<PitchClass> for Interval {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AbsPitch(i8);
 
 impl AbsPitch {

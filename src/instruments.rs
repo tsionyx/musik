@@ -13,7 +13,7 @@ pub trait Instrument {
 }
 
 // https://github.com/rust-lang/rfcs/issues/284#issuecomment-1592343574
-#[derive(Debug, PartialEq, Eq, Clone, Enum, Sequence)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Enum, Sequence)]
 pub enum StandartMidiInstrument {
     AcousticGrandPiano,
     BrightAcousticPiano,

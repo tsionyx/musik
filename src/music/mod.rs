@@ -15,7 +15,7 @@ use self::{
     pitch::{Pitch, PitchClass},
 };
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub enum Primitive<P> {
     Note(Dur, P),
     Rest(Dur),
@@ -33,16 +33,16 @@ impl<P> Primitive<P> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct PlayerName(String);
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub enum Mode {
     Major,
     Minor,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub enum Control {
     Tempo(Ratio<u8>), // scale the tempo
     Transpose(AbsPitch),
@@ -52,7 +52,7 @@ pub enum Control {
     KeySig(PitchClass, Mode), // key signature and mode
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub enum Music<P = Pitch> {
     Prim(Primitive<P>),
     Sequential(Box<Self>, Box<Self>),
