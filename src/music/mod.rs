@@ -7,11 +7,15 @@ use super::instruments::InstrumentName;
 pub(crate) mod adapters;
 pub(crate) mod duration;
 pub(crate) mod interval;
+pub mod performance;
+pub(crate) mod phrases;
 pub(crate) mod pitch;
 
 use self::{
     duration::Dur,
-    interval::{AbsPitch, Octave},
+    interval::{Interval, Octave},
+    performance::NoteAttribute,
+    phrases::PhraseAttribute,
     pitch::{Pitch, PitchClass},
 };
 
@@ -33,8 +37,7 @@ impl<P> Primitive<P> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
-pub struct PlayerName(String);
+pub type PlayerName = String;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub enum Mode {
@@ -45,9 +48,9 @@ pub enum Mode {
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub enum Control {
     Tempo(Ratio<u8>), // scale the tempo
-    Transpose(AbsPitch),
+    Transpose(Interval),
     Instrument(InstrumentName),
-    //TODO: Phrase(Vec<PhraseAttribute>),
+    Phrase(Vec<PhraseAttribute>),
     Player(PlayerName),
     KeySig(PitchClass, Mode), // key signature and mode
 }
@@ -128,17 +131,17 @@ impl<P> Music<P> {
         self.with(Control::Tempo(tempo.into()))
     }
 
-    pub fn with_transpose(self, abs_pitch: AbsPitch) -> Self {
-        self.with(Control::Transpose(abs_pitch))
+    pub fn with_transpose(self, delta: Interval) -> Self {
+        self.with(Control::Transpose(delta))
     }
 
     pub fn with_instrument(self, name: impl Into<InstrumentName>) -> Self {
         self.with(Control::Instrument(name.into()))
     }
 
-    //fn with_phrase(self, attributes: Vec<PhraseAttribute>) -> Self {
-    //    self.with(Control::Phrase(attributes))
-    //}
+    pub fn with_phrase(self, attributes: Vec<PhraseAttribute>) -> Self {
+        self.with(Control::Phrase(attributes))
+    }
 
     pub fn with_player(self, name: PlayerName) -> Self {
         self.with(Control::Player(name))
@@ -203,7 +206,7 @@ impl<P> Music<P> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Volume(pub u8);
 
 impl Volume {
@@ -219,6 +222,22 @@ impl Volume {
 impl Music {
     pub fn with_volume(self, vol: Volume) -> Music<(Pitch, Volume)> {
         self.map(|p| (p, vol))
+    }
+}
+
+pub type AttrNote = (Pitch, Vec<NoteAttribute>);
+
+pub type MusicAttr = Music<AttrNote>;
+
+impl From<Music> for MusicAttr {
+    fn from(value: Music) -> Self {
+        value.map(|pitch| (pitch, vec![]))
+    }
+}
+
+impl From<Music<(Pitch, Volume)>> for MusicAttr {
+    fn from(value: Music<(Pitch, Volume)>) -> Self {
+        value.map(|(pitch, vol)| (pitch, vec![NoteAttribute::Volume(vol)]))
     }
 }
 

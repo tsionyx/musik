@@ -191,6 +191,14 @@ impl From<Octave> for AbsPitch {
     }
 }
 
+impl Add for AbsPitch {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
 impl Add<Interval> for AbsPitch {
     type Output = Self;
 
