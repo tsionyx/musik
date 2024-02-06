@@ -130,7 +130,7 @@ fn child_song_6() -> Music {
             + M::B(oc4, Dur::HN),
     ];
     let main_voice = v1.times(3) + M::line(v2);
-    let t = (Dur::DHN.into_rational() / Dur::QN.into_rational()) * Ratio::new(69, 120);
+    let t = (Dur::DHN.into_ratio() / Dur::QN.into_ratio()) * Ratio::new(69, 120);
     (bass_line | main_voice)
         .with_tempo(t)
         .with_instrument(StandardMidiInstrument::RhodesPiano)

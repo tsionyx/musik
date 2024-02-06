@@ -13,5 +13,6 @@ repository = "https://github.com/tsionyx/musik"
 
 [dependencies]
 num-rational = "0.4"
+num-integer = "0.1"
 enum-map ="2.6"
 enum-iterator = "1.4"

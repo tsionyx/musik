@@ -16,7 +16,7 @@ impl PartialOrd for Dur {
 
 impl Ord for Dur {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.into_rational().cmp(&other.into_rational())
+        self.into_ratio::<u8>().cmp(&other.into_ratio())
     }
 }
 
@@ -29,8 +29,11 @@ impl Dur {
         Self(num, denom)
     }
 
-    pub fn into_rational(self) -> Ratio<u8> {
-        Ratio::new(self.0, self.1)
+    pub fn into_ratio<T>(self) -> Ratio<T>
+    where
+        T: From<u8> + Clone + num_integer::Integer,
+    {
+        Ratio::new(T::from(self.0), T::from(self.1))
     }
 
     pub const ZERO: Self = Self::from_integer(0);
@@ -117,7 +120,7 @@ impl Add for Dur {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        (self.into_rational() + rhs.into_rational()).into()
+        (self.into_ratio() + rhs.into_ratio()).into()
     }
 }
 
@@ -125,7 +128,7 @@ impl Sub for Dur {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        (self.into_rational() - rhs.into_rational()).into()
+        (self.into_ratio() - rhs.into_ratio()).into()
     }
 }
 
@@ -133,7 +136,7 @@ impl Mul<u8> for Dur {
     type Output = Self;
 
     fn mul(self, rhs: u8) -> Self::Output {
-        (self.into_rational() * rhs).into()
+        (self.into_ratio() * rhs).into()
     }
 }
 
@@ -141,7 +144,7 @@ impl Mul<Ratio<u8>> for Dur {
     type Output = Self;
 
     fn mul(self, rhs: Ratio<u8>) -> Self::Output {
-        (self.into_rational() * rhs).into()
+        (self.into_ratio() * rhs).into()
     }
 }
 
@@ -149,7 +152,7 @@ impl Div<u8> for Dur {
     type Output = Self;
 
     fn div(self, rhs: u8) -> Self::Output {
-        (self.into_rational() / rhs).into()
+        (self.into_ratio() / rhs).into()
     }
 }
 
@@ -157,6 +160,6 @@ impl Div<Ratio<u8>> for Dur {
     type Output = Self;
 
     fn div(self, rhs: Ratio<u8>) -> Self::Output {
-        (self.into_rational() / rhs).into()
+        (self.into_ratio() / rhs).into()
     }
 }
