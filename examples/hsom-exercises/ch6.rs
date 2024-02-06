@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use num_rational::Ratio;
 
 use musik::{
-    instruments::{PercussionSound, StandartMidiInstrument},
+    instruments::{InstrumentName, PercussionSound, StandardMidiInstrument},
     music::{Primitive, Volume},
     rests, Dur, Interval, Music, Octave, Pitch, TrillOptions,
 };
@@ -257,7 +257,7 @@ fn stars_and_stripes() -> Music {
         M::rest(Dur::DEN),
     ]);
 
-    melody.with_instrument(StandartMidiInstrument::Flute)
+    melody.with_instrument(StandardMidiInstrument::Flute)
 }
 
 /// Exercise 6.6
@@ -330,7 +330,7 @@ fn funk_groove() -> Music {
     (m1 | m2)
         .times(4)
         .take(Dur::from(8))
-        .with_instrument(StandartMidiInstrument::Percussion)
+        .with_instrument(InstrumentName::Percussion)
         .with_tempo(3)
 }
 
@@ -588,7 +588,7 @@ mod shepard_scale {
     use std::iter;
 
     use musik::{
-        instruments::StandartMidiInstrument, music::Volume, AbsPitch, Dur, Interval, Music, Octave,
+        instruments::StandardMidiInstrument, music::Volume, AbsPitch, Dur, Interval, Music, Octave,
         Pitch,
     };
 
@@ -684,7 +684,7 @@ mod shepard_scale {
     }
 
     // TODO: test it with delta=+1,-1 and 3..5 Instruments
-    fn music(delta: Interval, lines: &[(StandartMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
+    fn music(delta: Interval, lines: &[(StandardMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
         Music::chord(
             lines
                 .iter()
@@ -698,7 +698,7 @@ mod shepard_scale {
                             .map(|x| LineConfig::from_number(x, delta).scale())
                             .collect(),
                     )
-                    .with_instrument(instrument.clone())
+                    .with_instrument(*instrument)
                 })
                 .collect(),
         )

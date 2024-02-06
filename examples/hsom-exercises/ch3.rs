@@ -817,7 +817,7 @@ mod brother_john {
     //! Use a different instrument to realize each voice.
     use std::iter;
 
-    use musik::{instruments::StandartMidiInstrument, music::Control, Dur, Music, Octave, Pitch};
+    use musik::{instruments::StandardMidiInstrument, Dur, Music, Octave, Pitch};
 
     fn frere_jacques_one_voice() -> Music {
         let oc4 = Octave::ONE_LINED;
@@ -871,13 +871,10 @@ mod brother_john {
         musics.fold(Music::rest(Dur::ZERO), |melody, m| melody | m)
     }
 
-    fn make_round(one_voice: Music, instruments: Vec<StandartMidiInstrument>, delay: Dur) -> Music {
+    fn make_round(one_voice: Music, instruments: Vec<StandardMidiInstrument>, delay: Dur) -> Music {
         let voices = instruments.into_iter().enumerate().map(|(i, instrument)| {
             let init_rest = iter::repeat(Music::rest(delay)).take(i);
-            let voice = init_rest.chain(iter::once(Music::Modify(
-                Control::Instrument(instrument),
-                Box::new(one_voice.clone()),
-            )));
+            let voice = init_rest.chain(iter::once(one_voice.clone().with_instrument(instrument)));
             sequential(voice)
         });
         parallel(voices)
@@ -888,10 +885,10 @@ mod brother_john {
         make_round(
             frere_jacques_one_voice(),
             vec![
-                StandartMidiInstrument::AcousticGrandPiano,
-                StandartMidiInstrument::Contrabass,
-                StandartMidiInstrument::ElectricGuitarClean,
-                StandartMidiInstrument::Accordion,
+                StandardMidiInstrument::AcousticGrandPiano,
+                StandardMidiInstrument::Contrabass,
+                StandardMidiInstrument::ElectricGuitarClean,
+                StandardMidiInstrument::Accordion,
             ],
             Dur::BN,
         )

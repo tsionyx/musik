@@ -1,6 +1,6 @@
 use num_rational::Ratio;
 
-use musik::{instruments::StandartMidiInstrument, rests, Dur, Music, Octave, Pitch};
+use musik::{instruments::StandardMidiInstrument, rests, Dur, Music, Octave, Pitch};
 
 type M = Music;
 type P = Pitch;
@@ -133,7 +133,7 @@ fn child_song_6() -> Music {
     let t = (Dur::DHN.into_rational() / Dur::QN.into_rational()) * Ratio::new(69, 120);
     (bass_line | main_voice)
         .with_tempo(t)
-        .with_instrument(StandartMidiInstrument::RhodesPiano)
+        .with_instrument(StandardMidiInstrument::RhodesPiano)
 }
 
 // TODO: Exercise 4.1
@@ -172,8 +172,8 @@ fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
             .collect(),
     )
     .with_transpose(12.into());
-    let m = m1.with_instrument(StandartMidiInstrument::Flute)
-        | m2.with_instrument(StandartMidiInstrument::VoiceOohs);
+    let m = m1.with_instrument(StandardMidiInstrument::Flute)
+        | m2.with_instrument(StandardMidiInstrument::VoiceOohs);
     m.clone() + m.clone().with_transpose(5.into()) + m
 }
 

@@ -8,13 +8,9 @@ use enum_map::Enum;
 
 use crate::{AbsPitch, Dur, Music};
 
-pub trait Instrument {
-    // TODO
-}
-
 // https://github.com/rust-lang/rfcs/issues/284#issuecomment-1592343574
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Enum, Sequence)]
-pub enum StandartMidiInstrument {
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord, Enum, Sequence)]
+pub enum StandardMidiInstrument {
     AcousticGrandPiano,
     BrightAcousticPiano,
     ElectricGrandPiano,
@@ -143,15 +139,29 @@ pub enum StandartMidiInstrument {
     Helicopter,
     Applause,
     Gunshot,
-    /// Marks the pitches in the [`Music`] as the specific [`PercussionSound`].
-    Percussion,
 }
 
-impl Instrument for StandartMidiInstrument {}
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+pub enum InstrumentName {
+    Standard(StandardMidiInstrument),
+    /// Marks the pitches in the [`Music`] as the specific [`PercussionSound`].
+    Percussion,
+    Custom(String),
+}
 
-// custom instruments could be added the same way
+impl From<StandardMidiInstrument> for InstrumentName {
+    fn from(value: StandardMidiInstrument) -> Self {
+        Self::Standard(value)
+    }
+}
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Sequence)]
+impl From<String> for InstrumentName {
+    fn from(value: String) -> Self {
+        Self::Custom(value)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Enum, Sequence)]
 pub enum PercussionSound {
     AcousticBassDrum,
     BassDrum1,
@@ -201,8 +211,6 @@ pub enum PercussionSound {
     MuteTriangle,
     OpenTriangle,
 }
-
-impl Instrument for PercussionSound {}
 
 impl PercussionSound {
     pub fn note(self, dur: Dur) -> Music {

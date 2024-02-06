@@ -2,7 +2,7 @@ use std::ops::{Add, BitOr, Div};
 
 use num_rational::Ratio;
 
-use super::instruments::StandartMidiInstrument;
+use super::instruments::InstrumentName;
 
 pub(crate) mod adapters;
 pub(crate) mod duration;
@@ -46,7 +46,7 @@ pub enum Mode {
 pub enum Control {
     Tempo(Ratio<u8>), // scale the tempo
     Transpose(AbsPitch),
-    Instrument(StandartMidiInstrument),
+    Instrument(InstrumentName),
     //TODO: Phrase(Vec<PhraseAttribute>),
     Player(PlayerName),
     KeySig(PitchClass, Mode), // key signature and mode
@@ -132,8 +132,8 @@ impl<P> Music<P> {
         self.with(Control::Transpose(abs_pitch))
     }
 
-    pub fn with_instrument(self, name: StandartMidiInstrument) -> Self {
-        self.with(Control::Instrument(name))
+    pub fn with_instrument(self, name: impl Into<InstrumentName>) -> Self {
+        self.with(Control::Instrument(name.into()))
     }
 
     //fn with_phrase(self, attributes: Vec<PhraseAttribute>) -> Self {
