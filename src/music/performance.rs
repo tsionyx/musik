@@ -1,10 +1,13 @@
-use std::{collections::HashMap, fmt};
+use std::{borrow::Cow, collections::HashMap, fmt, iter, sync::Arc};
 
 use itertools::Itertools as _;
 use num_rational::Ratio;
 use ordered_float::OrderedFloat;
 
-use crate::instruments::InstrumentName;
+use crate::{
+    instruments::InstrumentName,
+    music::{AttrNote, MusicAttr},
+};
 
 use super::{
     duration::Dur, interval::AbsPitch, phrases::PhraseAttribute, pitch::PitchClass, Control, Mode,
@@ -29,11 +32,61 @@ impl Performance {
     }
 }
 
-impl<P> Music<P> {
-    pub fn perform<'p>(&self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
+pub trait Performable<P> {
+    fn perform<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance;
+
+    fn perform_default(self) -> Performance;
+}
+
+impl<P> Performable<P> for &Music<P>
+where
+    Player<P>: Default,
+{
+    fn perform<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
         self.perf(players, ctx).0
     }
 
+    fn perform_default(self) -> Performance {
+        let def_name = Player::default().name;
+
+        let players: PlayerMap<_> = iter::once(Player::default())
+            .map(|p| (p.name.clone(), p))
+            .collect();
+
+        let ctx = Context::with_player(Cow::Borrowed(players.get(&def_name).unwrap()));
+        self.perform(&players, ctx)
+    }
+}
+
+impl<P> Performable<AttrNote> for Music<P>
+where
+    MusicAttr: From<Self>,
+{
+    fn perform<'p>(
+        self,
+        players: &'p PlayerMap<AttrNote>,
+        ctx: Context<'p, AttrNote>,
+    ) -> Performance {
+        MusicAttr::from(self).perf(players, ctx).0
+    }
+
+    fn perform_default(self) -> Performance {
+        let def_name = Player::fancy().name;
+
+        let players: PlayerMap<_> = [Player::default(), Player::fancy()]
+            .into_iter()
+            .map(|p| (p.name.clone(), p))
+            .collect();
+
+        let ctx = Context::with_player(Cow::Borrowed(players.get(&def_name).unwrap()));
+        self.perform(&players, ctx)
+    }
+}
+
+impl<P> Music<P>
+where
+    Player<P>: Default,
+{
     fn perf<'p>(
         &self,
         players: &'p PlayerMap<P>,
@@ -42,7 +95,7 @@ impl<P> Music<P> {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
-                ((ctx.player.play_note)(ctx, *d, p), dur)
+                ((ctx.player.play_note.clone())(ctx, *d, p), dur)
             }
             Self::Prim(Primitive::Rest(d)) => (
                 Performance::with_events(vec![]),
@@ -82,11 +135,12 @@ impl<P> Music<P> {
                 m.perf(players, ctx)
             }
             Self::Modify(Control::Phrase(phrases), m) => {
-                (ctx.player.interpret_phrase)(m, players, ctx, phrases)
+                (ctx.player.interpret_phrase.clone())(m, players, ctx, phrases)
             }
             Self::Modify(Control::Player(p), m) => {
-                // TODO
-                let player = players.get(p).expect("not found player");
+                let player = players
+                    .get(p)
+                    .map_or_else(|| Cow::Owned(Player::default()), Cow::Borrowed);
                 ctx.player = player;
                 m.perf(players, ctx)
             }
@@ -127,7 +181,7 @@ pub type Duration = Ratio<u32>;
 /// as we go through the interpretation.
 pub struct Context<'p, P> {
     pub start_time: TimePoint,
-    pub player: &'p Player<P>,
+    pub player: Cow<'p, Player<P>>,
     pub instrument: InstrumentName,
     pub whole_note: Duration,
     pub pitch: AbsPitch,
@@ -148,7 +202,7 @@ impl<'p, P> Clone for Context<'p, P> {
         } = self;
         Self {
             start_time: *start_time,
-            player: *player,
+            player: player.clone(),
             instrument: instrument.clone(),
             whole_note: *whole_note,
             pitch: *pitch,
@@ -180,14 +234,25 @@ pub struct Player<P> {
     pub notate_player: NotateFun<P>,
 }
 
+impl<P> Clone for Player<P> {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            play_note: self.play_note.clone(),
+            interpret_phrase: self.interpret_phrase.clone(),
+            notate_player: self.notate_player,
+        }
+    }
+}
+
 impl<P> fmt::Debug for Player<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Player {}", self.name)
     }
 }
 
-type NoteFun<P> = Box<dyn Fn(Context<P>, Dur, &P) -> Performance>;
-type PhraseFun<P> = Box<
+type NoteFun<P> = Arc<dyn Fn(Context<P>, Dur, &P) -> Performance>;
+type PhraseFun<P> = Arc<
     dyn Fn(&Music<P>, &PlayerMap<P>, Context<P>, &[PhraseAttribute]) -> (Performance, Duration),
 >;
 // TODO: producing a properly notated score is not defined yet
@@ -213,7 +278,7 @@ pub mod defaults {
     where
         Attr: 'static,
     {
-        Box::new(move |ctx, dur, (note_pitch, attrs)| {
+        Arc::new(move |ctx, dur, (note_pitch, attrs)| {
             let Context {
                 start_time,
                 player: _ignore_player,
@@ -265,7 +330,7 @@ pub mod defaults {
         Player<P>: Default,
         PhraseF: Fn(Performance, &PhraseAttribute) -> Performance + 'static,
     {
-        Box::new(move |music, players, ctx, attrs| {
+        Arc::new(move |music, players, ctx, attrs| {
             let (perf, dur) = music.perf(players, ctx);
             let perf = attrs.iter().fold(perf, &attr_modifier);
             (perf, dur)
@@ -473,14 +538,15 @@ pub mod defaults {
         /// with changed interpretations of the [phrases][PhraseAttribute].
         pub fn fancy() -> Self {
             Self {
-                interpret_phrase: Box::new(fancy_interpret_phrase),
+                name: "Fancy".to_string(),
+                interpret_phrase: Arc::new(fancy_interpret_phrase),
                 ..Self::default()
             }
         }
     }
 
     impl<'p, P> Context<'p, P> {
-        pub fn with_player(player: &'p Player<P>) -> Self {
+        pub fn with_player(player: Cow<'p, Player<P>>) -> Self {
             Self {
                 start_time: TimePoint::from_integer(0),
                 player,
@@ -491,5 +557,35 @@ pub mod defaults {
                 key: (PitchClass::C, Mode::Major),
             }
         }
+    }
+
+    impl<P> Default for Context<'_, P>
+    where
+        P: 'static,
+        Player<P>: Default,
+    {
+        fn default() -> Self {
+            Self::with_player(Cow::Owned(Player::fancy()))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn john_cage() {
+        // 136.5 whole notes with tempo (120 QN/min)
+        // will last exactly 4'33"
+        let m: Music = Music::line(
+            [Dur::from(136), Dur::HN]
+                .into_iter()
+                .map(Music::rest)
+                .collect(),
+        );
+
+        let perf = m.perform_default();
+        assert!(perf.repr.is_empty());
     }
 }
