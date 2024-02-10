@@ -40,9 +40,27 @@ impl<P> Primitive<P> {
 pub type PlayerName = String;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
-pub enum Mode {
-    Major,
-    Minor,
+pub enum KeySig {
+    Major(PitchClass),
+    Minor(PitchClass),
+}
+
+impl Default for KeySig {
+    fn default() -> Self {
+        // the white piano keys
+        Self::Major(PitchClass::C)
+    }
+}
+
+impl KeySig {
+    pub fn get_scale(self) -> impl Iterator<Item = PitchClass> {
+        let oc4 = Octave::ONE_LINED;
+        let with_octave: Box<dyn Iterator<Item = Pitch>> = match self {
+            Self::Major(pc) => Box::new(Pitch::new(pc, oc4).major_scale()),
+            Self::Minor(pc) => Box::new(Pitch::new(pc, oc4).natural_minor_scale()),
+        };
+        with_octave.map(Pitch::class)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -52,7 +70,7 @@ pub enum Control {
     Instrument(InstrumentName),
     Phrase(Vec<PhraseAttribute>),
     Player(PlayerName),
-    KeySig(PitchClass, Mode), // key signature and mode
+    KeySig(KeySig),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -147,8 +165,8 @@ impl<P> Music<P> {
         self.with(Control::Player(name))
     }
 
-    pub fn with_key_sig(self, pitch_class: PitchClass, mode: Mode) -> Self {
-        self.with(Control::KeySig(pitch_class, mode))
+    pub fn with_key_sig(self, key_signature: KeySig) -> Self {
+        self.with(Control::KeySig(key_signature))
     }
 
     pub fn duration(&self) -> Dur {
@@ -374,5 +392,41 @@ mod tests {
     fn get_1_herz_freq() {
         let pitch = Pitch::C(Octave(-4));
         assert_is_close_freq(pitch.get_frequency(), 1.022);
+    }
+
+    #[test]
+    fn key_sig_c_major_scale() {
+        let scale: Vec<_> = KeySig::Major(PitchClass::C).get_scale().collect();
+        assert_eq!(
+            scale,
+            [
+                PitchClass::C,
+                PitchClass::D,
+                PitchClass::E,
+                PitchClass::F,
+                PitchClass::G,
+                PitchClass::A,
+                PitchClass::B,
+                PitchClass::C,
+            ]
+        );
+    }
+
+    #[test]
+    fn key_sig_g_major_scale() {
+        let scale: Vec<_> = KeySig::Major(PitchClass::G).get_scale().collect();
+        assert_eq!(
+            scale,
+            [
+                PitchClass::G,
+                PitchClass::A,
+                PitchClass::B,
+                PitchClass::C,
+                PitchClass::D,
+                PitchClass::E,
+                PitchClass::Fs,
+                PitchClass::G,
+            ]
+        );
     }
 }

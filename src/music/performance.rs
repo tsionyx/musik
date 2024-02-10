@@ -10,8 +10,8 @@ use crate::{
 };
 
 use super::{
-    duration::Dur, interval::AbsPitch, phrases::PhraseAttribute, pitch::PitchClass, Control, Mode,
-    Music, PlayerName, Primitive, Volume,
+    duration::Dur, interval::AbsPitch, phrases::PhraseAttribute, Control, KeySig, Music,
+    PlayerName, Primitive, Volume,
 };
 
 #[derive(Debug)]
@@ -144,8 +144,8 @@ where
                 ctx.player = player;
                 m.perf(players, ctx)
             }
-            Self::Modify(Control::KeySig(pc, mode), m) => {
-                ctx.key = (*pc, *mode);
+            Self::Modify(Control::KeySig(ks), m) => {
+                ctx.key = *ks;
                 m.perf(players, ctx)
             }
         }
@@ -186,7 +186,7 @@ pub struct Context<'p, P> {
     pub whole_note: Duration,
     pub pitch: AbsPitch,
     pub volume: Volume,
-    pub key: (PitchClass, Mode),
+    pub key: KeySig,
 }
 
 impl<'p, P> Clone for Context<'p, P> {
@@ -554,7 +554,7 @@ pub mod defaults {
                 whole_note: metro(120, Dur::QN),
                 pitch: AbsPitch::from(0),
                 volume: Volume::loudest(),
-                key: (PitchClass::C, Mode::Major),
+                key: KeySig::default(),
             }
         }
     }
