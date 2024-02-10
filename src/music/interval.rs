@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Neg, Sub},
 };
 
-use super::pitch::PitchClass;
+use super::{pitch::PitchClass, KeySig};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 // 0..8 on piano
@@ -70,6 +70,32 @@ impl Interval {
 
     pub const fn get_inner(self) -> i8 {
         self.0
+    }
+
+    pub const fn major_scale() -> [Self; 8] {
+        [
+            Self::zero(),
+            Self::tone(),
+            Self::tone(),
+            Self::semi_tone(),
+            Self::tone(),
+            Self::tone(),
+            Self::tone(),
+            Self::semi_tone(),
+        ]
+    }
+
+    pub const fn natural_minor_scale() -> [Self; 8] {
+        [
+            Self::zero(),
+            Self::tone(),
+            Self::semi_tone(),
+            Self::tone(),
+            Self::tone(),
+            Self::semi_tone(),
+            Self::tone(),
+            Self::tone(),
+        ]
     }
 }
 
@@ -218,5 +244,214 @@ impl Sub for AbsPitch {
 impl From<Interval> for AbsPitch {
     fn from(int: Interval) -> Self {
         Self(int.0)
+    }
+}
+
+impl AbsPitch {
+    pub fn diatonic_trans(self, key: KeySig, degrees: i8) -> Self {
+        if degrees == 0 {
+            return self;
+        }
+
+        const DIATONIC_SIZE: i8 = 7;
+        let oct_size = Octave::semitones_number().0;
+
+        let scale: Vec<_> = key
+            .get_intervals_scale()
+            .map(Self::from)
+            .take(7) // ignore the last one, it is an Octave higher than tonic
+            .collect();
+
+        let closest_index = scale
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, x)| (self - **x).0.rem_euclid(oct_size))
+            .map(|(i, _)| i)
+            .expect("Scale is non-empty");
+
+        let positive_shift = degrees.rem_euclid(DIATONIC_SIZE);
+        let whole_octaves = (degrees - positive_shift) / DIATONIC_SIZE;
+
+        let interval = scale
+            .into_iter()
+            .cycle()
+            .nth(closest_index + positive_shift as usize)
+            .expect("Cycled non-empty scale has infinite items")
+            .0;
+        let shift = (interval + oct_size)
+            .checked_sub(self.0 % oct_size)
+            .unwrap()
+            % oct_size;
+
+        self + Self(shift + (whole_octaves * oct_size))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        super::{pitch::Pitch, KeySig},
+        *,
+    };
+
+    #[test]
+    fn diatonic_trans_c_major() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::C);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::D, oc4),
+            Pitch::new(PitchClass::E, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, 2)))
+            .collect();
+
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::E, oc4),
+                Pitch::new(PitchClass::F, oc4),
+                Pitch::new(PitchClass::G, oc4),
+            ]
+        );
+    }
+
+    #[test]
+    fn diatonic_trans_g_major() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::G);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::D, oc4),
+            Pitch::new(PitchClass::E, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, 2)))
+            .collect();
+
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::E, oc4),
+                Pitch::new(PitchClass::Fs, oc4),
+                Pitch::new(PitchClass::G, oc4),
+            ]
+        );
+    }
+
+    #[test]
+    fn diatonic_trans_not_matching() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::C);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::Ds, oc4), // this Pitch is not from the C-Major scale
+            Pitch::new(PitchClass::E, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, 2)))
+            .collect();
+
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::E, oc4),
+                Pitch::new(PitchClass::F, oc4),
+                Pitch::new(PitchClass::G, oc4),
+            ]
+        );
+    }
+
+    #[test]
+    fn diatonic_trans_wrapping_around_octave() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::C);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::D, oc4),
+            Pitch::new(PitchClass::A, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, 3)))
+            .collect();
+
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::F, oc4),
+                Pitch::new(PitchClass::G, oc4),
+                Pitch::new(PitchClass::D, Octave::from(5)),
+            ]
+        );
+    }
+
+    #[test]
+    fn diatonic_trans_more_than_an_octave() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::C);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::D, oc4),
+            Pitch::new(PitchClass::A, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            // single octave is exactly 7 diatonic notes long
+            // so we should transpose one octave and 3 notes more
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, 10)))
+            .collect();
+
+        let oc5 = Octave::from(5);
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::F, oc5),
+                Pitch::new(PitchClass::G, oc5),
+                Pitch::new(PitchClass::D, Octave::from(6)),
+            ]
+        );
+    }
+
+    #[test]
+    fn diatonic_trans_back_more_than_two_octaves() {
+        let oc4 = Octave::ONE_LINED;
+        let key = KeySig::Major(PitchClass::C);
+
+        let pitches = [
+            Pitch::new(PitchClass::C, oc4),
+            Pitch::new(PitchClass::Ds, oc4),
+            Pitch::new(PitchClass::A, oc4),
+        ];
+
+        let transposed: Vec<_> = pitches
+            .into_iter()
+            // shift 3 octaves back and two notes forward (7 * -3 + 2 = -19)
+            .map(|p| Pitch::from(p.abs().diatonic_trans(key, -19)))
+            .collect();
+
+        let oc1 = Octave::from(1);
+        assert_eq!(
+            transposed,
+            [
+                Pitch::new(PitchClass::E, oc1),
+                Pitch::new(PitchClass::F, oc1),
+                Pitch::new(PitchClass::C, Octave::from(2)),
+            ]
+        );
     }
 }

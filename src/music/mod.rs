@@ -61,6 +61,24 @@ impl KeySig {
         };
         with_octave.map(Pitch::class)
     }
+
+    const fn pitch_class(self) -> PitchClass {
+        match self {
+            Self::Major(pc) | Self::Minor(pc) => pc,
+        }
+    }
+
+    pub fn get_intervals_scale(self) -> impl Iterator<Item = Interval> {
+        let scale = match self {
+            Self::Major(_) => Interval::major_scale(),
+            Self::Minor(_) => Interval::natural_minor_scale(),
+        };
+        let tonic = self.pitch_class().into();
+        scale.into_iter().scan(tonic, |state, p| {
+            *state += p;
+            Some(*state)
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -410,6 +428,21 @@ mod tests {
                 PitchClass::C,
             ]
         );
+
+        let i_scale: Vec<_> = KeySig::Major(PitchClass::C).get_intervals_scale().collect();
+        assert_eq!(
+            i_scale,
+            [
+                Interval::from(0),
+                Interval::from(2),
+                Interval::from(4),
+                Interval::from(5),
+                Interval::from(7),
+                Interval::from(9),
+                Interval::from(11),
+                Interval::from(12),
+            ]
+        );
     }
 
     #[test]
@@ -426,6 +459,21 @@ mod tests {
                 PitchClass::E,
                 PitchClass::Fs,
                 PitchClass::G,
+            ]
+        );
+
+        let i_scale: Vec<_> = KeySig::Major(PitchClass::G).get_intervals_scale().collect();
+        assert_eq!(
+            i_scale,
+            [
+                Interval::from(7),
+                Interval::from(9),
+                Interval::from(11),
+                Interval::from(12),
+                Interval::from(14),
+                Interval::from(16),
+                Interval::from(18),
+                Interval::from(19),
             ]
         );
     }

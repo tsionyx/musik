@@ -129,13 +129,13 @@ impl Pitch {
         self.trans(Interval::from(-1))
     }
 
-    pub fn get_scale<I>(self, intervals: &[I]) -> impl Iterator<Item = Self> + '_
+    pub fn get_scale<I, Int>(self, intervals: I) -> impl Iterator<Item = Self> + 'static
     where
-        I: Copy + Into<Interval>,
+        I: Iterator<Item = Int> + 'static,
+        Int: Copy + Into<Interval>,
     {
         intervals
-            .iter()
-            .scan(Interval::zero(), |tonic_distance, &interval| {
+            .scan(Interval::zero(), |tonic_distance, interval| {
                 *tonic_distance += interval.into();
                 Some(*tonic_distance)
             })
@@ -143,11 +143,11 @@ impl Pitch {
     }
 
     pub fn major_scale(self) -> impl Iterator<Item = Self> {
-        self.get_scale(&[0, 2, 2, 1, 2, 2, 2, 1])
+        self.get_scale(Interval::major_scale().into_iter())
     }
 
     pub fn natural_minor_scale(self) -> impl Iterator<Item = Self> {
-        self.get_scale(&[0, 2, 1, 2, 2, 1, 2, 2])
+        self.get_scale(Interval::natural_minor_scale().into_iter())
     }
 }
 
