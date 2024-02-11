@@ -1,10 +1,12 @@
 use std::iter;
 
 use num_rational::Ratio;
+use num_traits::{CheckedSub as _, Zero as _};
 
 use super::{
     duration::Dur,
     interval::{AbsPitch, Interval},
+    phrases::TrillOptions,
     Control, Music, Primitive,
 };
 
@@ -65,20 +67,26 @@ impl Music {
         self.retrograde().invert()
     }
 
-    pub fn trill(&self, interval: Interval, opts: impl Into<TrillOptions>) -> Result<Self, String> {
+    pub fn trill(
+        &self,
+        interval: Interval,
+        opts: impl Into<TrillOptions<Dur>>,
+    ) -> Result<Self, String> {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur_seq: Box<dyn Iterator<Item = Dur>> = match opts.into() {
                     TrillOptions::Duration(single) => {
-                        let mut left_dur = *d;
-                        Box::new(iter::from_fn(move || {
-                            if left_dur == Dur::ZERO {
-                                return None;
-                            }
-                            let dur = left_dur.min(single);
-                            left_dur = left_dur.saturating_sub(single);
-                            Some(dur)
-                        }))
+                        let n: u8 = (d.into_ratio() / single.into_ratio()).to_integer();
+                        let last_dur: Ratio<u8> = d
+                            .into_ratio()
+                            .checked_sub(&(Ratio::from(n) * single.into_ratio()))
+                            .expect("Parts total duration should not be bigger than the whole");
+
+                        Box::new(
+                            iter::repeat(single)
+                                .take(usize::from(n))
+                                .chain((!last_dur.is_zero()).then_some(Dur::from(last_dur))),
+                        )
                     }
                     TrillOptions::Count(n) => {
                         let single = *d / n;
@@ -112,20 +120,8 @@ impl Music {
         }
     }
 
-    pub fn roll(&self, opts: impl Into<TrillOptions>) -> Result<Self, String> {
+    pub fn roll(&self, opts: impl Into<TrillOptions<Dur>>) -> Result<Self, String> {
         self.trill(Interval::zero(), opts)
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum TrillOptions {
-    Duration(Dur),
-    Count(u8),
-}
-
-impl From<Dur> for TrillOptions {
-    fn from(value: Dur) -> Self {
-        Self::Duration(value)
     }
 }
 

@@ -1,5 +1,6 @@
 use enum_iterator::Sequence;
 use enum_map::Enum;
+use num_rational::Ratio;
 
 use crate::music::Volume;
 
@@ -83,7 +84,7 @@ pub enum Articulation {
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Ornament {
-    Trill,
+    Trill(TrillOptions<Ratio<u32>>),
     Mordent,
     InvMordent,
     DoubleMordent,
@@ -96,6 +97,18 @@ pub enum Ornament {
     Instruction(String),
     Head(NoteHead),
     DiatonicTrans(i8),
+}
+
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub enum TrillOptions<D> {
+    Duration(D),
+    Count(u8),
+}
+
+impl<D> From<D> for TrillOptions<D> {
+    fn from(value: D) -> Self {
+        Self::Duration(value)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
