@@ -30,6 +30,10 @@ impl Performance {
     pub fn into_events(self) -> Vec<Event> {
         self.repr
     }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &Event> {
+        self.repr.iter()
+    }
 }
 
 pub trait Performable<P> {

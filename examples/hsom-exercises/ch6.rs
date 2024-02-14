@@ -683,7 +683,6 @@ mod shepard_scale {
         }
     }
 
-    // TODO: test it with delta=+1,-1 and 3..5 Instruments
     fn music(delta: Interval, lines: &[(StandardMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
         Music::chord(
             lines
@@ -702,5 +701,33 @@ mod shepard_scale {
                 })
                 .collect(),
         )
+    }
+
+    #[test]
+    fn test_save() {
+        use musik::Performable as _;
+        use StandardMidiInstrument::*;
+
+        let m = music(
+            -Interval::semi_tone(),
+            &[
+                (AcousticGrandPiano, 2323),
+                (ElectricGuitarClean, 9940),
+                (Flute, 7899),
+                (Cello, 15000),
+            ],
+        );
+        m.perform_default().save_to_file("desc.mid").unwrap();
+
+        let m = music(
+            Interval::semi_tone(),
+            &[
+                (AcousticGrandPiano, 18774),
+                (ElectricGuitarClean, 33300),
+                (Flute, 19231),
+                (Cello, 99),
+            ],
+        );
+        m.perform_default().save_to_file("asc.mid").unwrap();
     }
 }

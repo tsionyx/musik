@@ -19,3 +19,6 @@ enum-map ="2.6"
 enum-iterator = "1.4"
 ordered-float = "4.2"
 itertools = "0.12"
+
+# MIDI stuff
+midly = "0.5"

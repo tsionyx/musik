@@ -1,2 +1,5 @@
 /target
 Cargo.lock
+
+# test Midi files
+*.mid

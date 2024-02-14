@@ -9,7 +9,7 @@ use enum_map::Enum;
 use crate::{AbsPitch, Dur, Music};
 
 // https://github.com/rust-lang/rfcs/issues/284#issuecomment-1592343574
-#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord, Enum, Sequence)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord, Hash, Enum, Sequence)]
 pub enum StandardMidiInstrument {
     AcousticGrandPiano,
     BrightAcousticPiano,
@@ -141,7 +141,7 @@ pub enum StandardMidiInstrument {
     Gunshot,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Hash)]
 pub enum InstrumentName {
     Standard(StandardMidiInstrument),
     /// Marks the pitches in the [`Music`] as the specific [`PercussionSound`].
