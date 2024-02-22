@@ -14,7 +14,7 @@ use super::{
     PlayerName, Primitive, Volume,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// [`Performance`] is a time-ordered sequence
 /// of musical [`events`][Event].
 pub struct Performance {

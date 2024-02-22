@@ -1,8 +1,16 @@
-use std::{borrow::Cow, collections::HashMap, iter, path::Path};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    io::Write as _,
+    iter,
+    path::Path,
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use itertools::Itertools as _;
 use midly::{
-    num::u15, Format, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent,
+    num::u15, Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent,
     TrackEventKind,
 };
 
@@ -14,7 +22,7 @@ use crate::{
     },
 };
 
-use super::{Channel, UserPatchMap};
+use super::{transport::get_default_connection, Channel, UserPatchMap};
 
 fn into_relative_time(track: AbsTimeTrack) -> Track<'static> {
     track
@@ -166,18 +174,90 @@ impl Performance {
         Ok(())
     }
 
-    pub fn play() -> Result<(), AnyError> {
-        // TODO:
-        //  1. join all tracks into a single track with absolute time:
-        //    a. convert to absolute time  (remove TrackEnd)
-        //    b. merge (https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge)
-        //    d. add TrackEnd
-        //  2. convert absolute time into Instant points using the predefined TimeDiv
-        //     https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#toRealTime
-        //  3. run a thread by sleeping in a loop until the new event is received
-        //     https://github.com/insomnimus/nodi/blob/main/src/player.rs#L40
-        //  4. take care of stopping all notes on Ctrl-C:
+    pub fn play(self) -> Result<(), AnyError> {
+        // TODO: allow pause (see https://github.com/insomnimus/nodi/blob/main/src/player.rs)
+        let mut conn = get_default_connection()?;
+        let Smf { header, tracks } = self.into_midi(None)?;
+        let single_track = merge_tracks(tracks);
+        let sec_per_tick = tick_size(header.timing);
+        let real_time: AbsTimeTrack<Duration> = single_track
+            .into_iter()
+            .map(|(ticks, msg)| (ticks * sec_per_tick, msg))
+            .collect();
+
+        let start = Instant::now();
+        for (t, msg) in real_time {
+            loop {
+                let elapsed = start.elapsed();
+                if elapsed >= t {
+                    if let Some(live) = msg.as_live_event() {
+                        live.write_std(&mut conn)?;
+                        conn.flush()?;
+                    }
+                    break;
+                } else {
+                    sleep(sec_per_tick);
+                }
+            }
+        }
+
+        //  TODO: take care of stopping all notes on Ctrl-C:
         //     https://github.com/insomnimus/nodi/blob/main/src/player.rs#L91
         Ok(())
     }
+}
+
+fn tick_size(timing: Timing) -> Duration {
+    let ticks_per_second = match timing {
+        Timing::Metrical(tick) => u32::from(u16::from(tick)) * BEATS_PER_SECOND,
+        Timing::Timecode(fps, sub) => {
+            let fps: u32 = match fps {
+                Fps::Fps24 => 24,
+                Fps::Fps25 => 25,
+                Fps::Fps29 => 29,
+                Fps::Fps30 => 30,
+            };
+            fps * u32::from(sub)
+        }
+    };
+
+    Duration::from_secs_f64(f64::from(ticks_per_second).recip())
+}
+
+fn to_absolute(track: Track, drop_track_end: bool) -> AbsTimeTrack {
+    track
+        .into_iter()
+        .filter(|t| !(drop_track_end && t.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack)))
+        .scan(0, |acc, t| {
+            let abs_time = u32::from(t.delta) + *acc;
+            *acc = abs_time;
+            Some((abs_time, t.kind))
+        })
+        .collect()
+}
+
+/// Join all tracks into a single track with absolute time:
+/// - convert to absolute time  (remove TrackEnd)
+/// - merge (https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge)
+/// - add TrackEnd
+fn merge_tracks(mut tracks: Vec<Track>) -> AbsTimeTrack {
+    if tracks.is_empty() {
+        return AbsTimeTrack::new();
+    }
+    let first = tracks.remove(0);
+    let first = to_absolute(first, true);
+
+    let mut single = tracks
+        .into_iter()
+        .map(|t| to_absolute(t, true))
+        .fold(first, |acc, track| {
+            acc.into_iter()
+                .merge_by(track, |(t1, _), (t2, _)| t1 < t2)
+                .collect()
+        });
+
+    if let Some((last, _)) = single.last() {
+        single.push((*last, TrackEventKind::Meta(MetaMessage::EndOfTrack)))
+    }
+    single
 }
