@@ -307,7 +307,7 @@ mod ornamentations {
 }
 
 // TODO: play me
-fn funk_groove() -> Music {
+pub fn funk_groove() -> Music {
     let p1 = PercussionSound::LowTom.note(Dur::QN);
     let p2 = PercussionSound::AcousticSnare.note(Dur::EN);
     let m1 = Music::line(vec![
@@ -331,7 +331,7 @@ fn funk_groove() -> Music {
         .times(4)
         .take(Dur::from(8))
         .with_instrument(InstrumentName::Percussion)
-        .with_tempo(3)
+        .with_tempo(2)
 }
 
 /// Exercise 6.7
@@ -441,7 +441,7 @@ mod inside_out {
     }
 }
 
-mod crazy_recursion {
+pub mod crazy_recursion {
     use super::*;
 
     fn rep<P, F, G>(m: Music<P>, f: F, g: G, n: usize) -> Music<P>
@@ -458,7 +458,7 @@ mod crazy_recursion {
     }
 
     // TODO: play me
-    fn example1() -> Music {
+    pub fn example1() -> Music {
         let oc4 = Octave::ONE_LINED;
         let run = rep(
             Music::C(oc4, Dur::TN),
@@ -584,7 +584,7 @@ mod intervals {
 ///
 /// Try to parameterize things in such a way that, for example,
 /// with a simple change, you could generate an infinite _ascension_ as well.
-mod shepard_scale {
+pub mod shepard_scale {
     use std::iter;
 
     use musik::{
@@ -683,7 +683,10 @@ mod shepard_scale {
         }
     }
 
-    fn music(delta: Interval, lines: &[(StandardMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
+    pub fn music(
+        delta: Interval,
+        lines: &[(StandardMidiInstrument, u16)],
+    ) -> Music<(Pitch, Volume)> {
         Music::chord(
             lines
                 .iter()

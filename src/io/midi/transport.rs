@@ -4,6 +4,9 @@ use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 pub(super) fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     let ports = out.ports();
+    for port in &ports {
+        println!("PORT: {}", out.port_name(port).unwrap());
+    }
     if ports.is_empty() {
         return None;
     }

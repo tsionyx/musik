@@ -18,10 +18,28 @@ where
 }
 
 fn main() {
-    println!(
-        "This crate contains a collection of tests \
-    representing exercises from the 'Haskell School of Music' bool"
+    use musik::{instruments::StandardMidiInstrument::*, Interval, Performable as _};
+
+    // let perf = ch6::funk_groove().perform_default();
+    // perf.clone().save_to_file("funk.mid").unwrap();
+    // perf.play().unwrap();
+    ch6::crazy_recursion::example1()
+        .perform_default()
+        .play()
+        .unwrap();
+
+    ch6::shepard_scale::music(
+        -Interval::semi_tone(),
+        &[
+            (AcousticGrandPiano, 2323),
+            (DistortionGuitar, 9940),
+            (Flute, 7899),
+            (Cello, 15000),
+        ],
     )
+    .perform_default()
+    .play()
+    .unwrap();
 }
 
 fn compose<T, U, V, F, G>(f: F, g: G) -> impl Fn(T) -> V

@@ -222,7 +222,10 @@ impl MidiPlayer {
                 if elapsed >= t {
                     self.sync_currently_played(&msg);
                     if let Some(live) = msg.as_live_event() {
-                        live.write_std(&mut self.conn)?;
+                        live.write_std(&mut self.conn).map_err(|err| {
+                            dbg!(&live);
+                            dbg!(err)
+                        })?;
                         self.conn.flush()?;
                     }
                     break;
