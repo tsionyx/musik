@@ -2,7 +2,7 @@ use enum_iterator::Sequence;
 use enum_map::Enum;
 use num_rational::Ratio;
 
-use crate::music::Volume;
+use crate::prim::volume::Volume;
 
 type Rational = num_rational::Ratio<u32>;
 

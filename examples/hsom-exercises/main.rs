@@ -18,10 +18,9 @@ where
 }
 
 fn main() {
-    println!(
-        "This crate contains a collection of tests \
-    representing exercises from the 'Haskell School of Music' bool"
-    )
+    use musik::Performable as _;
+    let m = ch6::drum_pattern();
+    m.perform_default().play().unwrap();
 }
 
 fn compose<T, U, V, F, G>(f: F, g: G) -> impl Fn(T) -> V

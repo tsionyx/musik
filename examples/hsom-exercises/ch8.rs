@@ -40,7 +40,7 @@ mod jazz_man {
 
     use musik::{
         music::AttrNote,
-        performance::{defaults::default_note_attribute_handler, Context, Event},
+        perf::{defaults::default_note_attribute_handler, Context, Event},
         Dur, Performance, Player,
     };
 

@@ -7,6 +7,10 @@ pub(super) fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     if ports.is_empty() {
         return None;
     }
+    for p in &ports {
+        // TODO: log.info
+        println!("{:?}", out.port_name(p));
+    }
 
     if ports.len() == 1 {
         ports.into_iter().next()
@@ -25,21 +29,24 @@ pub(super) fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
 
 type AnyError = Box<dyn std::error::Error>;
 
-pub fn get_default_connection() -> Result<Connection, AnyError> {
-    let out = MidiOutput::new("musik library MIDI player")?;
-    let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
-
-    println!("Choosing {:?}", out.port_name(&port));
-    let conn = out.connect(&port, "playing Music")?;
-    Ok(Connection {
-        inner: conn,
-        buf: Vec::new(),
-    })
-}
-
 pub struct Connection {
     buf: Vec<u8>,
     inner: MidiOutputConnection,
+}
+
+impl Connection {
+    pub fn get_default() -> Result<Self, AnyError> {
+        let out = MidiOutput::new("musik library MIDI player")?;
+        let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
+
+        // TODO: log.info
+        println!("Choosing {:?}", out.port_name(&port));
+        let conn = out.connect(&port, "playing Music")?;
+        Ok(Self {
+            inner: conn,
+            buf: Vec::new(),
+        })
+    }
 }
 
 impl Write for Connection {

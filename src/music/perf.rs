@@ -7,12 +7,10 @@ use ordered_float::OrderedFloat;
 use crate::{
     instruments::InstrumentName,
     music::{AttrNote, MusicAttr},
+    prim::{duration::Dur, pitch::AbsPitch, scale::KeySig, volume::Volume},
 };
 
-use super::{
-    duration::Dur, interval::AbsPitch, phrases::PhraseAttribute, Control, KeySig, Music,
-    PlayerName, Primitive, Volume,
-};
+use super::{control::Control, phrase::PhraseAttribute, Music, PlayerName, Primitive};
 
 #[derive(Debug, Clone)]
 /// [`Performance`] is a time-ordered sequence
@@ -267,12 +265,11 @@ pub mod defaults {
 
     use num_traits::{ops::checked::CheckedSub as _, One as _, Zero as _};
 
-    use crate::instruments::StandardMidiInstrument;
+    use crate::{output::midi::instruments::Instrument, prim::pitch::Pitch};
 
     use super::{
         super::{
-            phrases::{Articulation, Dynamic, Ornament, Tempo, TrillOptions},
-            pitch::Pitch,
+            phrase::{Articulation, Dynamic, Ornament, PhraseAttribute, Tempo, TrillOptions},
             AttrNote,
         },
         *,
@@ -806,7 +803,7 @@ pub mod defaults {
             Self {
                 start_time: TimePoint::from_integer(0),
                 player,
-                instrument: StandardMidiInstrument::AcousticGrandPiano.into(),
+                instrument: Instrument::AcousticGrandPiano.into(),
                 whole_note: metro(120, Dur::QN),
                 pitch: AbsPitch::from(0),
                 volume: Volume::loudest(),
