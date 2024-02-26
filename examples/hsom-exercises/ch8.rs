@@ -40,7 +40,7 @@ mod jazz_man {
 
     use musik::{
         music::AttrNote,
-        performance::{defaults::default_note_attribute_handler, Context, Event},
+        perf::{defaults::default_note_attribute_handler, Context, Event},
         Dur, Performance, Player,
     };
 
@@ -108,8 +108,7 @@ mod jazz_man {
         use std::{borrow::Cow, collections::HashMap};
 
         use musik::{
-            instruments::StandardMidiInstrument, music::Volume, AbsPitch, Music, Octave,
-            Performable as _, Pitch, PitchClass,
+            midi::Instrument, AbsPitch, Music, Octave, Performable as _, Pitch, PitchClass, Volume,
         };
 
         use super::*;
@@ -137,7 +136,7 @@ mod jazz_man {
                 [
                     Event {
                         start_time: Ratio::from_integer(0),
-                        instrument: StandardMidiInstrument::AcousticGrandPiano.into(),
+                        instrument: Instrument::AcousticGrandPiano.into(),
                         pitch: AbsPitch::from(48),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
@@ -145,7 +144,7 @@ mod jazz_man {
                     },
                     Event {
                         start_time: Ratio::new(1, 3),
-                        instrument: StandardMidiInstrument::AcousticGrandPiano.into(),
+                        instrument: Instrument::AcousticGrandPiano.into(),
                         pitch: AbsPitch::from(50),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),
@@ -153,7 +152,7 @@ mod jazz_man {
                     },
                     Event {
                         start_time: Ratio::new(1, 2),
-                        instrument: StandardMidiInstrument::AcousticGrandPiano.into(),
+                        instrument: Instrument::AcousticGrandPiano.into(),
                         pitch: AbsPitch::from(52),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
@@ -161,7 +160,7 @@ mod jazz_man {
                     },
                     Event {
                         start_time: Ratio::new(5, 6),
-                        instrument: StandardMidiInstrument::AcousticGrandPiano.into(),
+                        instrument: Instrument::AcousticGrandPiano.into(),
                         pitch: AbsPitch::from(53),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),

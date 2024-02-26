@@ -1,39 +1,22 @@
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    io::Write as _,
-    iter,
-    path::Path,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    thread::sleep,
-    time::{Duration, Instant},
-};
+//! <https://en.wikipedia.org/wiki/General_MIDI>
+
+use std::{borrow::Cow, collections::HashMap, iter, time::Duration};
 
 use itertools::Itertools as _;
 use midly::{
-    live::LiveEvent,
-    num::{u15, u4, u7},
-    Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent, TrackEventKind,
+    num::u15, Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent,
+    TrackEventKind,
 };
-use once_cell::sync::Lazy;
 
 use crate::{
     instruments::InstrumentName,
-    music::{
-        performance::{Event, Performance},
-        Volume,
-    },
+    music::perf::{Event, Performance},
+    prim::volume::Volume,
 };
 
-use super::{
-    transport::{get_default_connection, Connection},
-    Channel, UserPatchMap,
-};
+use super::{Channel, UserPatchMap};
 
-fn into_relative_time(track: AbsTimeTrack) -> Track<'static> {
+pub(super) fn into_relative_time(track: AbsTimeTrack) -> Track<'static> {
     track
         .into_iter()
         .scan(0, |acc, (t, kind)| {
@@ -138,7 +121,7 @@ const DEFAULT_TIME_DIV: u15 = u15::new(96);
 const BEATS_PER_SECOND: u32 = 2;
 
 type TimedMessage<'a, T = u32> = (T, TrackEventKind<'a>);
-type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
+pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
 impl Event {
@@ -174,124 +157,6 @@ impl Event {
     }
 }
 
-type AnyError = Box<dyn std::error::Error>;
-
-impl Performance {
-    pub fn save_to_file<P: AsRef<Path>>(self, path: P) -> Result<(), AnyError> {
-        let midi = self.into_midi(None)?;
-        midi.save(path)?;
-        Ok(())
-    }
-
-    pub fn play(self) -> Result<(), AnyError> {
-        let mut player = MidiPlayer::make_default()?;
-        let Smf { header, tracks } = self.into_midi(None)?;
-        let single_track = merge_tracks(tracks);
-
-        player.play(single_track, header.timing)?;
-        Ok(())
-    }
-}
-
-struct MidiPlayer {
-    // TODO: allow pause (see https://github.com/insomnimus/nodi/blob/main/src/player.rs)
-    conn: Connection,
-    currently_played: HashSet<(u4, u7, u7)>,
-}
-
-impl MidiPlayer {
-    // TODO: provide the port here
-    fn make_default() -> Result<Self, AnyError> {
-        let conn = get_default_connection()?;
-        Ok(Self {
-            conn,
-            currently_played: HashSet::new(),
-        })
-    }
-
-    fn play(&mut self, track: AbsTimeTrack, timing: Timing) -> std::io::Result<()> {
-        let sec_per_tick = tick_size(timing);
-        let real_time = track
-            .into_iter()
-            .map(|(ticks, msg)| (ticks * sec_per_tick, msg));
-
-        let start = Instant::now();
-        for (t, msg) in real_time {
-            while IS_RUNNING.load(Ordering::SeqCst) {
-                let elapsed = start.elapsed();
-                if elapsed >= t {
-                    self.sync_currently_played(&msg);
-                    if let Some(live) = msg.as_live_event() {
-                        live.write_std(&mut self.conn)?;
-                        self.conn.flush()?;
-                    }
-                    break;
-                } else {
-                    sleep(sec_per_tick);
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn sync_currently_played(&mut self, msg: &TrackEventKind) {
-        if let TrackEventKind::Midi { channel, message } = msg {
-            match message {
-                MidiMessage::NoteOn { key, vel } => {
-                    self.currently_played.insert((*channel, *key, *vel));
-                }
-                MidiMessage::NoteOff { key, vel } => {
-                    self.currently_played.remove(&(*channel, *key, *vel));
-                }
-                _ => {}
-            }
-        }
-    }
-
-    fn stop_all(&mut self) -> std::io::Result<()> {
-        for (channel, key, vel) in self.currently_played.drain() {
-            let msg = LiveEvent::Midi {
-                channel,
-                message: MidiMessage::NoteOff { key, vel },
-            };
-            msg.write_std(&mut self.conn)?;
-            self.conn.flush()?;
-        }
-        Ok(())
-    }
-}
-
-impl Drop for MidiPlayer {
-    fn drop(&mut self) {
-        let notes_left = self.currently_played.len();
-        if notes_left > 0 {
-            println!(
-                "Dropping the {:?}: {} notes unfinished",
-                std::any::type_name::<Self>(),
-                notes_left
-            );
-            let _ = self.stop_all();
-        }
-    }
-}
-
-fn tick_size(timing: Timing) -> Duration {
-    let ticks_per_second = match timing {
-        Timing::Metrical(tick) => u32::from(u16::from(tick)) * BEATS_PER_SECOND,
-        Timing::Timecode(fps, sub) => {
-            let fps: u32 = match fps {
-                Fps::Fps24 => 24,
-                Fps::Fps25 => 25,
-                Fps::Fps29 => 29,
-                Fps::Fps30 => 30,
-            };
-            fps * u32::from(sub)
-        }
-    };
-
-    Duration::from_secs_f64(f64::from(ticks_per_second).recip())
-}
-
 fn to_absolute(track: Track, drop_track_end: bool) -> AbsTimeTrack {
     track
         .into_iter()
@@ -308,7 +173,7 @@ fn to_absolute(track: Track, drop_track_end: bool) -> AbsTimeTrack {
 /// - convert to absolute time  (remove TrackEnd)
 /// - merge (https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge)
 /// - add TrackEnd
-fn merge_tracks(mut tracks: Vec<Track>) -> AbsTimeTrack {
+pub fn merge_tracks(mut tracks: Vec<Track>) -> AbsTimeTrack {
     if tracks.is_empty() {
         return AbsTimeTrack::new();
     }
@@ -330,14 +195,19 @@ fn merge_tracks(mut tracks: Vec<Track>) -> AbsTimeTrack {
     single
 }
 
-static IS_RUNNING: Lazy<Arc<AtomicBool>> = Lazy::new(|| {
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
+pub(super) fn tick_size(timing: Timing) -> Duration {
+    let ticks_per_second = match timing {
+        Timing::Metrical(tick) => u32::from(u16::from(tick)) * BEATS_PER_SECOND,
+        Timing::Timecode(fps, sub) => {
+            let fps: u32 = match fps {
+                Fps::Fps24 => 24,
+                Fps::Fps25 => 25,
+                Fps::Fps29 => 29,
+                Fps::Fps30 => 30,
+            };
+            fps * u32::from(sub)
+        }
+    };
 
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    running
-});
+    Duration::from_secs_f64(f64::from(ticks_per_second).recip())
+}

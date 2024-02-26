@@ -1,11 +1,37 @@
-mod codec;
-mod transport;
+mod convert;
+pub(crate) mod instruments;
+mod io;
+mod player;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use enum_map::Enum;
+use midly::Smf;
 
-use crate::instruments::InstrumentName;
+use crate::{instruments::InstrumentName, music::perf::Performance};
+
+use self::{convert::merge_tracks, player::MidiPlayer};
+
+pub use self::instruments::{Instrument, PercussionSound};
+
+type AnyError = Box<dyn std::error::Error>;
+
+impl Performance {
+    pub fn save_to_file<P: AsRef<Path>>(self, path: P) -> Result<(), AnyError> {
+        let midi = self.into_midi(None)?;
+        midi.save(path)?;
+        Ok(())
+    }
+
+    pub fn play(self) -> Result<(), AnyError> {
+        let mut player = MidiPlayer::make_default()?;
+        let Smf { header, tracks } = self.into_midi(None)?;
+        let single_track = merge_tracks(tracks);
+
+        player.play(single_track, header.timing)?;
+        Ok(())
+    }
+}
 
 // up to 16 channels
 type Channel = u8;
@@ -47,7 +73,7 @@ impl UserPatchMap {
     pub fn lookup(&self, instrument: &InstrumentName) -> Option<(Channel, ProgNum)> {
         self.repr.get(instrument).map(|x| {
             let prog_num = match instrument {
-                InstrumentName::Standard(i) => i.into_usize(),
+                InstrumentName::Midi(i) => i.into_usize(),
                 InstrumentName::Percussion => 0,
                 InstrumentName::Custom(_) => 0,
             };

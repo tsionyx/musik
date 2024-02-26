@@ -3,9 +3,10 @@ use std::collections::HashSet;
 use num_rational::Ratio;
 
 use musik::{
-    instruments::{InstrumentName, PercussionSound, StandardMidiInstrument},
-    music::{Primitive, Volume},
-    rests, Dur, Interval, Music, Octave, Pitch, TrillOptions,
+    instruments::InstrumentName,
+    midi::{Instrument, PercussionSound},
+    music::{rests, Primitive},
+    Dur, Interval, Music, Octave, Pitch, TrillOptions, Volume,
 };
 
 type M = Music;
@@ -257,7 +258,7 @@ fn stars_and_stripes() -> Music {
         M::rest(Dur::DEN),
     ]);
 
-    melody.with_instrument(StandardMidiInstrument::Flute)
+    melody.with_instrument(Instrument::Flute)
 }
 
 /// Exercise 6.6
@@ -347,7 +348,22 @@ fn sequence_all_percussions() -> Music {
 }
 
 // TODO: Exercise 6.8
-//  https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295
+
+/// Exercise 6.8
+///
+/// TODO: test more at https://en.wikipedia.org/wiki/Drum_beat
+///   https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295
+pub fn drum_pattern() -> Music {
+    let m1 = PercussionSound::ClosedHiHat.note(Dur::QN).times(4);
+    let m2 = Music::rest(Dur::HN) + PercussionSound::AcousticSnare.note(Dur::HN);
+
+    let m3 = (PercussionSound::ClosedHiHat.note(Dur::EN) + Music::rest(Dur::EN)).times(4);
+    let m4 = Music::rest(Dur::HN) + PercussionSound::AcousticSnare.note(Dur::QN);
+
+    ((m1 | m2) + (m3 | m4))
+        .with_instrument(InstrumentName::Percussion)
+        .with_tempo(Ratio::new(4, 3))
+}
 
 // TODO: play me
 fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
@@ -587,10 +603,7 @@ mod intervals {
 mod shepard_scale {
     use std::iter;
 
-    use musik::{
-        instruments::StandardMidiInstrument, music::Volume, AbsPitch, Dur, Interval, Music, Octave,
-        Pitch,
-    };
+    use musik::{midi::Instrument, AbsPitch, Dur, Interval, Music, Octave, Pitch, Volume};
 
     fn interval_line(start: Pitch, dur: Dur, delta: Interval) -> impl Iterator<Item = Music> {
         iter::successors(Some(start), move |prev| Some(prev.trans(delta)))
@@ -683,7 +696,7 @@ mod shepard_scale {
         }
     }
 
-    fn music(delta: Interval, lines: &[(StandardMidiInstrument, u16)]) -> Music<(Pitch, Volume)> {
+    fn music(delta: Interval, lines: &[(Instrument, u16)]) -> Music<(Pitch, Volume)> {
         Music::chord(
             lines
                 .iter()
@@ -705,8 +718,7 @@ mod shepard_scale {
 
     #[test]
     fn test_save() {
-        use musik::Performable as _;
-        use StandardMidiInstrument::*;
+        use musik::{midi::Instrument::*, Performable as _};
 
         let m = music(
             -Interval::semi_tone(),

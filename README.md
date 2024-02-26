@@ -6,7 +6,7 @@ It is mostly expired by [HSoM](https://www.euterpea.com/haskell-school-of-music/
 ## Install dependencies
 
 ```bash
-sudo apt install qjackctl qsynth libasound2-dev
+sudo apt install libasound2-dev   # also `qjackctl` and `qsynth` for handling audio streams
 ```
 
 
@@ -14,12 +14,17 @@ sudo apt install qjackctl qsynth libasound2-dev
 
 - On notes and everything else:
     - https://en.wikipedia.org/wiki/Music_theory
+    - https://musictheory.pugetsound.edu/mt21c/
+    - https://en.wikipedia.org/wiki/Music_and_mathematics
+    - https://en.wikipedia.org/wiki/Algorithmic_composition
+    - https://en.wikipedia.org/wiki/Computational_musicology
 
 - On MIDI:
     - http://tedfelix.com/linux/linux-midi.html
     - https://sndrtj.eu/2019/10/19/Using-a-USB-midi-keyboard-on-Ubuntu/
     - https://askubuntu.com/q/572120
     - https://linuxaudio.github.io/libremusicproduction/html/workflow.html
+    - https://www.audiolabs-erlangen.de/resources/MIR/FMP/C1/C1S2_MIDI.html (also see the FMP book)
 
 - On signals:
     - https://www.youtube.com/watch?v=odeWLp96fdo

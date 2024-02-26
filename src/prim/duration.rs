@@ -6,6 +6,8 @@ use std::{
 use num_rational::Ratio;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// <https://en.wikipedia.org/wiki/Duration_(music)>
+/// <https://en.wikipedia.org/wiki/Note_value>
 pub struct Dur(u8, u8);
 
 impl PartialOrd for Dur {
@@ -161,5 +163,30 @@ impl Div<Ratio<u8>> for Dur {
 
     fn div(self, rhs: Ratio<u8>) -> Self::Output {
         (self.into_ratio() / rhs).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn double_duration() {
+        assert_eq!(Dur::WN.double(), Dur::BN);
+        assert_eq!(Dur::HN.double(), Dur::WN);
+        assert_eq!(Dur::QN.double(), Dur::HN);
+        assert_eq!(Dur::EN.double(), Dur::QN);
+        assert_eq!(Dur::SN.double(), Dur::EN);
+        assert_eq!(Dur::TN.double(), Dur::SN);
+        assert_eq!(Dur::SFN.double(), Dur::TN);
+
+        assert_eq!(Dur::DHN.double(), Dur::DWN);
+        assert_eq!(Dur::DQN.double(), Dur::DHN);
+        assert_eq!(Dur::DEN.double(), Dur::DQN);
+        assert_eq!(Dur::DSN.double(), Dur::DEN);
+        assert_eq!(Dur::DTN.double(), Dur::DSN);
+
+        assert_eq!(Dur::DDQN.double(), Dur::DDHN);
+        assert_eq!(Dur::DDEN.double(), Dur::DDQN);
     }
 }

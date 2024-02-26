@@ -1,15 +1,20 @@
 pub mod instruments;
-mod io;
 pub mod music;
+mod output;
+mod prim;
 
 pub use self::{
-    io::midi,
     music::{
+        perf::{self, Performable, Performance, Player},
+        phrase::{PhraseAttribute, TrillOptions},
+        Music,
+    },
+    output::midi,
+    prim::{
         duration::Dur,
-        interval::{AbsPitch, Interval, Octave},
-        performance::{self, Performable, Performance, Player},
-        phrases::{PhraseAttribute, TrillOptions},
-        pitch::{Pitch, PitchClass},
-        rests, Music,
+        interval::{Interval, Octave},
+        note::Note,
+        pitch::{AbsPitch, Pitch, PitchClass},
+        volume::Volume,
     },
 };

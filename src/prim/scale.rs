@@ -1,77 +1,51 @@
-use std::{
-    convert::TryFrom,
-    ops::{Add, AddAssign, Neg, Sub},
+use super::{
+    interval::{Interval, Octave},
+    pitch::{AbsPitch, Pitch, PitchClass},
 };
 
-use super::{pitch::PitchClass, KeySig};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-// 0..8 on piano
-pub struct Octave(pub(crate) i8);
-
-impl Octave {
-    pub const OCTO_CONTRA: Self = Self(-1);
-    pub const SUB_CONTRA: Self = Self(0);
-    pub const CONTRA: Self = Self(1);
-    pub const GREAT: Self = Self(2);
-    pub const SMALL: Self = Self(3);
-    pub const ONE_LINED: Self = Self(4);
-    pub const TWO_LINED: Self = Self(5);
-    pub const THREE_LINED: Self = Self(6);
-    pub const FOUR_LINED: Self = Self(7);
-    pub const FIVE_LINED: Self = Self(8);
-    pub const SIX_LINED: Self = Self(9);
-    pub const SEVEN_LINED: Self = Self(10);
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
+pub enum KeySig {
+    Major(PitchClass),
+    Minor(PitchClass),
 }
 
-impl From<i8> for Octave {
-    fn from(val: i8) -> Self {
-        Self(val)
+impl Default for KeySig {
+    fn default() -> Self {
+        // the white piano keys
+        Self::Major(PitchClass::C)
     }
 }
 
-impl Octave {
-    pub(super) const MINIMAL_PITCHES: [PitchClass; 12] = [
-        PitchClass::C,
-        PitchClass::Cs,
-        PitchClass::D,
-        PitchClass::Ds,
-        PitchClass::E,
-        PitchClass::F,
-        PitchClass::Fs,
-        PitchClass::G,
-        PitchClass::Gs,
-        PitchClass::A,
-        PitchClass::As,
-        PitchClass::B,
-    ];
+impl KeySig {
+    pub fn get_scale(self) -> impl Iterator<Item = PitchClass> {
+        let oc4 = Octave::ONE_LINED;
+        let with_octave: Box<dyn Iterator<Item = Pitch>> = match self {
+            Self::Major(pc) => Box::new(Pitch::new(pc, oc4).major_scale()),
+            Self::Minor(pc) => Box::new(Pitch::new(pc, oc4).natural_minor_scale()),
+        };
+        with_octave.map(Pitch::class)
+    }
 
-    pub(super) fn semitones_number() -> Interval {
-        let len = i8::try_from(Self::MINIMAL_PITCHES.len()).unwrap();
-        Interval(len)
+    const fn pitch_class(self) -> PitchClass {
+        match self {
+            Self::Major(pc) | Self::Minor(pc) => pc,
+        }
+    }
+
+    pub fn get_intervals_scale(self) -> impl Iterator<Item = Interval> {
+        let scale = match self {
+            Self::Major(_) => Interval::major_scale(),
+            Self::Minor(_) => Interval::natural_minor_scale(),
+        };
+        let tonic = self.pitch_class().into();
+        scale.into_iter().scan(tonic, |state, p| {
+            *state += p;
+            Some(*state)
+        })
     }
 }
-
-#[derive(Debug, Clone, Copy, Default, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Interval(i8);
 
 impl Interval {
-    pub const fn zero() -> Self {
-        Self(0)
-    }
-
-    pub const fn semi_tone() -> Self {
-        Self(1)
-    }
-
-    pub const fn tone() -> Self {
-        Self(2)
-    }
-
-    pub const fn get_inner(self) -> i8 {
-        self.0
-    }
-
     pub const fn major_scale() -> [Self; 8] {
         [
             Self::zero(),
@@ -99,151 +73,26 @@ impl Interval {
     }
 }
 
-impl From<i8> for Interval {
-    fn from(val: i8) -> Self {
-        Self(val)
+impl Pitch {
+    pub fn get_scale<I, Int>(self, intervals: I) -> impl Iterator<Item = Self> + 'static
+    where
+        I: Iterator<Item = Int> + 'static,
+        Int: Copy + Into<Interval>,
+    {
+        intervals
+            .scan(Interval::zero(), |tonic_distance, interval| {
+                *tonic_distance += interval.into();
+                Some(*tonic_distance)
+            })
+            .map(move |distance| self.trans(distance))
     }
-}
 
-impl Neg for Interval {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self(-self.0)
+    pub fn major_scale(self) -> impl Iterator<Item = Self> {
+        self.get_scale(Interval::major_scale().into_iter())
     }
-}
 
-impl Add for Interval {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl AddAssign for Interval {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += rhs.0;
-    }
-}
-
-impl From<PitchClass> for Interval {
-    fn from(pc: PitchClass) -> Self {
-        let val = match pc {
-            PitchClass::Cff => -2,
-            PitchClass::Cf => -1,
-            PitchClass::C => 0,
-            PitchClass::Cs => 1,
-            PitchClass::Css => 2,
-            PitchClass::Dff => 0,
-            PitchClass::Df => 1,
-            PitchClass::D => 2,
-            PitchClass::Ds => 3,
-            PitchClass::Dss => 4,
-            PitchClass::Eff => 2,
-            PitchClass::Ef => 3,
-            PitchClass::E => 4,
-            PitchClass::Es => 5,
-            PitchClass::Ess => 6,
-            PitchClass::Fff => 3,
-            PitchClass::Ff => 4,
-            PitchClass::F => 5,
-            PitchClass::Fs => 6,
-            PitchClass::Fss => 7,
-            PitchClass::Gff => 5,
-            PitchClass::Gf => 6,
-            PitchClass::G => 7,
-            PitchClass::Gs => 8,
-            PitchClass::Gss => 9,
-            PitchClass::Aff => 7,
-            PitchClass::Af => 8,
-            PitchClass::A => 9,
-            PitchClass::As => 10,
-            PitchClass::Ass => 11,
-            PitchClass::Bff => 9,
-            PitchClass::Bf => 10,
-            PitchClass::B => 11,
-            PitchClass::Bs => 12,
-            PitchClass::Bss => 13,
-        };
-
-        Self(val)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AbsPitch(i8);
-
-impl AbsPitch {
-    pub const fn get_inner(self) -> i8 {
-        self.0
-    }
-}
-
-impl From<i8> for AbsPitch {
-    fn from(x: i8) -> Self {
-        Self(x)
-    }
-}
-
-impl From<AbsPitch> for Interval {
-    fn from(abs_pitch: AbsPitch) -> Self {
-        Self(abs_pitch.0)
-    }
-}
-
-impl From<AbsPitch> for (Octave, u8) {
-    fn from(abs_pitch: AbsPitch) -> Self {
-        let octave_size = Octave::semitones_number().0;
-        let (octave, n) = (abs_pitch.0 / octave_size, abs_pitch.0 % octave_size);
-
-        let (octave, n) = if n < 0 {
-            (octave - 1, (n + octave_size))
-        } else {
-            (octave, n)
-        };
-
-        (
-            Octave(octave),
-            u8::try_from(n).expect("Negative interval found"),
-        )
-    }
-}
-
-impl From<Octave> for AbsPitch {
-    fn from(octave: Octave) -> Self {
-        let octave_size = Octave::semitones_number().0;
-        Self(octave.0 * octave_size)
-    }
-}
-
-impl Add for AbsPitch {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Add<Interval> for AbsPitch {
-    type Output = Self;
-
-    fn add(self, rhs: Interval) -> Self::Output {
-        Self(self.0 + rhs.0)
-    }
-}
-
-impl Sub for AbsPitch {
-    type Output = Interval;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Interval(self.0 - rhs.0)
-    }
-}
-
-impl From<Interval> for AbsPitch {
-    fn from(int: Interval) -> Self {
-        Self(int.0)
+    pub fn natural_minor_scale(self) -> impl Iterator<Item = Self> {
+        self.get_scale(Interval::natural_minor_scale().into_iter())
     }
 }
 
@@ -289,10 +138,117 @@ impl AbsPitch {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{pitch::Pitch, KeySig},
-        *,
-    };
+    use super::{super::pitch::Pitch, *};
+
+    #[test]
+    fn major() {
+        let oc3 = Octave(3);
+        let middle_c = Pitch::C(oc3);
+        let major: Vec<_> = middle_c.major_scale().collect();
+
+        assert_eq!(
+            major,
+            vec![
+                Pitch::C(oc3),
+                Pitch::D(oc3),
+                Pitch::E(oc3),
+                Pitch::F(oc3),
+                Pitch::G(oc3),
+                Pitch::A(oc3),
+                Pitch::B(oc3),
+                Pitch::C(Octave(4)),
+            ]
+        );
+    }
+
+    #[test]
+    fn minor() {
+        let oc4 = Octave(4);
+        let oc5 = Octave(5);
+
+        let concert_a = Pitch::A(oc4);
+        let minor: Vec<_> = concert_a.natural_minor_scale().collect();
+
+        assert_eq!(
+            minor,
+            vec![
+                Pitch::A(oc4),
+                Pitch::B(oc4),
+                Pitch::C(oc5),
+                Pitch::D(oc5),
+                Pitch::E(oc5),
+                Pitch::F(oc5),
+                Pitch::G(oc5),
+                Pitch::A(oc5),
+            ]
+        );
+    }
+
+    #[test]
+    fn key_sig_c_major_scale() {
+        let scale: Vec<_> = KeySig::Major(PitchClass::C).get_scale().collect();
+        assert_eq!(
+            scale,
+            [
+                PitchClass::C,
+                PitchClass::D,
+                PitchClass::E,
+                PitchClass::F,
+                PitchClass::G,
+                PitchClass::A,
+                PitchClass::B,
+                PitchClass::C,
+            ]
+        );
+
+        let i_scale: Vec<_> = KeySig::Major(PitchClass::C).get_intervals_scale().collect();
+        assert_eq!(
+            i_scale,
+            [
+                Interval::from(0),
+                Interval::from(2),
+                Interval::from(4),
+                Interval::from(5),
+                Interval::from(7),
+                Interval::from(9),
+                Interval::from(11),
+                Interval::from(12),
+            ]
+        );
+    }
+
+    #[test]
+    fn key_sig_g_major_scale() {
+        let scale: Vec<_> = KeySig::Major(PitchClass::G).get_scale().collect();
+        assert_eq!(
+            scale,
+            [
+                PitchClass::G,
+                PitchClass::A,
+                PitchClass::B,
+                PitchClass::C,
+                PitchClass::D,
+                PitchClass::E,
+                PitchClass::Fs,
+                PitchClass::G,
+            ]
+        );
+
+        let i_scale: Vec<_> = KeySig::Major(PitchClass::G).get_intervals_scale().collect();
+        assert_eq!(
+            i_scale,
+            [
+                Interval::from(7),
+                Interval::from(9),
+                Interval::from(11),
+                Interval::from(12),
+                Interval::from(14),
+                Interval::from(16),
+                Interval::from(18),
+                Interval::from(19),
+            ]
+        );
+    }
 
     #[test]
     fn diatonic_trans_c_major() {
