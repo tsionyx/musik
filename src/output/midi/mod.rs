@@ -1,16 +1,16 @@
 mod convert;
 pub(crate) mod instruments;
+
+#[cfg(feature = "play-midi")]
 mod io;
+#[cfg(feature = "play-midi")]
 mod player;
 
 use std::{collections::HashMap, path::Path};
 
 use enum_map::Enum;
-use midly::Smf;
 
 use crate::{instruments::InstrumentName, music::perf::Performance};
-
-use self::{convert::merge_tracks, player::MidiPlayer};
 
 pub use self::instruments::{Instrument, PercussionSound};
 
@@ -23,7 +23,11 @@ impl Performance {
         Ok(())
     }
 
+    #[cfg(feature = "play-midi")]
     pub fn play(self) -> Result<(), AnyError> {
+        use self::{convert::merge_tracks, player::MidiPlayer};
+        use midly::Smf;
+
         let mut player = MidiPlayer::make_default()?;
         let Smf { header, tracks } = self.into_midi(None)?;
         let single_track = merge_tracks(tracks);
