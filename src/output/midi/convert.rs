@@ -1,5 +1,6 @@
 //! <https://en.wikipedia.org/wiki/General_MIDI>
 
+#![cfg_attr(not(feature = "play-midi"), allow(dead_code))]
 use std::{borrow::Cow, collections::HashMap, iter, time::Duration};
 
 use itertools::Itertools as _;

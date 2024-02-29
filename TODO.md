@@ -18,4 +18,4 @@
 - made iterator-based version of Sequential and everything else to allow
   playing infinite music
 
-- introduce 'midi' (save to .mid) and 'play' (via MIDI device) features;
+- introduce 'midi' (save to .mid) feature;

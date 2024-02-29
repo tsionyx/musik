@@ -22,8 +22,12 @@ itertools = "0.12"
 
 # MIDI stuff
 midly = { version = "0.5", default_features = false, features = ["std"] }
-midir = "0.9"
+midir = { version = "0.9", optional = true }
 
 # graceful shutdown
-ctrlc = "3.4"
-once_cell = "1.19"
+ctrlc = { version = "3.4", optional = true }
+once_cell = { version = "1.19", optional = true }
+
+[features]
+play-midi = ["midir", "ctrlc", "once_cell"]
+default = ["play-midi"]
