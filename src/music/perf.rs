@@ -804,7 +804,7 @@ pub mod defaults {
                 start_time: TimePoint::from_integer(0),
                 player,
                 instrument: Instrument::AcousticGrandPiano.into(),
-                whole_note: metro(120, Dur::QN),
+                whole_note: metro(120, Dur::QUARTER),
                 pitch: AbsPitch::from(0),
                 volume: Volume::loudest(),
                 key: KeySig::default(),
@@ -832,7 +832,7 @@ mod tests {
         // 136.5 whole notes with tempo (120 QN/min)
         // will last exactly 4'33"
         let m: Music = Music::line(
-            [Dur::from(136), Dur::HN]
+            [Dur::from(136), Dur::HALF]
                 .into_iter()
                 .map(Music::rest)
                 .collect(),

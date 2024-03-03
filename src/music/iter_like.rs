@@ -1,5 +1,6 @@
 //! <https://en.wikipedia.org/wiki/Transformation_(music)>
 //! <https://en.wikipedia.org/wiki/Permutation_(music)>
+#![allow(pointer_structural_match)]
 use crate::prim::duration::Dur;
 
 use super::{control::Control, Music, Primitive};

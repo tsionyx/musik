@@ -27,15 +27,15 @@ mod retro_invert {
             let oc4 = Octave::ONE_LINED;
             let oc5 = Octave::TWO_LINED;
             Music::line(vec![
-                M::C(oc5, Dur::EN),
-                M::E(oc5, Dur::SN),
-                M::G(oc5, Dur::EN),
-                M::B(oc5, Dur::SN),
-                M::A(oc5, Dur::EN),
-                M::F(oc5, Dur::SN),
-                M::D(oc5, Dur::EN),
-                M::B(oc4, Dur::SN),
-                M::C(oc5, Dur::EN),
+                M::C(oc5, Dur::EIGHTH),
+                M::E(oc5, Dur::SIXTEENTH),
+                M::G(oc5, Dur::EIGHTH),
+                M::B(oc5, Dur::SIXTEENTH),
+                M::A(oc5, Dur::EIGHTH),
+                M::F(oc5, Dur::SIXTEENTH),
+                M::D(oc5, Dur::EIGHTH),
+                M::B(oc4, Dur::SIXTEENTH),
+                M::C(oc5, Dur::EIGHTH),
             ])
         };
 
@@ -47,18 +47,18 @@ mod retro_invert {
         let m = {
             let oc5 = Octave::TWO_LINED;
             Music::line(vec![
-                M::Fs(oc5, Dur::EN),
-                M::A(oc5, Dur::EN),
-                M::B(oc5, Dur::HN),
-                M::B(oc5, Dur::QN),
-                M::A(oc5, Dur::EN),
-                M::Fs(oc5, Dur::EN),
-                M::E(oc5, Dur::QN),
-                M::D(oc5, Dur::EN),
-                M::Fs(oc5, Dur::EN),
-                M::E(oc5, Dur::HN),
-                M::D(oc5, Dur::HN),
-                M::Fs(oc5, Dur::QN),
+                M::Fs(oc5, Dur::EIGHTH),
+                M::A(oc5, Dur::EIGHTH),
+                M::B(oc5, Dur::HALF),
+                M::B(oc5, Dur::QUARTER),
+                M::A(oc5, Dur::EIGHTH),
+                M::Fs(oc5, Dur::EIGHTH),
+                M::E(oc5, Dur::QUARTER),
+                M::D(oc5, Dur::EIGHTH),
+                M::Fs(oc5, Dur::EIGHTH),
+                M::E(oc5, Dur::HALF),
+                M::D(oc5, Dur::HALF),
+                M::Fs(oc5, Dur::QUARTER),
             ])
         };
 
@@ -71,12 +71,12 @@ mod retro_invert {
             let oc5 = Octave::TWO_LINED;
             let oc6 = Octave::THREE_LINED;
             Music::line(vec![
-                M::G(oc5, Dur::EN),
-                M::As(oc5, Dur::EN),
-                M::Cs(oc6, Dur::HN),
-                M::Cs(oc6, Dur::EN),
-                M::D(oc6, Dur::EN),
-                M::Cs(oc6, Dur::EN),
+                M::G(oc5, Dur::EIGHTH),
+                M::As(oc5, Dur::EIGHTH),
+                M::Cs(oc6, Dur::HALF),
+                M::Cs(oc6, Dur::EIGHTH),
+                M::D(oc6, Dur::EIGHTH),
+                M::Cs(oc6, Dur::EIGHTH),
             ])
         };
 
@@ -194,17 +194,17 @@ mod tests {
     fn test_retro_pitches() {
         let oc4 = Octave::ONE_LINED;
         let m = Music::line(vec![
-            M::C(oc4, Dur::EN),
-            M::rest(Dur::SN),
-            M::D(oc4, Dur::QN),
+            M::C(oc4, Dur::EIGHTH),
+            M::rest(Dur::SIXTEENTH),
+            M::D(oc4, Dur::QUARTER),
         ]);
 
         assert_eq!(
             retro_pitches(m).unwrap(),
             Music::line(vec![
-                M::D(oc4, Dur::EN),
-                M::rest(Dur::SN),
-                M::C(oc4, Dur::QN),
+                M::D(oc4, Dur::EIGHTH),
+                M::rest(Dur::SIXTEENTH),
+                M::C(oc4, Dur::QUARTER),
             ])
         );
     }
@@ -212,10 +212,10 @@ mod tests {
     #[test]
     fn strip_zeros() {
         let oc4 = Octave::ONE_LINED;
-        let m = M::C(oc4, Dur::EN) + M::D(oc4, Dur::EN).times(16);
+        let m = M::C(oc4, Dur::EIGHTH) + M::D(oc4, Dur::EIGHTH).times(16);
         assert_eq!(
-            m.drop(Dur::HN).take(Dur::HN).remove_zeros(),
-            M::D(oc4, Dur::EN).times(4).remove_zeros()
+            m.drop(Dur::HALF).take(Dur::HALF).remove_zeros(),
+            M::D(oc4, Dur::EIGHTH).times(4).remove_zeros()
         );
     }
 }
@@ -230,32 +230,32 @@ fn stars_and_stripes() -> Music {
 
     let melody = Music::line(vec![
         // bar 1
-        M::Bf(oc6, Dur::EN)
+        M::Bf(oc6, Dur::EIGHTH)
             .trill(Interval::tone(), TrillOptions::Count(5))
             .unwrap(),
-        M::Ef(oc7, Dur::EN),
-        M::Ef(oc6, Dur::EN),
-        M::Ef(oc7, Dur::EN),
+        M::Ef(oc7, Dur::EIGHTH),
+        M::Ef(oc6, Dur::EIGHTH),
+        M::Ef(oc7, Dur::EIGHTH),
         // bar 2
-        M::Bf(oc6, Dur::SN),
-        M::C(oc7, Dur::SN),
-        M::Bf(oc6, Dur::SN),
-        M::G(oc6, Dur::SN),
-        M::Ef(oc6, Dur::EN),
-        M::Bf(oc5, Dur::EN),
+        M::Bf(oc6, Dur::SIXTEENTH),
+        M::C(oc7, Dur::SIXTEENTH),
+        M::Bf(oc6, Dur::SIXTEENTH),
+        M::G(oc6, Dur::SIXTEENTH),
+        M::Ef(oc6, Dur::EIGHTH),
+        M::Bf(oc5, Dur::EIGHTH),
         // bar 3
-        M::Ef(oc6, Dur::SN),
-        M::F(oc6, Dur::SN),
-        M::G(oc6, Dur::SN),
-        M::Af(oc6, Dur::SN),
-        M::Bf(oc6, Dur::EN),
-        M::Ef(oc7, Dur::EN),
+        M::Ef(oc6, Dur::SIXTEENTH),
+        M::F(oc6, Dur::SIXTEENTH),
+        M::G(oc6, Dur::SIXTEENTH),
+        M::Af(oc6, Dur::SIXTEENTH),
+        M::Bf(oc6, Dur::EIGHTH),
+        M::Ef(oc7, Dur::EIGHTH),
         // bar 4
-        M::Bf(oc6, Dur::QN)
-            .trill(Interval::tone(), Dur::TN)
+        M::Bf(oc6, Dur::QUARTER)
+            .trill(Interval::tone(), Dur::THIRTY_SECOND)
             .unwrap(),
-        M::Bf(oc6, Dur::SN),
-        M::rest(Dur::DEN),
+        M::Bf(oc6, Dur::SIXTEENTH),
+        M::rest(Dur::DOTTED_EIGHTH),
     ]);
 
     melody.with_instrument(Instrument::Flute)
@@ -309,23 +309,23 @@ mod ornamentations {
 
 // TODO: play me
 fn funk_groove() -> Music {
-    let p1 = PercussionSound::LowTom.note(Dur::QN);
-    let p2 = PercussionSound::AcousticSnare.note(Dur::EN);
+    let p1 = PercussionSound::LowTom.note(Dur::QUARTER);
+    let p2 = PercussionSound::AcousticSnare.note(Dur::EIGHTH);
     let m1 = Music::line(vec![
         p1.clone(),
-        rests::QN,
+        rests::QUARTER,
         p2.clone(),
-        rests::QN,
+        rests::QUARTER,
         p2.clone(),
         p1.clone(),
         p1,
-        rests::QN,
+        rests::QUARTER,
         p2,
-        rests::EN,
+        rests::EIGHTH,
     ]);
     let m2 = PercussionSound::ClosedHiHat
-        .note(Dur::BN)
-        .roll(Dur::EN)
+        .note(Dur::BREVIS)
+        .roll(Dur::EIGHTH)
         .unwrap();
 
     (m1 | m2)
@@ -339,7 +339,7 @@ fn funk_groove() -> Music {
 /// Write a program that generates all of the General MIDI
 /// percussion sounds, playing through each of them one at a time.
 fn sequence_all_percussions() -> Music {
-    let dur = Dur::QN;
+    let dur = Dur::QUARTER;
     Music::line(
         enum_iterator::all::<PercussionSound>()
             .map(|s| s.note(dur))
@@ -354,11 +354,11 @@ fn sequence_all_percussions() -> Music {
 /// TODO: test more at https://en.wikipedia.org/wiki/Drum_beat
 ///   https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295
 pub fn drum_pattern() -> Music {
-    let m1 = PercussionSound::ClosedHiHat.note(Dur::QN).times(4);
-    let m2 = Music::rest(Dur::HN) + PercussionSound::AcousticSnare.note(Dur::HN);
+    let m1 = PercussionSound::ClosedHiHat.note(Dur::QUARTER).times(4);
+    let m2 = Music::rest(Dur::HALF) + PercussionSound::AcousticSnare.note(Dur::HALF);
 
-    let m3 = (PercussionSound::ClosedHiHat.note(Dur::EN) + Music::rest(Dur::EN)).times(4);
-    let m4 = Music::rest(Dur::HN) + PercussionSound::AcousticSnare.note(Dur::QN);
+    let m3 = (PercussionSound::ClosedHiHat.note(Dur::EIGHTH) + Music::rest(Dur::EIGHTH)).times(4);
+    let m4 = Music::rest(Dur::HALF) + PercussionSound::AcousticSnare.note(Dur::QUARTER);
 
     ((m1 | m2) + (m3 | m4))
         .with_instrument(InstrumentName::Percussion)
@@ -371,10 +371,10 @@ fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
 
     let oc4 = Octave::ONE_LINED;
     Music::line(vec![
-        M::C(oc4, Dur::QN),
-        M::D(oc4, Dur::QN),
-        M::E(oc4, Dur::QN),
-        M::C(oc4, Dur::QN),
+        M::C(oc4, Dur::QUARTER),
+        M::D(oc4, Dur::QUARTER),
+        M::E(oc4, Dur::QUARTER),
+        M::C(oc4, Dur::QUARTER),
     ])
     .with_volume(vol)
 }
@@ -445,15 +445,18 @@ mod inside_out {
     fn example() -> Music {
         let oc4 = Octave::ONE_LINED;
         Music::line(vec![
-            Music::C(oc4, Dur::QN),
-            rests::QN,
-            Music::D(oc4, Dur::QN),
-        ]) | Music::line(vec![rests::QN, rests::QN, Music::D(oc4, Dur::QN)])
-            | Music::line(vec![
-                Music::D(oc4, Dur::QN),
-                Music::D(oc4, Dur::QN),
-                Music::E(oc4, Dur::QN),
-            ])
+            Music::C(oc4, Dur::QUARTER),
+            rests::QUARTER,
+            Music::D(oc4, Dur::QUARTER),
+        ]) | Music::line(vec![
+            rests::QUARTER,
+            rests::QUARTER,
+            Music::D(oc4, Dur::QUARTER),
+        ]) | Music::line(vec![
+            Music::D(oc4, Dur::QUARTER),
+            Music::D(oc4, Dur::QUARTER),
+            Music::E(oc4, Dur::QUARTER),
+        ])
     }
 }
 
@@ -477,36 +480,36 @@ mod crazy_recursion {
     fn example1() -> Music {
         let oc4 = Octave::ONE_LINED;
         let run = rep(
-            Music::C(oc4, Dur::TN),
+            Music::C(oc4, Dur::THIRTY_SECOND),
             |m| m.with_transpose(5.into()),
-            |m| m.with_delay(Dur::TN),
+            |m| m.with_delay(Dur::THIRTY_SECOND),
             8,
         );
         let cascade = rep(
             run,
             |m| m.with_transpose(4.into()),
-            |m| m.with_delay(Dur::EN),
+            |m| m.with_delay(Dur::EIGHTH),
             8,
         );
-        let cascades = rep(cascade, |m| m, |m| m.with_delay(Dur::SN), 2);
+        let cascades = rep(cascade, |m| m, |m| m.with_delay(Dur::SIXTEENTH), 2);
         cascades.clone() + cascades.reverse()
     }
 
     fn example2() -> Music {
         let oc4 = Octave::ONE_LINED;
         let run = rep(
-            Music::C(oc4, Dur::TN),
-            |m| m.with_delay(Dur::TN),
+            Music::C(oc4, Dur::THIRTY_SECOND),
+            |m| m.with_delay(Dur::THIRTY_SECOND),
             |m| m.with_transpose(5.into()),
             8,
         );
         let cascade = rep(
             run,
-            |m| m.with_delay(Dur::EN),
+            |m| m.with_delay(Dur::EIGHTH),
             |m| m.with_transpose(4.into()),
             8,
         );
-        let cascades = rep(cascade, |m| m.with_delay(Dur::SN), |m| m, 2);
+        let cascades = rep(cascade, |m| m.with_delay(Dur::SIXTEENTH), |m| m, 2);
         cascades.clone() + cascades.reverse()
     }
 }
@@ -638,12 +641,18 @@ mod shepard_scale {
                 .collect();
 
             // 1/16, 3/32, 1/8, 3/16, 1/4
-            let dur_range = [Dur::SN, Dur::DSN, Dur::EN, Dur::DEN, Dur::QN];
+            let dur_range = [
+                Dur::SIXTEENTH,
+                Dur::DOTTED_SIXTEENTH,
+                Dur::EIGHTH,
+                Dur::DOTTED_EIGHTH,
+                Dur::QUARTER,
+            ];
 
             let size_range: Vec<_> = (12..=24).collect();
             let fade_in_range: Vec<_> = (25..=40).collect();
             let fade_out_range: Vec<_> = (25..=40).collect();
-            let delay_range = [Dur::EN, Dur::QN];
+            let delay_range = [Dur::EIGHTH, Dur::QUARTER];
 
             const fn choose_value<T>(xs: &[T], seed: u16) -> &T {
                 let index = seed as usize % xs.len();
