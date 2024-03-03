@@ -57,7 +57,7 @@ pub mod rests {
     def_rest!(DOUBLE_DOTTED_EIGHTH);
 }
 
-pub const A440: Music = Music::A(Octave(4), Dur::WHOLE);
+pub const A440: Music = Music::A(Octave::OneLined, Dur::WHOLE);
 
 impl<P> Music<P> {
     pub const fn note(duration: Dur, pitch: P) -> Self {

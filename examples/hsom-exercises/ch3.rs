@@ -1,4 +1,7 @@
 #[cfg(test)]
+use ux::u4;
+
+#[cfg(test)]
 use musik::Octave;
 use musik::{music::Primitive, Dur, Interval, Music, Pitch};
 
@@ -13,12 +16,16 @@ fn f1(pitches: &[Pitch], delta: Interval) -> Vec<Pitch> {
 
 #[test]
 fn test_trans_map() {
-    let oc3 = Octave::from(3);
+    let oc3 = Octave::try_from(u4::new(3)).unwrap();
     let pitches = vec![Pitch::C(oc3), Pitch::Fs(oc3), Pitch::A(oc3)];
     let shifted = f1(&pitches, Interval::from(4));
     assert_eq!(
         &shifted,
-        &[Pitch::E(oc3), Pitch::As(oc3), Pitch::Cs(Octave::from(4))]
+        &[
+            Pitch::E(oc3),
+            Pitch::As(oc3),
+            Pitch::Cs(Octave::try_from(u4::new(4)).unwrap())
+        ]
     );
 }
 
@@ -62,7 +69,7 @@ fn staccato(musics: Vec<Music>) -> Vec<Music> {
 
 #[test]
 fn test_staccato() {
-    let oc4 = Octave::from(4);
+    let oc4 = Octave::try_from(u4::new(4)).unwrap();
     // [c 4 qn, d 4 en, e 4 hn ]
     let music = vec![
         Music::C(oc4, Dur::QUARTER),
@@ -386,13 +393,14 @@ fn fuse<P>(
 
 #[test]
 fn test_fuse() {
+    let oc = Octave::try_from(u4::new(4)).unwrap();
+
     let constructors = vec![
-        Box::new(|d| Music::C(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
-        Box::new(|d| Music::D(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
-        Box::new(move |d| Music::E(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::C(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::D(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::E(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
     ];
 
-    let oc = Octave::from(4);
     assert_eq!(
         fuse(&[Dur::QUARTER, Dur::HALF, Dur::SIXTEENTH], constructors).unwrap(),
         vec![
@@ -557,7 +565,7 @@ mod chromatic {
 
     #[test]
     fn test_chrom_rec_ascending() {
-        let oc = Octave::from(4);
+        let oc = Octave::try_from(u4::new(4)).unwrap();
         let d = Dur::QUARTER;
         let res = chrom(Pitch::C(oc), Pitch::F(oc));
 
@@ -573,8 +581,8 @@ mod chromatic {
 
     #[test]
     fn test_chrom_rec_descending() {
-        let o4 = Octave::from(4);
-        let o3 = Octave::from(3);
+        let o4 = Octave::try_from(u4::new(4)).unwrap();
+        let o3 = Octave::try_from(u4::new(3)).unwrap();
         let d = Dur::QUARTER;
         let res = chrom(Pitch::C(o4), Pitch::A(o3));
 
@@ -608,7 +616,7 @@ fn mk_scale(p: Pitch, dur: Dur, ints: &[Interval]) -> Music {
 
 #[test]
 fn test_mk_scale_at_7_major() {
-    let oc = Octave::from(4);
+    let oc = Octave::try_from(u4::new(4)).unwrap();
     let d = Dur::QUARTER;
     let tone = Interval::tone();
     let semi_tone = Interval::semi_tone();
@@ -669,8 +677,8 @@ mod major_scale {
 
     #[test]
     fn ionian_c() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Ionian.gen_scale(Pitch::C(oc), d);
 
@@ -689,8 +697,8 @@ mod major_scale {
 
     #[test]
     fn dorian_d() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Dorian.gen_scale(Pitch::D(oc), d);
 
@@ -709,8 +717,8 @@ mod major_scale {
 
     #[test]
     fn phrygian_e() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Phrygian.gen_scale(Pitch::E(oc), d);
 
@@ -729,8 +737,8 @@ mod major_scale {
 
     #[test]
     fn lydian_f() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Lydian.gen_scale(Pitch::F(oc), d);
 
@@ -749,8 +757,8 @@ mod major_scale {
 
     #[test]
     fn mixolydian_g() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Mixolydian.gen_scale(Pitch::G(oc3), d);
 
@@ -769,8 +777,8 @@ mod major_scale {
 
     #[test]
     fn aeolian_a() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Aeolian.gen_scale(Pitch::A(oc3), d);
 
@@ -789,8 +797,8 @@ mod major_scale {
 
     #[test]
     fn locrian_b() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
         let d = Dur::QUARTER;
         let res = ScaleMode::Locrian.gen_scale(Pitch::B(oc3), d);
 
@@ -820,8 +828,8 @@ mod brother_john {
     use musik::{midi::Instrument, Dur, Music, Octave, Pitch};
 
     fn frere_jacques_one_voice() -> Music {
-        let oc4 = Octave::ONE_LINED;
-        let oc5 = Octave::TWO_LINED;
+        let oc4 = Octave::OneLined;
+        let oc5 = Octave::TwoLined;
         let frere_jacques = vec![
             (Pitch::F(oc4), Dur::QUARTER),
             (Pitch::G(oc4), Dur::QUARTER),

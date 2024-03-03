@@ -115,7 +115,7 @@ mod jazz_man {
 
         #[test]
         fn simple_swing() {
-            let oc4 = Octave::ONE_LINED;
+            let oc4 = Octave::OneLined;
             let m: Music<AttrNote> = Music::line(
                 [PitchClass::C, PitchClass::D, PitchClass::E, PitchClass::F]
                     .into_iter()

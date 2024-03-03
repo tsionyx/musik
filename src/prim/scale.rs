@@ -18,7 +18,7 @@ impl Default for KeySig {
 
 impl KeySig {
     pub fn get_scale(self) -> impl Iterator<Item = PitchClass> {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let with_octave: Box<dyn Iterator<Item = Pitch>> = match self {
             Self::Major(pc) => Box::new(Pitch::new(pc, oc4).major_scale()),
             Self::Minor(pc) => Box::new(Pitch::new(pc, oc4).natural_minor_scale()),
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn major() {
-        let oc3 = Octave(3);
+        let oc3 = Octave::Small;
         let middle_c = Pitch::C(oc3);
         let major: Vec<_> = middle_c.major_scale().collect();
 
@@ -156,15 +156,15 @@ mod tests {
                 Pitch::G(oc3),
                 Pitch::A(oc3),
                 Pitch::B(oc3),
-                Pitch::C(Octave(4)),
+                Pitch::C(Octave::OneLined),
             ]
         );
     }
 
     #[test]
     fn minor() {
-        let oc4 = Octave(4);
-        let oc5 = Octave(5);
+        let oc4 = Octave::OneLined;
+        let oc5 = Octave::TwoLined;
 
         let concert_a = Pitch::A(oc4);
         let minor: Vec<_> = concert_a.natural_minor_scale().collect();
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn diatonic_trans_c_major() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let key = KeySig::Major(PitchClass::C);
 
         let pitches = [
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn diatonic_trans_g_major() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let key = KeySig::Major(PitchClass::G);
 
         let pitches = [
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn diatonic_trans_not_matching() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let key = KeySig::Major(PitchClass::C);
 
         let pitches = [
@@ -330,7 +330,8 @@ mod tests {
 
     #[test]
     fn diatonic_trans_wrapping_around_octave() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
+        let oc5 = Octave::TwoLined;
         let key = KeySig::Major(PitchClass::C);
 
         let pitches = [
@@ -349,14 +350,14 @@ mod tests {
             [
                 Pitch::new(PitchClass::F, oc4),
                 Pitch::new(PitchClass::G, oc4),
-                Pitch::new(PitchClass::D, Octave::from(5)),
+                Pitch::new(PitchClass::D, oc5),
             ]
         );
     }
 
     #[test]
     fn diatonic_trans_more_than_an_octave() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let key = KeySig::Major(PitchClass::C);
 
         let pitches = [
@@ -372,20 +373,21 @@ mod tests {
             .map(|p| Pitch::from(p.abs().diatonic_trans(key, 10)))
             .collect();
 
-        let oc5 = Octave::from(5);
+        let oc5 = Octave::TwoLined;
+        let oc6 = Octave::ThreeLined;
         assert_eq!(
             transposed,
             [
                 Pitch::new(PitchClass::F, oc5),
                 Pitch::new(PitchClass::G, oc5),
-                Pitch::new(PitchClass::D, Octave::from(6)),
+                Pitch::new(PitchClass::D, oc6),
             ]
         );
     }
 
     #[test]
     fn diatonic_trans_back_more_than_two_octaves() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let key = KeySig::Major(PitchClass::C);
 
         let pitches = [
@@ -400,13 +402,14 @@ mod tests {
             .map(|p| Pitch::from(p.abs().diatonic_trans(key, -19)))
             .collect();
 
-        let oc1 = Octave::from(1);
+        let oc1 = Octave::Contra;
+        let oc2 = Octave::Great;
         assert_eq!(
             transposed,
             [
                 Pitch::new(PitchClass::E, oc1),
                 Pitch::new(PitchClass::F, oc1),
-                Pitch::new(PitchClass::C, Octave::from(2)),
+                Pitch::new(PitchClass::C, oc2),
             ]
         );
     }

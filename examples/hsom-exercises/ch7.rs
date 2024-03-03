@@ -16,8 +16,8 @@ mod eq_ord_music {
 
     use musik::Octave;
 
-    const OC3: Octave = Octave::SMALL;
-    const OC4: Octave = Octave::ONE_LINED;
+    const OC3: Octave = Octave::Small;
+    const OC4: Octave = Octave::OneLined;
 
     #[test]
     fn primitive_notes_same_pitch() {
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn pitch_class_to_abs() {
         fn foo(pc: Option<PitchClass>) -> i8 {
-            pc.map(|pc| Pitch::new(pc, Octave::ONE_LINED).abs().get_inner())
+            pc.map(|pc| Pitch::new(pc, Octave::OneLined).abs().get_inner())
                 .unwrap_or(i8::MIN)
         }
 
