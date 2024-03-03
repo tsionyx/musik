@@ -19,6 +19,7 @@ enum-map ="2.6"
 enum-iterator = "1.4"
 ordered-float = "4.2"
 itertools = "0.12"
+ux = "0.1"
 
 # MIDI stuff
 midly = { version = "0.5", default_features = false, features = ["std"] }

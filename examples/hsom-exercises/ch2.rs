@@ -3,8 +3,8 @@ use musik::{AbsPitch, Interval};
 use musik::{Dur, Music, Octave, Pitch};
 
 fn t251() -> Music {
-    let oc4 = Octave::from(4);
-    let oc5 = Octave::from(5);
+    let oc4 = Octave::OneLined;
+    let oc5 = Octave::TwoLined;
     let d_minor = Music::D(oc4, Dur::WHOLE) | Music::F(oc4, Dur::WHOLE) | Music::A(oc4, Dur::WHOLE);
     let g_major = Music::G(oc4, Dur::WHOLE) | Music::B(oc4, Dur::WHOLE) | Music::D(oc5, Dur::WHOLE);
     let c_major =
@@ -155,7 +155,7 @@ mod blues {
     }
 
     fn melody() -> Music {
-        let oc = Octave::from(4);
+        let oc = Octave::OneLined;
         let blues_melody = (ro(oc, Dur::QUARTER) | ms(oc, Dur::QUARTER))
             + (mt(oc, Dur::HALF) | fi(oc, Dur::HALF) | fo(oc, Dur::HALF));
         blues_into_western(blues_melody)

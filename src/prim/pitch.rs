@@ -110,7 +110,7 @@ impl Pitch {
     pub const CONCERT_A_FREQUENCY: f64 = 440.0;
 
     pub fn get_frequency(self) -> f64 {
-        let a4 = Self::A(Octave::ONE_LINED);
+        let a4 = Self::A(Octave::OneLined);
         let interval_to_a4 = self.abs() - a4.abs();
         let octaves_from_a4 = f64::from(interval_to_a4.get_inner())
             / f64::from(Octave::semitones_number().get_inner());
@@ -177,8 +177,9 @@ impl From<AbsPitch> for (Octave, u8) {
             (octave, n)
         };
 
+        // TODO: make roundtrip tests for every value in 0..127
         (
-            Octave(octave),
+            Octave::from_i8(octave).expect("Abs pitch conversion is always valid"),
             u8::try_from(n).expect("Negative interval found"),
         )
     }
@@ -187,7 +188,9 @@ impl From<AbsPitch> for (Octave, u8) {
 impl From<Octave> for AbsPitch {
     fn from(octave: Octave) -> Self {
         let octave_size = Octave::semitones_number().0;
-        Self(octave.0 * octave_size)
+        // TODO: +1
+        let octave = i8::try_from(octave as isize).expect("Invalid octave");
+        Self(octave * octave_size)
     }
 }
 
@@ -227,7 +230,7 @@ mod tests {
 
     #[test]
     fn get_a440_freq() {
-        let pitch = Pitch::A(Octave::ONE_LINED);
+        let pitch = Pitch::A(Octave::OneLined);
         assert!((pitch.get_frequency() - 440.0).abs() < f64::EPSILON);
     }
 
@@ -242,13 +245,13 @@ mod tests {
 
     #[test]
     fn get_middle_c_freq() {
-        let pitch = Pitch::C(Octave::ONE_LINED);
+        let pitch = Pitch::C(Octave::OneLined);
         assert_is_close_freq(pitch.get_frequency(), 261.626);
     }
 
     #[test]
-    fn get_1_herz_freq() {
-        let pitch = Pitch::C(Octave(-4));
-        assert_is_close_freq(pitch.get_frequency(), 1.022);
+    fn get_smallest_herz_freq() {
+        let pitch = Pitch::C(Octave::OctoContra);
+        assert_is_close_freq(pitch.get_frequency(), 8.176);
     }
 }

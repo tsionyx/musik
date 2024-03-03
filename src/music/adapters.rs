@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn trill() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let m = Music::C(oc4, Dur::WHOLE);
 
         assert_eq!(
@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn trill_count() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let m = Music::C(oc4, Dur::WHOLE);
 
         assert_eq!(

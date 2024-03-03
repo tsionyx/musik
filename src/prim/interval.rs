@@ -3,30 +3,60 @@ use std::{
     ops::{Add, AddAssign, Neg},
 };
 
+use enum_iterator::Sequence;
+use enum_map::Enum;
+use ux::u4;
+
 use super::pitch::PitchClass;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-// 0..8 on piano
-pub struct Octave(pub i8);
-
-impl Octave {
-    pub const OCTO_CONTRA: Self = Self(-1);
-    pub const SUB_CONTRA: Self = Self(0);
-    pub const CONTRA: Self = Self(1);
-    pub const GREAT: Self = Self(2);
-    pub const SMALL: Self = Self(3);
-    pub const ONE_LINED: Self = Self(4);
-    pub const TWO_LINED: Self = Self(5);
-    pub const THREE_LINED: Self = Self(6);
-    pub const FOUR_LINED: Self = Self(7);
-    pub const FIVE_LINED: Self = Self(8);
-    pub const SIX_LINED: Self = Self(9);
-    pub const SEVEN_LINED: Self = Self(10);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, Sequence)]
+// #[repr(i8)]
+/// <https://en.wikipedia.org/wiki/Scientific_pitch_notation>
+pub enum Octave {
+    // about one octave below the human hearing threshold: its overtones, however, are audible
+    OctoContra = -1,
+    // A0 is the lowest pitch on a full piano
+    SubContra = 0,
+    Contra = 1,
+    Great = 2,
+    Small = 3,
+    OneLined = 4,
+    TwoLined = 5,
+    ThreeLined = 6,
+    FourLined = 7,
+    // C8 is the highest pitch on a full piano
+    FiveLined = 8,
+    // G9 is the highest MIDI note
+    SixLined = 9,
+    // TODO: The 10-th Octave cannot be represented as MIDI
+    // SevenLined = 10, // Ef10 is the human hearing threshold
 }
 
-impl From<i8> for Octave {
-    fn from(val: i8) -> Self {
-        Self(val)
+impl Octave {
+    // TODO: better error type
+    pub(crate) fn from_i8(val: i8) -> Result<Self, String> {
+        if let Ok(val) = u8::try_from(val) {
+            let val = u4::try_from(val).map_err(|_| "Too high for Octave")?;
+            Self::try_from(val)
+        } else if val == -1 {
+            Ok(Self::OctoContra)
+        } else {
+            Err("Too low Octave".into())
+        }
+    }
+}
+
+impl TryFrom<u4> for Octave {
+    type Error = String;
+
+    fn try_from(value: u4) -> Result<Self, Self::Error> {
+        match u8::from(value) {
+            oc if oc <= 10 => {
+                let val: usize = oc.into();
+                Ok(Self::from_usize(val + 1))
+            }
+            _ => Err("Bad value for octave".to_string()),
+        }
     }
 }
 

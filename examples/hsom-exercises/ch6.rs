@@ -24,8 +24,8 @@ mod retro_invert {
     #[test]
     fn retro_is_involution() {
         let m = {
-            let oc4 = Octave::ONE_LINED;
-            let oc5 = Octave::TWO_LINED;
+            let oc4 = Octave::OneLined;
+            let oc5 = Octave::TwoLined;
             Music::line(vec![
                 M::C(oc5, Dur::EIGHTH),
                 M::E(oc5, Dur::SIXTEENTH),
@@ -45,7 +45,7 @@ mod retro_invert {
     #[test]
     fn invert_is_involution() {
         let m = {
-            let oc5 = Octave::TWO_LINED;
+            let oc5 = Octave::TwoLined;
             Music::line(vec![
                 M::Fs(oc5, Dur::EIGHTH),
                 M::A(oc5, Dur::EIGHTH),
@@ -68,8 +68,8 @@ mod retro_invert {
     #[test]
     fn invert_retro_is_inverse_to_retro_invert() {
         let m = {
-            let oc5 = Octave::TWO_LINED;
-            let oc6 = Octave::THREE_LINED;
+            let oc5 = Octave::TwoLined;
+            let oc6 = Octave::ThreeLined;
             Music::line(vec![
                 M::G(oc5, Dur::EIGHTH),
                 M::As(oc5, Dur::EIGHTH),
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_retro_pitches() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let m = Music::line(vec![
             M::C(oc4, Dur::EIGHTH),
             M::rest(Dur::SIXTEENTH),
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn strip_zeros() {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let m = M::C(oc4, Dur::EIGHTH) + M::D(oc4, Dur::EIGHTH).times(16);
         assert_eq!(
             m.drop(Dur::HALF).take(Dur::HALF).remove_zeros(),
@@ -224,9 +224,9 @@ mod tests {
 fn stars_and_stripes() -> Music {
     type M = Music;
 
-    let oc5 = Octave::TWO_LINED;
-    let oc6 = Octave::THREE_LINED;
-    let oc7 = Octave::FOUR_LINED;
+    let oc5 = Octave::TwoLined;
+    let oc6 = Octave::ThreeLined;
+    let oc7 = Octave::FourLined;
 
     let melody = Music::line(vec![
         // bar 1
@@ -369,7 +369,7 @@ pub fn drum_pattern() -> Music {
 fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
     type M = Music;
 
-    let oc4 = Octave::ONE_LINED;
+    let oc4 = Octave::OneLined;
     Music::line(vec![
         M::C(oc4, Dur::QUARTER),
         M::D(oc4, Dur::QUARTER),
@@ -443,7 +443,7 @@ mod inside_out {
     /// voice2     -         -         D4
     /// voice3     D4        D4        E4
     fn example() -> Music {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         Music::line(vec![
             Music::C(oc4, Dur::QUARTER),
             rests::QUARTER,
@@ -478,7 +478,7 @@ mod crazy_recursion {
 
     // TODO: play me
     fn example1() -> Music {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let run = rep(
             Music::C(oc4, Dur::THIRTY_SECOND),
             |m| m.with_transpose(5.into()),
@@ -496,7 +496,7 @@ mod crazy_recursion {
     }
 
     fn example2() -> Music {
-        let oc4 = Octave::ONE_LINED;
+        let oc4 = Octave::OneLined;
         let run = rep(
             Music::C(oc4, Dur::THIRTY_SECOND),
             |m| m.with_delay(Dur::THIRTY_SECOND),
@@ -634,7 +634,7 @@ mod shepard_scale {
     impl LineConfig {
         fn from_number(seed: u16, delta: Interval) -> Self {
             // C4..=B4
-            let oc4 = Octave::ONE_LINED;
+            let oc4 = Octave::OneLined;
             let pitch_range: Vec<Pitch> = (Pitch::C(oc4).abs().get_inner()
                 ..=Pitch::B(oc4).abs().get_inner())
                 .map(|x| AbsPitch::from(x).into())

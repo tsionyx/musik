@@ -820,8 +820,8 @@ mod brother_john {
     use musik::{midi::Instrument, Dur, Music, Octave, Pitch};
 
     fn frere_jacques_one_voice() -> Music {
-        let oc4 = Octave::ONE_LINED;
-        let oc5 = Octave::TWO_LINED;
+        let oc4 = Octave::OneLined;
+        let oc5 = Octave::TwoLined;
         let frere_jacques = vec![
             (Pitch::F(oc4), Dur::QUARTER),
             (Pitch::G(oc4), Dur::QUARTER),

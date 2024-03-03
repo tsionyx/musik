@@ -7,8 +7,8 @@ type P = Pitch;
 
 /// Excerpt from Chick Corea’s Children’s Songs No. 6
 fn child_song_6() -> Music {
-    let oc3 = Octave::SMALL;
-    let oc4 = Octave::ONE_LINED;
+    let oc3 = Octave::Small;
+    let oc4 = Octave::OneLined;
 
     let b1 = M::with_dur(
         vec![P::B(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)],
@@ -24,7 +24,7 @@ fn child_song_6() -> Music {
     );
     let bass_line = b1.times(3) + b2.times(2) + b3.times(4) + b1.times(5);
 
-    let oc5 = Octave::TWO_LINED;
+    let oc5 = Octave::TwoLined;
     let v1a = M::with_dur(
         vec![
             P::A(oc5),
@@ -47,7 +47,7 @@ fn child_song_6() -> Music {
             .unwrap()
         + v1b; // bars 1-2
 
-    let oc6 = Octave::THREE_LINED;
+    let oc6 = Octave::ThreeLined;
     let v2 = vec![
         // bars 7-11
         M::line(vec![
@@ -189,8 +189,8 @@ fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
 }
 
 fn prefixed_mel_1() -> Music {
-    let oc4 = Octave::ONE_LINED;
-    let oc5 = Octave::TWO_LINED;
+    let oc4 = Octave::OneLined;
+    let oc5 = Octave::TwoLined;
     prefix(vec![
         M::C(oc5, Dur::EIGHTH),
         M::E(oc5, Dur::SIXTEENTH),
@@ -205,8 +205,8 @@ fn prefixed_mel_1() -> Music {
 }
 
 fn prefixed_mel_2() -> Music {
-    let oc4 = Octave::ONE_LINED;
-    let oc5 = Octave::TWO_LINED;
+    let oc4 = Octave::OneLined;
+    let oc5 = Octave::TwoLined;
     prefix(vec![
         M::C(oc5, Dur::SIXTEENTH),
         M::E(oc5, Dur::SIXTEENTH),
