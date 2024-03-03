@@ -81,38 +81,41 @@ impl Music {
 mod tests {
     use super::*;
     use crate::prim::interval::Octave;
+    use crate::Pitch;
 
     #[test]
     fn trill() {
         let oc4 = Octave::ONE_LINED;
-        let m = Music::C(oc4, Dur::WN);
+        let m = Music::C(oc4, Dur::WHOLE);
 
         assert_eq!(
-            m.trill(Interval::tone(), Dur::EN.dotted()).unwrap(),
-            Music::line(vec![
-                Music::C(oc4, Dur::DEN),
-                Music::D(oc4, Dur::DEN),
-                Music::C(oc4, Dur::DEN),
-                Music::D(oc4, Dur::DEN),
-                Music::C(oc4, Dur::DEN),
-                Music::D(oc4, Dur::SN),
-            ])
+            m.trill(Interval::tone(), Dur::EIGHTH.dotted()).unwrap(),
+            Music::with_dur(
+                vec![
+                    Pitch::C(oc4),
+                    Pitch::D(oc4),
+                    Pitch::C(oc4),
+                    Pitch::D(oc4),
+                    Pitch::C(oc4)
+                ],
+                Dur::DOTTED_EIGHTH
+            ) + Music::D(oc4, Dur::SIXTEENTH)
         );
     }
 
     #[test]
     fn trill_count() {
         let oc4 = Octave::ONE_LINED;
-        let m = Music::C(oc4, Dur::WN);
+        let m = Music::C(oc4, Dur::WHOLE);
 
         assert_eq!(
             m.trill(Interval::semi_tone(), TrillOptions::Count(4))
                 .unwrap(),
             Music::line(vec![
-                Music::C(oc4, Dur::QN),
-                Music::Cs(oc4, Dur::QN),
-                Music::C(oc4, Dur::QN),
-                Music::Cs(oc4, Dur::QN),
+                Music::C(oc4, Dur::QUARTER),
+                Music::Cs(oc4, Dur::QUARTER),
+                Music::C(oc4, Dur::QUARTER),
+                Music::Cs(oc4, Dur::QUARTER),
             ])
         );
     }

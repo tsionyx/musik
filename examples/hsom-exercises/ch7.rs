@@ -21,17 +21,17 @@ mod eq_ord_music {
 
     #[test]
     fn primitive_notes_same_pitch() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::C(OC4, Dur::QN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::C(OC4, Dur::QUARTER);
 
         assert_eq!(m1, m2);
 
-        let m_smaller_dur = Music::C(OC4, Dur::EN);
+        let m_smaller_dur = Music::C(OC4, Dur::EIGHTH);
         assert_ne!(m1, m_smaller_dur);
         assert!(m1 > m_smaller_dur);
         assert!(m_smaller_dur < m1);
 
-        let m_lower_octave = Music::C(OC3, Dur::QN);
+        let m_lower_octave = Music::C(OC3, Dur::QUARTER);
         assert_ne!(m1, m_lower_octave);
         assert!(m1 > m_lower_octave);
         assert!(m_lower_octave < m1);
@@ -39,14 +39,14 @@ mod eq_ord_music {
 
     #[test]
     fn primitive_notes_diff_by_dur_then_by_pitch() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::D(OC4, Dur::QN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::D(OC4, Dur::QUARTER);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m_smaller_dur = Music::D(OC4, Dur::EN);
+        let m_smaller_dur = Music::D(OC4, Dur::EIGHTH);
         assert_ne!(m1, m_smaller_dur);
         assert!(m1 > m_smaller_dur);
         assert!(m_smaller_dur < m1);
@@ -54,14 +54,14 @@ mod eq_ord_music {
 
     #[test]
     fn primitive_notes_smaller_than_rest() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m2 = Music::rest(Dur::WN);
+        let m2 = Music::rest(Dur::WHOLE);
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
@@ -69,14 +69,14 @@ mod eq_ord_music {
 
     #[test]
     fn rests_are_sorted_by_dur() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m2 = Music::rest(Dur::WN);
+        let m2 = Music::rest(Dur::WHOLE);
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
@@ -84,8 +84,8 @@ mod eq_ord_music {
 
     #[test]
     fn primitives_are_lower_than_complex() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         let m3 = m1.clone() + m2.clone();
         assert_ne!(m1, m3);
@@ -113,9 +113,9 @@ mod eq_ord_music {
 
     #[test]
     fn sequential_are_ordered_lexicographically() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
-        let m3 = Music::rest(Dur::WN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
+        let m3 = Music::rest(Dur::WHOLE);
 
         let m4 = m1.clone() + m2;
         let m5 = m1 + m3;
@@ -126,9 +126,9 @@ mod eq_ord_music {
 
     #[test]
     fn parallel_are_ordered_lexicographically() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
-        let m3 = Music::rest(Dur::WN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
+        let m3 = Music::rest(Dur::WHOLE);
 
         let m4 = m1.clone() | m2;
         let m5 = m1 | m3;
@@ -139,8 +139,8 @@ mod eq_ord_music {
 
     #[test]
     fn sequential_always_smaller_parallel() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         let m3 = m1.clone() + m2.clone();
         let m4 = m1 | m2;

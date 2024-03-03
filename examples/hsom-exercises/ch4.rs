@@ -10,9 +10,18 @@ fn child_song_6() -> Music {
     let oc3 = Octave::SMALL;
     let oc4 = Octave::ONE_LINED;
 
-    let b1 = M::with_dur(vec![P::B(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)], Dur::QN);
-    let b2 = M::with_dur(vec![P::B(oc3), P::Es(oc4), P::Fs(oc4), P::Es(oc4)], Dur::QN);
-    let b3 = M::with_dur(vec![P::As(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)], Dur::QN);
+    let b1 = M::with_dur(
+        vec![P::B(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)],
+        Dur::QUARTER,
+    );
+    let b2 = M::with_dur(
+        vec![P::B(oc3), P::Es(oc4), P::Fs(oc4), P::Es(oc4)],
+        Dur::QUARTER,
+    );
+    let b3 = M::with_dur(
+        vec![P::As(oc3), P::Fs(oc4), P::G(oc4), P::Fs(oc4)],
+        Dur::QUARTER,
+    );
     let bass_line = b1.times(3) + b2.times(2) + b3.times(4) + b1.times(5);
 
     let oc5 = Octave::TWO_LINED;
@@ -27,13 +36,13 @@ fn child_song_6() -> Music {
             P::E(oc5),
             P::B(oc4),
         ],
-        Dur::EN,
+        Dur::EIGHTH,
     );
-    let v1b = M::with_dur(vec![P::Cs(oc5), P::B(oc4)], Dur::EN);
+    let v1b = M::with_dur(vec![P::Cs(oc5), P::B(oc4)], Dur::EIGHTH);
 
     let default_grace_note_fraction = Ratio::new(1, 8);
     let v1 = v1a
-        + M::D(oc5, Dur::QN)
+        + M::D(oc5, Dur::QUARTER)
             .grace_note((-1).into(), default_grace_note_fraction)
             .unwrap()
         + v1b; // bars 1-2
@@ -42,39 +51,41 @@ fn child_song_6() -> Music {
     let v2 = vec![
         // bars 7-11
         M::line(vec![
-            M::Cs(oc5, Dur::DHN),
-            M::Cs(oc5, Dur::DHN),
-            M::D(oc5, Dur::DHN),
-            M::F(oc5, Dur::HN),
-            M::Gs(oc5, Dur::QN),
-            M::Fs(oc5, Dur::HN),
-            M::Fs(oc5, Dur::EN),
-            M::G(oc5, Dur::EN),
+            M::Cs(oc5, Dur::DOTTED_HALF),
+            M::Cs(oc5, Dur::DOTTED_HALF),
+            M::D(oc5, Dur::DOTTED_HALF),
+            M::F(oc5, Dur::HALF),
+            M::Gs(oc5, Dur::QUARTER),
+            M::Fs(oc5, Dur::HALF),
+            M::Fs(oc5, Dur::EIGHTH),
+            M::G(oc5, Dur::EIGHTH),
         ]),
         // bars 12-13
-        M::with_dur(vec![P::Fs(oc5), P::E(oc5), P::Cs(oc5), P::As(oc4)], Dur::EN)
-            + M::A(oc4, Dur::DQN)
+        M::with_dur(
+            vec![P::Fs(oc5), P::E(oc5), P::Cs(oc5), P::As(oc4)],
+            Dur::EIGHTH,
+        ) + M::A(oc4, Dur::DOTTED_QUARTER)
             + M::with_dur(
                 vec![P::As(oc4), P::Cs(oc5), P::Fs(oc5), P::E(oc5), P::Fs(oc5)],
-                Dur::EN,
+                Dur::EIGHTH,
             ),
         // bars 14-16
         M::line(vec![
-            M::G(oc5, Dur::EN),
-            M::As(oc5, Dur::EN),
-            M::Cs(oc6, Dur::HN),
-            M::Cs(oc6, Dur::EN),
-            M::D(oc6, Dur::EN),
-            M::Cs(oc6, Dur::EN),
-        ]) + M::E(oc5, Dur::EN)
-            + M::rest(Dur::EN)
+            M::G(oc5, Dur::EIGHTH),
+            M::As(oc5, Dur::EIGHTH),
+            M::Cs(oc6, Dur::HALF),
+            M::Cs(oc6, Dur::EIGHTH),
+            M::D(oc6, Dur::EIGHTH),
+            M::Cs(oc6, Dur::EIGHTH),
+        ]) + M::E(oc5, Dur::EIGHTH)
+            + M::rest(Dur::EIGHTH)
             + M::line(vec![
-                M::As(oc5, Dur::EN),
-                M::A(oc5, Dur::EN),
-                M::G(oc5, Dur::EN),
-                M::D(oc5, Dur::QN),
-                M::C(oc5, Dur::EN),
-                M::Cs(oc5, Dur::EN),
+                M::As(oc5, Dur::EIGHTH),
+                M::A(oc5, Dur::EIGHTH),
+                M::G(oc5, Dur::EIGHTH),
+                M::D(oc5, Dur::QUARTER),
+                M::C(oc5, Dur::EIGHTH),
+                M::Cs(oc5, Dur::EIGHTH),
             ]),
         // bars 17-18.5
         M::with_dur(
@@ -89,48 +100,49 @@ fn child_song_6() -> Music {
                 P::E(oc5),
                 P::Fs(oc5),
             ],
-            Dur::EN,
+            Dur::EIGHTH,
         ),
         // bars 18.5-20
         M::line(vec![
-            M::E(oc5, Dur::QN)
+            M::E(oc5, Dur::QUARTER)
                 .grace_note(2.into(), default_grace_note_fraction)
                 .unwrap(),
-            M::D(oc5, Dur::EN),
-            M::D(oc5, Dur::QN)
+            M::D(oc5, Dur::EIGHTH),
+            M::D(oc5, Dur::QUARTER)
                 .grace_note(2.into(), default_grace_note_fraction)
                 .unwrap(),
-            M::Cs(oc5, Dur::EN),
-            M::Cs(oc5, Dur::QN)
+            M::Cs(oc5, Dur::EIGHTH),
+            M::Cs(oc5, Dur::QUARTER)
                 .grace_note(1.into(), default_grace_note_fraction)
                 .unwrap(),
-            M::B(oc4, Dur::EN),
-            M::B(oc4, Dur::HN),
-            M::Cs(oc5, Dur::EN),
-            M::B(oc4, Dur::EN),
+            M::B(oc4, Dur::EIGHTH),
+            M::B(oc4, Dur::HALF),
+            M::Cs(oc5, Dur::EIGHTH),
+            M::B(oc4, Dur::EIGHTH),
         ]),
         // bars 21-23
         M::line(vec![
-            M::Fs(oc5, Dur::EN),
-            M::A(oc5, Dur::EN),
-            M::B(oc5, Dur::HN),
-            M::B(oc5, Dur::QN),
-            M::A(oc5, Dur::EN),
-            M::Fs(oc5, Dur::EN),
-            M::E(oc5, Dur::QN),
-            M::D(oc5, Dur::EN),
-            M::Fs(oc5, Dur::EN),
-            M::E(oc5, Dur::HN),
-            M::D(oc5, Dur::HN),
-            M::Fs(oc5, Dur::QN),
+            M::Fs(oc5, Dur::EIGHTH),
+            M::A(oc5, Dur::EIGHTH),
+            M::B(oc5, Dur::HALF),
+            M::B(oc5, Dur::QUARTER),
+            M::A(oc5, Dur::EIGHTH),
+            M::Fs(oc5, Dur::EIGHTH),
+            M::E(oc5, Dur::QUARTER),
+            M::D(oc5, Dur::EIGHTH),
+            M::Fs(oc5, Dur::EIGHTH),
+            M::E(oc5, Dur::HALF),
+            M::D(oc5, Dur::HALF),
+            M::Fs(oc5, Dur::QUARTER),
         ]),
         // bars 24-28
-        M::with_dur(vec![P::Cs(oc5), P::D(oc5), P::Cs(oc5)], Dur::EN).with_tempo(Ratio::new(3, 2))
-            + M::B(oc4, Dur::DHN).times(3)
-            + M::B(oc4, Dur::HN),
+        M::with_dur(vec![P::Cs(oc5), P::D(oc5), P::Cs(oc5)], Dur::EIGHTH)
+            .with_tempo(Ratio::new(3, 2))
+            + M::B(oc4, Dur::DOTTED_HALF).times(3)
+            + M::B(oc4, Dur::HALF),
     ];
     let main_voice = v1.times(3) + M::line(v2);
-    let t = (Dur::DHN.into_ratio() / Dur::QN.into_ratio()) * Ratio::new(69, 120);
+    let t = (Dur::DOTTED_HALF.into_ratio() / Dur::QUARTER.into_ratio()) * Ratio::new(69, 120);
     (bass_line | main_voice)
         .with_tempo(t)
         .with_instrument(Instrument::RhodesPiano)
@@ -180,15 +192,15 @@ fn prefixed_mel_1() -> Music {
     let oc4 = Octave::ONE_LINED;
     let oc5 = Octave::TWO_LINED;
     prefix(vec![
-        M::C(oc5, Dur::EN),
-        M::E(oc5, Dur::SN),
-        M::G(oc5, Dur::EN),
-        M::B(oc5, Dur::SN),
-        M::A(oc5, Dur::EN),
-        M::F(oc5, Dur::SN),
-        M::D(oc5, Dur::EN),
-        M::B(oc4, Dur::SN),
-        M::C(oc5, Dur::EN),
+        M::C(oc5, Dur::EIGHTH),
+        M::E(oc5, Dur::SIXTEENTH),
+        M::G(oc5, Dur::EIGHTH),
+        M::B(oc5, Dur::SIXTEENTH),
+        M::A(oc5, Dur::EIGHTH),
+        M::F(oc5, Dur::SIXTEENTH),
+        M::D(oc5, Dur::EIGHTH),
+        M::B(oc4, Dur::SIXTEENTH),
+        M::C(oc5, Dur::EIGHTH),
     ])
 }
 
@@ -196,15 +208,15 @@ fn prefixed_mel_2() -> Music {
     let oc4 = Octave::ONE_LINED;
     let oc5 = Octave::TWO_LINED;
     prefix(vec![
-        M::C(oc5, Dur::SN),
-        M::E(oc5, Dur::SN),
-        M::G(oc5, Dur::SN),
-        M::B(oc5, Dur::SN),
-        M::A(oc5, Dur::SN),
-        M::F(oc5, Dur::SN),
-        M::D(oc5, Dur::SN),
-        M::B(oc4, Dur::SN),
-        M::C(oc5, Dur::SN),
+        M::C(oc5, Dur::SIXTEENTH),
+        M::E(oc5, Dur::SIXTEENTH),
+        M::G(oc5, Dur::SIXTEENTH),
+        M::B(oc5, Dur::SIXTEENTH),
+        M::A(oc5, Dur::SIXTEENTH),
+        M::F(oc5, Dur::SIXTEENTH),
+        M::D(oc5, Dur::SIXTEENTH),
+        M::B(oc4, Dur::SIXTEENTH),
+        M::C(oc5, Dur::SIXTEENTH),
     ])
 }
 

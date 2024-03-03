@@ -38,26 +38,26 @@ pub mod rests {
         };
     }
 
-    def_rest!(BN);
-    def_rest!(WN);
-    def_rest!(HN);
-    def_rest!(QN);
-    def_rest!(EN);
-    def_rest!(SN);
-    def_rest!(TN);
-    def_rest!(SFN);
-    def_rest!(DWN);
-    def_rest!(DHN);
-    def_rest!(DQN);
-    def_rest!(DEN);
-    def_rest!(DSN);
-    def_rest!(DTN);
-    def_rest!(DDHN);
-    def_rest!(DDQN);
-    def_rest!(DDEN);
+    def_rest!(BREVIS);
+    def_rest!(WHOLE);
+    def_rest!(HALF);
+    def_rest!(QUARTER);
+    def_rest!(EIGHTH);
+    def_rest!(SIXTEENTH);
+    def_rest!(THIRTY_SECOND);
+    def_rest!(SIXTY_FOURTH);
+    def_rest!(DOTTED_WHOLE);
+    def_rest!(DOTTED_HALF);
+    def_rest!(DOTTED_QUARTER);
+    def_rest!(DOTTED_EIGHTH);
+    def_rest!(DOTTED_SIXTEENTH);
+    def_rest!(DOTTED_THIRTY_SECOND);
+    def_rest!(DOUBLE_DOTTED_HALF);
+    def_rest!(DOUBLE_DOTTED_QUARTER);
+    def_rest!(DOUBLE_DOTTED_EIGHTH);
 }
 
-pub const A440: Music = Music::A(Octave(4), Dur::WN);
+pub const A440: Music = Music::A(Octave(4), Dur::WHOLE);
 
 impl<P> Music<P> {
     pub const fn note(duration: Dur, pitch: P) -> Self {

@@ -66,7 +66,7 @@ mod jazz_man {
 
         let (start_time, dur) = {
             // only for eight notes
-            if dur == Dur::EN {
+            if dur == Dur::EIGHTH {
                 if is_downbeat {
                     (start_time, dur * Ratio::new(4, 3))
                 } else if is_upbeat {
@@ -119,7 +119,7 @@ mod jazz_man {
             let m: Music<AttrNote> = Music::line(
                 [PitchClass::C, PitchClass::D, PitchClass::E, PitchClass::F]
                     .into_iter()
-                    .map(|pc| Music::note(Dur::EN, Pitch::new(pc, oc4)))
+                    .map(|pc| Music::note(Dur::EIGHTH, Pitch::new(pc, oc4)))
                     .collect(),
             )
             .into();

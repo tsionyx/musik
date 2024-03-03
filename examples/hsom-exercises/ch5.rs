@@ -219,9 +219,9 @@ fn generate_music_with_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Music {
             .into_iter()
             .map(|(ap1, ap2)| {
                 let dur = if ap1.get_inner() % 2 == 0 {
-                    Dur::SN
+                    Dur::SIXTEENTH
                 } else {
-                    Dur::EN
+                    Dur::EIGHTH
                 };
 
                 Music::note(dur, ap1.into()) | Music::note(dur, ap2.into())

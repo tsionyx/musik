@@ -56,6 +56,6 @@ mod harmonic {
     }
 
     fn mel(pitches: [Pitch; 3]) -> Music {
-        harmonic_list(Dur::QN, &pitches, Interval::from(-3))
+        harmonic_list(Dur::QUARTER, &pitches, Interval::from(-3))
     }
 }

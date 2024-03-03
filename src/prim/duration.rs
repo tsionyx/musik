@@ -39,45 +39,28 @@ impl Dur {
     }
 
     pub const ZERO: Self = Self::from_integer(0);
-    pub const BN: Self = Self::from_integer(2); // brevis note
-    pub const WN: Self = Self::from_integer(1); // whole note
-    pub const HN: Self = Self::new(1, 2); // half note
-    pub const QN: Self = Self::new(1, 4); // quarter note
-    pub const EN: Self = Self::new(1, 8); // eighth note
-    pub const SN: Self = Self::new(1, 16); // sixteenth note
-    pub const TN: Self = Self::new(1, 32); // thirty-second note
-    pub const SFN: Self = Self::new(1, 64); // sixty-fourth note
+    pub const BREVIS: Self = Self::from_integer(2);
+    pub const WHOLE: Self = Self::from_integer(1);
+    pub const HALF: Self = Self::new(1, 2);
+    pub const QUARTER: Self = Self::new(1, 4);
+    pub const EIGHTH: Self = Self::new(1, 8);
+    pub const SIXTEENTH: Self = Self::new(1, 16);
+    pub const THIRTY_SECOND: Self = Self::new(1, 32);
+    pub const SIXTY_FOURTH: Self = Self::new(1, 64);
 
-    pub const DWN: Self = Self::new(3, 2); // dotted whole note
-    pub const DHN: Self = Self::new(3, 4); // dotted half note
-    pub const DQN: Self = Self::new(3, 8); // dotted quarter note
-    pub const DEN: Self = Self::new(3, 16); // dotted eighth note
-    pub const DSN: Self = Self::new(3, 32); // dotted sixteenth note
-    pub const DTN: Self = Self::new(3, 64); // dotted thirty-second note
+    pub const DOTTED_WHOLE: Self = Self::new(3, 2);
+    pub const DOTTED_HALF: Self = Self::new(3, 4);
+    pub const DOTTED_QUARTER: Self = Self::new(3, 8);
+    pub const DOTTED_EIGHTH: Self = Self::new(3, 16);
+    pub const DOTTED_SIXTEENTH: Self = Self::new(3, 32);
+    pub const DOTTED_THIRTY_SECOND: Self = Self::new(3, 64);
 
-    pub const DDHN: Self = Self::new(7, 8); // double-dotted half note
-    pub const DDQN: Self = Self::new(7, 16); // double-dotted quarter note
-    pub const DDEN: Self = Self::new(7, 32); // double-dotted eighth note
+    pub const DOUBLE_DOTTED_HALF: Self = Self::new(7, 8);
+    pub const DOUBLE_DOTTED_QUARTER: Self = Self::new(7, 16);
+    pub const DOUBLE_DOTTED_EIGHTH: Self = Self::new(7, 32);
 
     pub const fn double(self) -> Self {
         if self.1 & 1 == 0 {
-            //&Self::WN => Self::BN,
-            //&Self::HN => Self::WN,
-            //&Self::QN => Self::HN,
-            //&Self::EN => Self::QN,
-            //&Self::SN => Self::EN,
-            //&Self::TN => Self::SN,
-            //&Self::SFN => Self::TN,
-            //
-            //&Self::DHN => Self::DWN,
-            //&Self::DQN => Self::DHN,
-            //&Self::DEN => Self::DQN,
-            //&Self::DSN => Self::DEN,
-            //&Self::DTN => Self::DSN,
-            //
-            //&Self::DDQN => Self::DDHN,
-            //&Self::DDEN => Self::DDQN,
-
             Self::new(self.0, self.1 >> 1)
         } else {
             Self::new(self.0 << 1, self.1)
@@ -108,7 +91,7 @@ impl Dur {
 
 impl From<u8> for Dur {
     fn from(value: u8) -> Self {
-        Self::new(value, 1)
+        Self::from_integer(value)
     }
 }
 
@@ -172,21 +155,24 @@ mod tests {
 
     #[test]
     fn double_duration() {
-        assert_eq!(Dur::WN.double(), Dur::BN);
-        assert_eq!(Dur::HN.double(), Dur::WN);
-        assert_eq!(Dur::QN.double(), Dur::HN);
-        assert_eq!(Dur::EN.double(), Dur::QN);
-        assert_eq!(Dur::SN.double(), Dur::EN);
-        assert_eq!(Dur::TN.double(), Dur::SN);
-        assert_eq!(Dur::SFN.double(), Dur::TN);
+        assert_eq!(Dur::WHOLE.double(), Dur::BREVIS);
+        assert_eq!(Dur::HALF.double(), Dur::WHOLE);
+        assert_eq!(Dur::QUARTER.double(), Dur::HALF);
+        assert_eq!(Dur::EIGHTH.double(), Dur::QUARTER);
+        assert_eq!(Dur::SIXTEENTH.double(), Dur::EIGHTH);
+        assert_eq!(Dur::THIRTY_SECOND.double(), Dur::SIXTEENTH);
+        assert_eq!(Dur::SIXTY_FOURTH.double(), Dur::THIRTY_SECOND);
 
-        assert_eq!(Dur::DHN.double(), Dur::DWN);
-        assert_eq!(Dur::DQN.double(), Dur::DHN);
-        assert_eq!(Dur::DEN.double(), Dur::DQN);
-        assert_eq!(Dur::DSN.double(), Dur::DEN);
-        assert_eq!(Dur::DTN.double(), Dur::DSN);
+        assert_eq!(Dur::DOTTED_HALF.double(), Dur::DOTTED_WHOLE);
+        assert_eq!(Dur::DOTTED_QUARTER.double(), Dur::DOTTED_HALF);
+        assert_eq!(Dur::DOTTED_EIGHTH.double(), Dur::DOTTED_QUARTER);
+        assert_eq!(Dur::DOTTED_SIXTEENTH.double(), Dur::DOTTED_EIGHTH);
+        assert_eq!(Dur::DOTTED_THIRTY_SECOND.double(), Dur::DOTTED_SIXTEENTH);
 
-        assert_eq!(Dur::DDQN.double(), Dur::DDHN);
-        assert_eq!(Dur::DDEN.double(), Dur::DDQN);
+        assert_eq!(Dur::DOUBLE_DOTTED_QUARTER.double(), Dur::DOUBLE_DOTTED_HALF);
+        assert_eq!(
+            Dur::DOUBLE_DOTTED_EIGHTH.double(),
+            Dur::DOUBLE_DOTTED_QUARTER
+        );
     }
 }

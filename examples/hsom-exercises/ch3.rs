@@ -30,14 +30,14 @@ fn f2(durations: &[Dur]) -> Vec<Music> {
 
 #[test]
 fn test_durations_map() {
-    let durations = vec![Dur::QN, Dur::WN, Dur::DHN];
+    let durations = vec![Dur::QUARTER, Dur::WHOLE, Dur::DOTTED_HALF];
     let rests = f2(&durations);
     assert_eq!(
         &rests,
         &[
-            Music::Prim(Primitive::Rest(Dur::QN)),
-            Music::Prim(Primitive::Rest(Dur::WN)),
-            Music::Prim(Primitive::Rest(Dur::DHN)),
+            Music::Prim(Primitive::Rest(Dur::QUARTER)),
+            Music::Prim(Primitive::Rest(Dur::WHOLE)),
+            Music::Prim(Primitive::Rest(Dur::DOTTED_HALF)),
         ]
     );
 }
@@ -65,25 +65,25 @@ fn test_staccato() {
     let oc4 = Octave::from(4);
     // [c 4 qn, d 4 en, e 4 hn ]
     let music = vec![
-        Music::C(oc4, Dur::QN),
-        Music::D(oc4, Dur::EN),
-        Music::E(oc4, Dur::HN),
+        Music::C(oc4, Dur::QUARTER),
+        Music::D(oc4, Dur::EIGHTH),
+        Music::E(oc4, Dur::HALF),
     ];
     let staccated = staccato(music);
     assert_eq!(
         &staccated,
         &[
             Music::Sequential(
-                Box::new(Music::C(oc4, Dur::EN)),
-                Box::new(Music::rest(Dur::EN)),
+                Box::new(Music::C(oc4, Dur::EIGHTH)),
+                Box::new(Music::rest(Dur::EIGHTH)),
             ),
             Music::Sequential(
-                Box::new(Music::D(oc4, Dur::SN)),
-                Box::new(Music::rest(Dur::SN)),
+                Box::new(Music::D(oc4, Dur::SIXTEENTH)),
+                Box::new(Music::rest(Dur::SIXTEENTH)),
             ),
             Music::Sequential(
-                Box::new(Music::E(oc4, Dur::QN)),
-                Box::new(Music::rest(Dur::QN)),
+                Box::new(Music::E(oc4, Dur::QUARTER)),
+                Box::new(Music::rest(Dur::QUARTER)),
             ),
         ]
     );
@@ -394,11 +394,11 @@ fn test_fuse() {
 
     let oc = Octave::from(4);
     assert_eq!(
-        fuse(&[Dur::QN, Dur::HN, Dur::SN], constructors).unwrap(),
+        fuse(&[Dur::QUARTER, Dur::HALF, Dur::SIXTEENTH], constructors).unwrap(),
         vec![
-            Music::C(oc, Dur::QN),
-            Music::D(oc, Dur::HN),
-            Music::E(oc, Dur::SN),
+            Music::C(oc, Dur::QUARTER),
+            Music::D(oc, Dur::HALF),
+            Music::E(oc, Dur::SIXTEENTH),
         ]
     );
 }
@@ -545,7 +545,7 @@ mod chromatic {
 
     fn chrom(p1: Pitch, p2: Pitch) -> Music {
         let interval = p2.abs() - p1.abs();
-        let current_note = Music::note(Dur::QN, p1);
+        let current_note = Music::note(Dur::QUARTER, p1);
 
         current_note
             + match interval.cmp(&Interval::zero()) {
@@ -558,7 +558,7 @@ mod chromatic {
     #[test]
     fn test_chrom_rec_ascending() {
         let oc = Octave::from(4);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = chrom(Pitch::C(oc), Pitch::F(oc));
 
         assert_eq!(
@@ -575,7 +575,7 @@ mod chromatic {
     fn test_chrom_rec_descending() {
         let o4 = Octave::from(4);
         let o3 = Octave::from(3);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = chrom(Pitch::C(o4), Pitch::A(o3));
 
         assert_eq!(
@@ -609,7 +609,7 @@ fn mk_scale(p: Pitch, dur: Dur, ints: &[Interval]) -> Music {
 #[test]
 fn test_mk_scale_at_7_major() {
     let oc = Octave::from(4);
-    let d = Dur::QN;
+    let d = Dur::QUARTER;
     let tone = Interval::tone();
     let semi_tone = Interval::semi_tone();
     let res = mk_scale(Pitch::C(oc), d, &[tone, tone, semi_tone, tone, tone, tone]);
@@ -671,7 +671,7 @@ mod major_scale {
     fn ionian_c() {
         let oc = Octave::from(4);
         let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Ionian.gen_scale(Pitch::C(oc), d);
 
         assert_eq!(
@@ -691,7 +691,7 @@ mod major_scale {
     fn dorian_d() {
         let oc = Octave::from(4);
         let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Dorian.gen_scale(Pitch::D(oc), d);
 
         assert_eq!(
@@ -711,7 +711,7 @@ mod major_scale {
     fn phrygian_e() {
         let oc = Octave::from(4);
         let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Phrygian.gen_scale(Pitch::E(oc), d);
 
         assert_eq!(
@@ -731,7 +731,7 @@ mod major_scale {
     fn lydian_f() {
         let oc = Octave::from(4);
         let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Lydian.gen_scale(Pitch::F(oc), d);
 
         assert_eq!(
@@ -751,7 +751,7 @@ mod major_scale {
     fn mixolydian_g() {
         let oc3 = Octave::from(3);
         let oc = Octave::from(4);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Mixolydian.gen_scale(Pitch::G(oc3), d);
 
         assert_eq!(
@@ -771,7 +771,7 @@ mod major_scale {
     fn aeolian_a() {
         let oc3 = Octave::from(3);
         let oc = Octave::from(4);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Aeolian.gen_scale(Pitch::A(oc3), d);
 
         assert_eq!(
@@ -791,7 +791,7 @@ mod major_scale {
     fn locrian_b() {
         let oc3 = Octave::from(3);
         let oc = Octave::from(4);
-        let d = Dur::QN;
+        let d = Dur::QUARTER;
         let res = ScaleMode::Locrian.gen_scale(Pitch::B(oc3), d);
 
         assert_eq!(
@@ -823,30 +823,30 @@ mod brother_john {
         let oc4 = Octave::ONE_LINED;
         let oc5 = Octave::TWO_LINED;
         let frere_jacques = vec![
-            (Pitch::F(oc4), Dur::QN),
-            (Pitch::G(oc4), Dur::QN),
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::QN),
+            (Pitch::F(oc4), Dur::QUARTER),
+            (Pitch::G(oc4), Dur::QUARTER),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::QUARTER),
         ];
         let dormez_vous = vec![
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::Bf(oc4), Dur::QN),
-            (Pitch::C(oc5), Dur::HN),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::Bf(oc4), Dur::QUARTER),
+            (Pitch::C(oc5), Dur::HALF),
         ];
 
         let sonnez_les_matines = vec![
-            (Pitch::C(oc5), Dur::EN),
-            (Pitch::D(oc5), Dur::EN),
-            (Pitch::C(oc5), Dur::EN),
-            (Pitch::Bf(oc4), Dur::EN),
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::QN),
+            (Pitch::C(oc5), Dur::EIGHTH),
+            (Pitch::D(oc5), Dur::EIGHTH),
+            (Pitch::C(oc5), Dur::EIGHTH),
+            (Pitch::Bf(oc4), Dur::EIGHTH),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::QUARTER),
         ];
 
         let din_dan_don = vec![
-            (Pitch::F(oc4), Dur::QN),
-            (Pitch::C(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::HN),
+            (Pitch::F(oc4), Dur::QUARTER),
+            (Pitch::C(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::HALF),
         ];
 
         let measures = vec![frere_jacques, dormez_vous, sonnez_les_matines, din_dan_don];
@@ -890,7 +890,7 @@ mod brother_john {
                 Instrument::ElectricGuitarClean,
                 Instrument::Accordion,
             ],
-            Dur::BN,
+            Dur::BREVIS,
         )
     }
 }

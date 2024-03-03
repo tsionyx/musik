@@ -5,9 +5,10 @@ use musik::{Dur, Music, Octave, Pitch};
 fn t251() -> Music {
     let oc4 = Octave::from(4);
     let oc5 = Octave::from(5);
-    let d_minor = Music::D(oc4, Dur::WN) | Music::F(oc4, Dur::WN) | Music::A(oc4, Dur::WN);
-    let g_major = Music::G(oc4, Dur::WN) | Music::B(oc4, Dur::WN) | Music::D(oc5, Dur::WN);
-    let c_major = Music::C(oc4, Dur::BN) | Music::E(oc4, Dur::BN) | Music::G(oc4, Dur::BN);
+    let d_minor = Music::D(oc4, Dur::WHOLE) | Music::F(oc4, Dur::WHOLE) | Music::A(oc4, Dur::WHOLE);
+    let g_major = Music::G(oc4, Dur::WHOLE) | Music::B(oc4, Dur::WHOLE) | Music::D(oc5, Dur::WHOLE);
+    let c_major =
+        Music::C(oc4, Dur::BREVIS) | Music::E(oc4, Dur::BREVIS) | Music::G(oc4, Dur::BREVIS);
 
     d_minor + g_major + c_major
 }
@@ -50,7 +51,7 @@ fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
 
 #[test]
 fn test_t251() {
-    assert_eq!(t251(), two_five_one(Pitch::C(Octave::from(4)), Dur::WN));
+    assert_eq!(t251(), two_five_one(Pitch::C(Octave::from(4)), Dur::WHOLE));
 }
 
 mod blues {
@@ -155,8 +156,8 @@ mod blues {
 
     fn melody() -> Music {
         let oc = Octave::from(4);
-        let blues_melody = (ro(oc, Dur::QN) | ms(oc, Dur::QN))
-            + (mt(oc, Dur::HN) | fi(oc, Dur::HN) | fo(oc, Dur::HN));
+        let blues_melody = (ro(oc, Dur::QUARTER) | ms(oc, Dur::QUARTER))
+            + (mt(oc, Dur::HALF) | fi(oc, Dur::HALF) | fo(oc, Dur::HALF));
         blues_into_western(blues_melody)
     }
 }
