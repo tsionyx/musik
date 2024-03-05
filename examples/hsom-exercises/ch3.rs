@@ -1,5 +1,5 @@
 #[cfg(test)]
-use ux::u4;
+use ux2::u4;
 
 #[cfg(test)]
 use musik::Octave;
@@ -414,6 +414,9 @@ fn test_fuse() {
 mod max_min_pitches {
     //! Exercise 3.10
 
+    #[cfg(test)]
+    use ux2::u7;
+
     use musik::AbsPitch;
 
     fn max_pitch(pitches: &[AbsPitch]) -> AbsPitch {
@@ -467,13 +470,12 @@ mod max_min_pitches {
     #[test]
     fn test_max_pitch() {
         let pitches = vec![
-            AbsPitch::from(5),
-            AbsPitch::from(2),
-            AbsPitch::from(-1),
-            AbsPitch::from(6),
+            AbsPitch::from(u7::new(5)),
+            AbsPitch::from(u7::new(2)),
+            AbsPitch::from(u7::new(6)),
         ];
-        assert_eq!(max_pitch(&pitches), AbsPitch::from(6));
-        assert_eq!(max_pitch_rec(&pitches), AbsPitch::from(6));
+        assert_eq!(max_pitch(&pitches), AbsPitch::from(u7::new(6)));
+        assert_eq!(max_pitch_rec(&pitches), AbsPitch::from(u7::new(6)));
     }
 
     fn min_pitch(pitches: &[AbsPitch]) -> AbsPitch {
@@ -527,14 +529,14 @@ mod max_min_pitches {
     #[test]
     fn test_min_pitch() {
         let pitches = vec![
-            AbsPitch::from(5),
-            AbsPitch::from(-1),
-            AbsPitch::from(2),
-            AbsPitch::from(-2),
-            AbsPitch::from(6),
+            AbsPitch::from(u7::new(5)),
+            AbsPitch::from(u7::new(1)),
+            AbsPitch::from(u7::new(2)),
+            AbsPitch::from(u7::new(1)),
+            AbsPitch::from(u7::new(6)),
         ];
-        assert_eq!(min_pitch(&pitches), AbsPitch::from(-2));
-        assert_eq!(min_pitch_rec(&pitches), AbsPitch::from(-2));
+        assert_eq!(min_pitch(&pitches), AbsPitch::from(u7::new(1)));
+        assert_eq!(min_pitch_rec(&pitches), AbsPitch::from(u7::new(1)));
     }
 }
 

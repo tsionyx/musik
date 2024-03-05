@@ -5,6 +5,7 @@
 
 use enum_iterator::Sequence;
 use enum_map::Enum;
+use ux2::u7;
 
 use crate::{
     music::Music,
@@ -197,7 +198,10 @@ pub enum PercussionSound {
 
 impl PercussionSound {
     pub fn note(self, dur: Dur) -> Music {
-        let midi_key = i8::try_from(self.into_usize()).unwrap() + 35;
+        let midi_key = u7::try_from(self.into_usize())
+            .expect("<=46 fits into u7")
+            .checked_add(u7::new(35))
+            .expect("<=81 fits into u7");
         Music::note(dur, AbsPitch::from(midi_key).into())
     }
 }

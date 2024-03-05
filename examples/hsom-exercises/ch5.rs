@@ -199,7 +199,7 @@ fn ap_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Vec<(AbsPitch, AbsPitch)> {
     aps1.iter()
         .flat_map(|&ap1| aps2.iter().map(move |&ap2| (ap1, ap2)))
         .filter(|(ap1, ap2)| {
-            let diff = (ap1.get_inner() - ap2.get_inner()).abs();
+            let diff = (*ap1 - *ap2).get_inner().abs();
             (3..8).contains(&diff)
         })
         .collect()
@@ -218,7 +218,7 @@ fn generate_music_with_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Music {
         pairs
             .into_iter()
             .map(|(ap1, ap2)| {
-                let dur = if ap1.get_inner() % 2 == 0 {
+                let dur = if u8::from(ap1.get_inner()) % 2 == 0 {
                     Dur::SIXTEENTH
                 } else {
                     Dur::EIGHTH

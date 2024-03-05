@@ -5,6 +5,7 @@ use std::{
 
 use enum_iterator::Sequence;
 use enum_map::Enum;
+use ux2::u7;
 
 use super::interval::{Interval, Octave};
 
@@ -112,8 +113,8 @@ impl Pitch {
     pub fn get_frequency(self) -> f64 {
         let a4 = Self::A(Octave::OneLined);
         let interval_to_a4 = self.abs() - a4.abs();
-        let octaves_from_a4 = f64::from(interval_to_a4.get_inner())
-            / f64::from(Octave::semitones_number().get_inner());
+        let octaves_from_a4 =
+            f64::from(interval_to_a4.get_inner()) / f64::from(Octave::semitones_number());
         octaves_from_a4.exp2() * Self::CONCERT_A_FREQUENCY
     }
 }
@@ -146,58 +147,45 @@ impl From<AbsPitch> for Pitch {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AbsPitch(pub i8);
+pub struct AbsPitch(pub(crate) u7);
 
 impl AbsPitch {
-    pub const fn get_inner(self) -> i8 {
+    pub const fn get_inner(self) -> u7 {
         self.0
     }
-}
 
-impl From<i8> for AbsPitch {
-    fn from(x: i8) -> Self {
-        Self(x)
+    pub fn get_u8(self) -> u8 {
+        u8::from(self.get_inner())
     }
 }
 
-impl From<AbsPitch> for Interval {
-    fn from(abs_pitch: AbsPitch) -> Self {
-        Self(abs_pitch.0)
+impl From<u7> for AbsPitch {
+    fn from(x: u7) -> Self {
+        Self(x)
     }
 }
 
 impl From<AbsPitch> for (Octave, u8) {
     fn from(abs_pitch: AbsPitch) -> Self {
-        let octave_size = Octave::semitones_number().0;
-        let (octave, n) = (abs_pitch.0 / octave_size, abs_pitch.0 % octave_size);
-
-        let (octave, n) = if n < 0 {
-            (octave - 1, (n + octave_size))
-        } else {
-            (octave, n)
-        };
+        let octave_size = Octave::semitones_number();
+        let abs_pitch = u8::from(abs_pitch.0);
+        let (octave, n) = (abs_pitch / octave_size, abs_pitch % octave_size);
+        let octave = i8::try_from(octave).expect("u8 / 12 is low enough for i8");
 
         // TODO: make roundtrip tests for every value in 0..127
         (
             Octave::from_i8(octave - 1).expect("Abs pitch conversion is always valid"),
-            u8::try_from(n).expect("Negative interval found"),
+            n,
         )
     }
 }
 
 impl From<Octave> for AbsPitch {
     fn from(octave: Octave) -> Self {
-        let octave_size = Octave::semitones_number().0;
-        let octave = i8::try_from(octave as isize + 1).expect("Invalid octave");
-        Self(octave * octave_size)
-    }
-}
-
-impl Add for AbsPitch {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
+        let octave_size = Octave::semitones_number();
+        let octave = u8::try_from(octave as isize + 1).expect("Invalid octave");
+        let val = octave * octave_size;
+        Self(u7::try_from(val).unwrap())
     }
 }
 
@@ -205,7 +193,15 @@ impl Add<Interval> for AbsPitch {
     type Output = Self;
 
     fn add(self, rhs: Interval) -> Self::Output {
-        Self(self.0 + rhs.0)
+        let a = i8::try_from(u8::from(self.0)).expect("u7 should convert to i8 seamlessly");
+        let b = rhs.0;
+        if let Ok(val) = u8::try_from(a + b) {
+            let val = u7::try_from(val).expect("i8 > 0 should convert to u7 seamlessly");
+            Self(val)
+        } else {
+            // TODO: Err
+            Self(u7::MIN) // saturating sub
+        }
     }
 }
 
@@ -213,13 +209,17 @@ impl Sub for AbsPitch {
     type Output = Interval;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Interval::from(self.0 - rhs.0)
+        let a = i8::try_from(u8::from(self.0)).expect("u7 should convert to i8 seamlessly");
+        let b = i8::try_from(u8::from(rhs.0)).expect("u7 should convert to i8 seamlessly");
+        Interval::from(a - b)
     }
 }
 
-impl From<Interval> for AbsPitch {
-    fn from(int: Interval) -> Self {
-        Self(int.0)
+impl Sub<Interval> for AbsPitch {
+    type Output = Self;
+
+    fn sub(self, rhs: Interval) -> Self::Output {
+        self + (-rhs)
     }
 }
 
@@ -245,16 +245,16 @@ mod tests {
     #[test]
     fn get_middle_c_freq() {
         let pitch = Pitch::C(Octave::OneLined);
-        assert_eq!(pitch.abs().0, 60);
-        assert_eq!(Pitch::from(AbsPitch(60)), pitch);
+        assert_eq!(pitch.abs().0, u7::new(60));
+        assert_eq!(Pitch::from(AbsPitch(u7::new(60))), pitch);
         assert_is_close_freq(pitch.get_frequency(), 261.626);
     }
 
     #[test]
     fn get_smallest_herz_freq() {
         let pitch = Pitch::C(Octave::OctoContra);
-        assert_eq!(pitch.abs().0, 0);
-        assert_eq!(Pitch::from(AbsPitch(0)), pitch);
+        assert_eq!(pitch.abs().0, u7::new(0));
+        assert_eq!(Pitch::from(AbsPitch(u7::new(0))), pitch);
         assert_is_close_freq(pitch.get_frequency(), 8.176);
     }
 }

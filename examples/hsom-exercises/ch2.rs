@@ -1,5 +1,5 @@
 #[cfg(test)]
-use ux::u4;
+use ux2::{u4, u7};
 
 #[cfg(test)]
 use musik::{AbsPitch, Interval};
@@ -54,10 +54,8 @@ fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
 
 #[test]
 fn test_t251() {
-    assert_eq!(
-        t251(),
-        two_five_one(Pitch::C(Octave::try_from(u4::new(4)).unwrap()), Dur::WHOLE)
-    );
+    let oc = Octave::try_from(u4::new(4)).unwrap();
+    assert_eq!(t251(), two_five_one(Pitch::C(oc), Dur::WHOLE));
 }
 
 mod blues {
@@ -172,8 +170,8 @@ mod blues {
 /// equivalences, pitch (abspitch p) = p.
 #[test]
 fn from_abs_roundtrip() {
-    for i in -2..8 * 12 {
-        let abs_pitch = AbsPitch::from(i);
+    for p in 0..=127 {
+        let abs_pitch = AbsPitch::from(u7::new(p));
         assert_eq!(Pitch::from(abs_pitch).abs(), abs_pitch);
     }
 }
@@ -194,7 +192,8 @@ fn enharmonic_roundtrip_with_abs_conversion() {
         Pitch::As,
         Pitch::B,
     ] {
-        let pitch = pitch_constructor(Octave::try_from(u4::new(3)).unwrap());
+        let oc = Octave::try_from(u4::new(3)).unwrap();
+        let pitch = pitch_constructor(oc);
         assert_eq!(Pitch::from(pitch.abs()), pitch);
     }
 }
@@ -216,7 +215,8 @@ fn trans_is_sum() {
         Pitch::As,
         Pitch::B,
     ] {
-        let pitch = pitch_constructor(Octave::try_from(u4::new(3)).unwrap());
+        let oc = Octave::try_from(u4::new(3)).unwrap();
+        let pitch = pitch_constructor(oc);
         for i in 0..12 {
             let int1 = Interval::from(i);
             for j in 0..12 {

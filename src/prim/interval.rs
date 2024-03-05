@@ -5,7 +5,7 @@ use std::{
 
 use enum_iterator::Sequence;
 use enum_map::Enum;
-use ux::u4;
+use ux2::u4;
 
 use super::pitch::PitchClass;
 
@@ -76,14 +76,13 @@ impl Octave {
         PitchClass::B,
     ];
 
-    pub fn semitones_number() -> Interval {
-        let len = i8::try_from(Self::MINIMAL_PITCHES.len()).unwrap();
-        Interval(len)
+    pub fn semitones_number() -> u8 {
+        u8::try_from(Self::MINIMAL_PITCHES.len()).unwrap()
     }
 }
 
 #[derive(Debug, Clone, Copy, Default, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Interval(pub i8);
+pub struct Interval(pub(crate) i8);
 
 impl Interval {
     pub const fn zero() -> Self {

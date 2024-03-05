@@ -107,6 +107,8 @@ mod jazz_man {
     mod tests {
         use std::{borrow::Cow, collections::HashMap};
 
+        use ux2::u7;
+
         use musik::{
             midi::Instrument, AbsPitch, Music, Octave, Performable as _, Pitch, PitchClass, Volume,
         };
@@ -137,7 +139,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::from_integer(0),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(60),
+                        pitch: AbsPitch::from(u7::new(60)),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -145,7 +147,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(1, 3),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(62),
+                        pitch: AbsPitch::from(u7::new(62)),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -153,7 +155,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(1, 2),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(64),
+                        pitch: AbsPitch::from(u7::new(64)),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -161,7 +163,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(5, 6),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(65),
+                        pitch: AbsPitch::from(u7::new(65)),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),
                         params: vec![]

@@ -5,14 +5,14 @@ use std::iter;
 use num_rational::Ratio;
 use num_traits::{CheckedSub as _, Zero as _};
 
-use crate::prim::{duration::Dur, interval::Interval, pitch::AbsPitch};
+use crate::prim::{duration::Dur, interval::Interval};
 
 use super::{control::Control, phrase::TrillOptions, Music, Primitive};
 
 impl Music {
-    pub fn grace_note(&self, offset: AbsPitch, grace_fraction: Ratio<u8>) -> Result<Self, String> {
+    pub fn grace_note(&self, offset: Interval, grace_fraction: Ratio<u8>) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
-            Ok(Self::note(*d * grace_fraction, p.trans(offset.into()))
+            Ok(Self::note(*d * grace_fraction, p.trans(offset))
                 + Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
         } else {
             Err("Can only add a grace note to a note".into())

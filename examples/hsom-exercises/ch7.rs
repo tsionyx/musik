@@ -12,9 +12,7 @@ use musik::{Dur, Music};
 /// in the class `Ord` satisfies the laws of its class.
 #[cfg(test)]
 mod eq_ord_music {
-    use super::*;
-
-    use musik::Octave;
+    use musik::{Dur, Music, Octave};
 
     const OC3: Octave = Octave::Small;
     const OC4: Octave = Octave::OneLined;
@@ -364,7 +362,7 @@ mod tests {
     #[test]
     fn pitch_class_to_abs() {
         fn foo(pc: Option<PitchClass>) -> i8 {
-            pc.map(|pc| Pitch::new(pc, Octave::OneLined).abs().get_inner())
+            pc.map(|pc| Pitch::new(pc, Octave::OneLined).abs().get_u8() as i8)
                 .unwrap_or(i8::MIN)
         }
 
@@ -384,7 +382,7 @@ mod tests {
             (Box::new(foo) as Box<dyn Fn(Option<PitchClass>) -> i8>).into(),
         );
 
-        // fix the bar function bu subtracting 1 to make it equal again
+        // fix the bar function by subtracting 1 to make it equal again
         assert_eq!(
             EqFn {
                 inner: Box::new(compose(bar, |x| x - 1)),
