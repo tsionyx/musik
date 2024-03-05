@@ -374,7 +374,7 @@ mod tests {
             }
 
             let c = c.unwrap();
-            Interval::from(c).get_inner() + 49
+            Interval::from(c).get_inner() + 61
         };
 
         assert_ne!(

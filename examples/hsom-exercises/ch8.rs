@@ -137,7 +137,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::from_integer(0),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(48),
+                        pitch: AbsPitch::from(60),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -145,7 +145,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(1, 3),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(50),
+                        pitch: AbsPitch::from(62),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -153,7 +153,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(1, 2),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(52),
+                        pitch: AbsPitch::from(64),
                         duration: Ratio::new(1, 3),
                         volume: Volume::loudest(),
                         params: vec![]
@@ -161,7 +161,7 @@ mod jazz_man {
                     Event {
                         start_time: Ratio::new(5, 6),
                         instrument: Instrument::AcousticGrandPiano.into(),
-                        pitch: AbsPitch::from(53),
+                        pitch: AbsPitch::from(65),
                         duration: Ratio::new(1, 6),
                         volume: Volume::loudest(),
                         params: vec![]
