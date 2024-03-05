@@ -131,7 +131,7 @@ impl Event {
 
         let start = (self.start_time * ticks_per_second).to_integer();
         let end = ((self.start_time + self.duration) * ticks_per_second).to_integer();
-        let key: u8 = self.pitch.get_inner().try_into().expect("Bad pitch");
+        let key = u8::from(self.pitch.get_inner());
         let vel = self.volume.clamp(Volume::softest(), Volume::loudest());
         (
             (

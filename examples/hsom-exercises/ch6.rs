@@ -635,9 +635,9 @@ mod shepard_scale {
         fn from_number(seed: u16, delta: Interval) -> Self {
             // C4..=B4
             let oc4 = Octave::OneLined;
-            let pitch_range: Vec<Pitch> = (Pitch::C(oc4).abs().get_inner()
-                ..=Pitch::B(oc4).abs().get_inner())
-                .map(|x| AbsPitch::from(x).into())
+            let pitch_range: Vec<Pitch> = (u8::from(Pitch::C(oc4).abs().get_inner())
+                ..=u8::from(Pitch::B(oc4).abs().get_inner()))
+                .map(|x| AbsPitch::from(ux2::u7::new(x)).into())
                 .collect();
 
             // 1/16, 3/32, 1/8, 3/16, 1/4

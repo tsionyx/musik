@@ -34,10 +34,11 @@ impl Music {
             let first_pitch = *first_pitch;
             let inv = |m| {
                 if let Self::Prim(Primitive::Note(d, p)) = m {
-                    // prevent i8 overflow
-                    let inverted_pitch = 2 * i16::from(first_pitch.abs().get_inner())
-                        - i16::from(p.abs().get_inner());
-                    let inverted_pitch = AbsPitch::from(inverted_pitch as i8);
+                    // prevent u8 overflow
+                    let inverted_pitch = 2 * u16::from(first_pitch.abs().get_inner())
+                        - u16::from(p.abs().get_inner());
+                    let inverted_pitch = u8::try_from(inverted_pitch).unwrap();
+                    let inverted_pitch = AbsPitch::from(ux2::u7::new(inverted_pitch));
                     Self::note(d, inverted_pitch.into())
                 } else {
                     m

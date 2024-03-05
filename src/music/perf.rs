@@ -7,7 +7,7 @@ use ordered_float::OrderedFloat;
 use crate::{
     instruments::InstrumentName,
     music::{AttrNote, MusicAttr},
-    prim::{duration::Dur, pitch::AbsPitch, scale::KeySig, volume::Volume},
+    prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
 };
 
 use super::{control::Control, phrase::PhraseAttribute, Music, PlayerName, Primitive};
@@ -129,7 +129,7 @@ where
                 m.perf(players, ctx)
             }
             Self::Modify(Control::Transpose(p), m) => {
-                ctx.pitch = ctx.pitch + *p;
+                ctx.pitch += *p;
                 m.perf(players, ctx)
             }
             Self::Modify(Control::Instrument(i), m) => {
@@ -186,7 +186,7 @@ pub struct Context<'p, P> {
     pub player: Cow<'p, Player<P>>,
     pub instrument: InstrumentName,
     pub whole_note: Duration,
-    pub pitch: AbsPitch,
+    pub pitch: Interval,
     pub volume: Volume,
     pub key: KeySig,
 }
@@ -805,7 +805,7 @@ pub mod defaults {
                 player,
                 instrument: Instrument::AcousticGrandPiano.into(),
                 whole_note: metro(120, Dur::QUARTER),
-                pitch: AbsPitch::from(0),
+                pitch: Interval::default(),
                 volume: Volume::loudest(),
                 key: KeySig::default(),
             }

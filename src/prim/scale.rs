@@ -103,18 +103,21 @@ impl AbsPitch {
         }
 
         const DIATONIC_SIZE: i8 = 7;
-        let oct_size = Octave::semitones_number().0;
+        let oct_size = Octave::semitones_number();
+        let oct_size_i = i8::try_from(oct_size).expect("12 is low enough");
 
         let scale: Vec<_> = key
             .get_intervals_scale()
-            .map(Self::from)
             .take(7) // ignore the last one, it is an Octave higher than tonic
             .collect();
 
         let closest_index = scale
             .iter()
             .enumerate()
-            .min_by_key(|(_, x)| (self - **x).0.rem_euclid(oct_size))
+            .min_by_key(|(_, x)| {
+                let x = u8::from((self - **x).0);
+                x.rem_euclid(oct_size)
+            })
             .map(|(i, _)| i)
             .expect("Scale is non-empty");
 
@@ -127,12 +130,14 @@ impl AbsPitch {
             .nth(closest_index + positive_shift as usize)
             .expect("Cycled non-empty scale has infinite items")
             .0;
-        let shift = (interval + oct_size)
-            .checked_sub(self.0 % oct_size)
+        let shift = (interval + oct_size_i)
+            .checked_sub(
+                i8::try_from(u8::from(self.0) % oct_size).expect("Modulo 12 is low enough for i8"),
+            )
             .unwrap()
-            % oct_size;
+            % oct_size_i;
 
-        self + Self(shift + (whole_octaves * oct_size))
+        self + Interval(shift) + Interval(whole_octaves * oct_size_i)
     }
 }
 
