@@ -179,7 +179,7 @@ impl From<AbsPitch> for (Octave, u8) {
 
         // TODO: make roundtrip tests for every value in 0..127
         (
-            Octave::from_i8(octave).expect("Abs pitch conversion is always valid"),
+            Octave::from_i8(octave - 1).expect("Abs pitch conversion is always valid"),
             u8::try_from(n).expect("Negative interval found"),
         )
     }
@@ -188,8 +188,7 @@ impl From<AbsPitch> for (Octave, u8) {
 impl From<Octave> for AbsPitch {
     fn from(octave: Octave) -> Self {
         let octave_size = Octave::semitones_number().0;
-        // TODO: +1
-        let octave = i8::try_from(octave as isize).expect("Invalid octave");
+        let octave = i8::try_from(octave as isize + 1).expect("Invalid octave");
         Self(octave * octave_size)
     }
 }
@@ -246,12 +245,16 @@ mod tests {
     #[test]
     fn get_middle_c_freq() {
         let pitch = Pitch::C(Octave::OneLined);
+        assert_eq!(pitch.abs().0, 60);
+        assert_eq!(Pitch::from(AbsPitch(60)), pitch);
         assert_is_close_freq(pitch.get_frequency(), 261.626);
     }
 
     #[test]
     fn get_smallest_herz_freq() {
         let pitch = Pitch::C(Octave::OctoContra);
+        assert_eq!(pitch.abs().0, 0);
+        assert_eq!(Pitch::from(AbsPitch(0)), pitch);
         assert_is_close_freq(pitch.get_frequency(), 8.176);
     }
 }
