@@ -12,8 +12,8 @@ pub use self::{
     output::midi,
     prim::{
         duration::Dur,
-        interval::{Interval, Octave},
-        pitch::{AbsPitch, Pitch, PitchClass},
+        interval::{ErrorOctaveFromNum, Interval, Octave},
+        pitch::{AbsPitch, ErrorPitchClipping, Pitch, PitchClass},
         volume::Volume,
     },
 };

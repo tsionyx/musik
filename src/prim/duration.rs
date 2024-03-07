@@ -59,6 +59,17 @@ impl Dur {
     pub const DOUBLE_DOTTED_QUARTER: Self = Self::new(7, 16);
     pub const DOUBLE_DOTTED_EIGHTH: Self = Self::new(7, 32);
 
+    /// Get the [`Dur`] corresponding to `1/fraction` of note size.
+    ///
+    /// As the special case, the `Dur:recip(0)` is simply [`Dur::ZERO`].
+    pub fn recip(fraction: u8) -> Self {
+        if fraction == 0 {
+            Self::ZERO
+        } else {
+            Self::new(1, fraction)
+        }
+    }
+
     pub const fn double(self) -> Self {
         if self.1 & 1 == 0 {
             Self::new(self.0, self.1 >> 1)
@@ -202,5 +213,16 @@ mod tests {
         assert_eq!(dur!(3 / 16), Dur::DOTTED_EIGHTH);
         assert_eq!(dur!(3 / 32), Dur::DOTTED_SIXTEENTH);
         assert_eq!(dur!(3 / 64), Dur::DOTTED_THIRTY_SECOND);
+    }
+
+    #[test]
+    fn recip() {
+        assert_eq!(Dur::recip(0), Dur::ZERO);
+        assert_eq!(Dur::recip(1), Dur::WHOLE);
+        assert_eq!(Dur::recip(2), Dur::HALF);
+        assert_eq!(Dur::recip(4), Dur::QUARTER);
+        assert_eq!(Dur::recip(8), Dur::EIGHTH);
+        assert_eq!(Dur::recip(16), Dur::SIXTEENTH);
+        assert_eq!(Dur::recip(32), Dur::THIRTY_SECOND);
     }
 }
