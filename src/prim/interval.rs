@@ -76,8 +76,8 @@ impl Octave {
         PitchClass::B,
     ];
 
-    pub fn semitones_number() -> u8 {
-        u8::try_from(Self::MINIMAL_PITCHES.len()).unwrap()
+    pub fn semitones_number() -> u4 {
+        u4::try_from(Self::MINIMAL_PITCHES.len()).expect("12 is low enough")
     }
 }
 

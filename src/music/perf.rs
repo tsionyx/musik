@@ -346,7 +346,9 @@ pub mod defaults {
     ) -> Performance {
         match attr {
             PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(|event| Event {
-                volume: Volume((x * Ratio::from_integer(event.volume.0)).to_integer()),
+                volume: Volume::from(
+                    (x * Ratio::from_integer(u8::from(event.volume.0))).to_integer(),
+                ),
                 ..event
             }),
             PhraseAttribute::Art(Articulation::Staccato(x)) => perf.map(|event| Event {
@@ -431,7 +433,7 @@ pub mod defaults {
 
             let new_volume = Ratio::from(u32::from(event.volume.0)) * shift;
             Event {
-                volume: Volume(new_volume.to_integer() as u8),
+                volume: Volume::from(u8::try_from(new_volume.to_integer()).unwrap_or(u8::MAX)),
                 ..event
             }
         };
@@ -717,7 +719,9 @@ pub mod defaults {
     fn fancy_phrase_attribute_handler(perf: Performance, attr: &PhraseAttribute) -> Performance {
         match attr {
             PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(|event| Event {
-                volume: Volume((x * Ratio::from_integer(event.volume.0)).to_integer()),
+                volume: Volume::from(
+                    (x * Ratio::from_integer(u8::from(event.volume.0))).to_integer(),
+                ),
                 ..event
             }),
             PhraseAttribute::Dyn(_) | PhraseAttribute::Tmp(_) => {

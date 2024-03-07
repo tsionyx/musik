@@ -9,6 +9,7 @@ mod player;
 use std::{collections::HashMap, path::Path};
 
 use enum_map::Enum;
+use midly::num::{u4, u7};
 
 use crate::{instruments::InstrumentName, music::perf::Performance};
 
@@ -38,10 +39,10 @@ impl Performance {
 }
 
 // up to 16 channels
-type Channel = u8;
+type Channel = u4;
 
 // up to 128 instruments
-type ProgNum = u8;
+type ProgNum = u7;
 
 #[derive(Debug, Clone)]
 pub struct UserPatchMap {
@@ -49,13 +50,21 @@ pub struct UserPatchMap {
 }
 
 impl UserPatchMap {
-    const PERCUSSION: Channel = 9;
-    // all but Percussion
-    const AVAILABLE_CHANNELS: [Channel; 15] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
+    const PERCUSSION: Channel = Channel::new(9);
+
+    /// All but Percussion
+    fn available_channels() -> [Channel; 15] {
+        (0..16)
+            .filter_map(|i| (i != Self::PERCUSSION.as_int()).then_some(Channel::new(i)))
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("Should contains exactly 15 Channels")
+    }
 
     pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, String> {
-        // TODO: extend the range of instruments by combining non-overlapping tracks
-        if instruments.len() > Self::AVAILABLE_CHANNELS.len() {
+        let available_channels = Self::available_channels();
+        if instruments.len() > available_channels.len() {
+            // TODO: extend the range of instruments by combining non-overlapping tracks
             return Err(format!("Too many instruments: {}", instruments.len()));
         }
 
@@ -63,7 +72,7 @@ impl UserPatchMap {
             if instrument == InstrumentName::Percussion {
                 Some((instrument, Self::PERCUSSION))
             } else {
-                let channel = Self::AVAILABLE_CHANNELS[*idx];
+                let channel = available_channels[*idx];
                 *idx += 1;
                 Some((instrument, channel))
             }
@@ -77,11 +86,17 @@ impl UserPatchMap {
     pub fn lookup(&self, instrument: &InstrumentName) -> Option<(Channel, ProgNum)> {
         self.repr.get(instrument).map(|x| {
             let prog_num = match instrument {
-                InstrumentName::Midi(i) => i.into_usize(),
+                InstrumentName::Midi(i) => i
+                    .into_usize()
+                    .try_into()
+                    .expect("MIDI instruments should be less than 256"),
                 InstrumentName::Percussion => 0,
                 InstrumentName::Custom(_) => 0,
             };
-            (*x, u8::try_from(prog_num).expect("128 instruments only"))
+            (
+                *x,
+                ProgNum::try_from(prog_num).expect("exactly 128 instruments"),
+            )
         })
     }
 

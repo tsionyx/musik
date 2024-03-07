@@ -37,8 +37,8 @@ pub enum StdLoudness {
 }
 
 impl StdLoudness {
-    pub const fn get_volume(self) -> Volume {
-        let vol = match self {
+    pub fn get_volume(self) -> Volume {
+        let vol: u8 = match self {
             Self::PianoPianissimo => 40,
             Self::Pianissimo => 50,
             Self::Piano => 60,
@@ -49,7 +49,7 @@ impl StdLoudness {
             Self::Fortissimo => 110,
             Self::ForteFortissimo => 120,
         };
-        Volume(vol)
+        Volume(vol.try_into().expect("< 127 is low enough"))
     }
 }
 
