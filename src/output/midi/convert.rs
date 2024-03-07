@@ -95,10 +95,8 @@ impl Performance {
         let tempo = 1_000_000 / BEATS_PER_SECOND;
         let set_tempo = TrackEventKind::Meta(MetaMessage::Tempo(tempo.into()));
         let setup_instrument = TrackEventKind::Midi {
-            channel: channel.into(),
-            message: MidiMessage::ProgramChange {
-                program: program.into(),
-            },
+            channel,
+            message: MidiMessage::ProgramChange { program },
         };
 
         let messages = self
@@ -137,20 +135,20 @@ impl Event {
             (
                 start,
                 TrackEventKind::Midi {
-                    channel: channel.into(),
+                    channel,
                     message: MidiMessage::NoteOn {
                         key: key.into(),
-                        vel: vel.0.into(),
+                        vel: u8::from(vel.0).into(),
                     },
                 },
             ),
             (
                 end,
                 TrackEventKind::Midi {
-                    channel: channel.into(),
+                    channel,
                     message: MidiMessage::NoteOff {
                         key: key.into(),
-                        vel: vel.0.into(),
+                        vel: u8::from(vel.0).into(),
                     },
                 },
             ),

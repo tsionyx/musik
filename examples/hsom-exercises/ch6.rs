@@ -384,8 +384,8 @@ fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
 /// scales the volume of each note in `m` by the factor `s`.
 fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume)> {
     m.map(|(p, v)| {
-        let new = (Ratio::from_integer(v.0) * s).to_integer();
-        (p, Volume(new))
+        let new = (Ratio::from_integer(u8::from(v.get_inner())) * s).to_integer();
+        (p, Volume::from(new))
     })
 }
 
@@ -671,8 +671,8 @@ mod shepard_scale {
         }
 
         fn scale(&self) -> Music<(Pitch, Volume)> {
-            let max_volume = Volume::loudest().0;
-            let min_volume = Volume::softest().0;
+            let max_volume = u8::from(Volume::loudest().get_inner());
+            let min_volume = u8::from(Volume::softest().get_inner());
 
             let fade_out_parts = (max_volume / self.fade_out_volume_step).min(self.size);
 
@@ -688,7 +688,7 @@ mod shepard_scale {
                             volume = volume.saturating_sub(self.fade_out_volume_step);
                         }
 
-                        Music::with_volume(step, Volume(volume))
+                        Music::with_volume(step, Volume::from(volume))
                     })
                     .chain(Some(Music::rest(self.trailing_delay)))
                     .collect(),

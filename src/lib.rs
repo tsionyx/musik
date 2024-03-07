@@ -13,7 +13,6 @@ pub use self::{
     prim::{
         duration::Dur,
         interval::{Interval, Octave},
-        note::Note,
         pitch::{AbsPitch, Pitch, PitchClass},
         volume::Volume,
     },

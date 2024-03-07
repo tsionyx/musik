@@ -114,7 +114,7 @@ impl Pitch {
         let a4 = Self::A(Octave::OneLined);
         let interval_to_a4 = self.abs() - a4.abs();
         let octaves_from_a4 =
-            f64::from(interval_to_a4.get_inner()) / f64::from(Octave::semitones_number());
+            f64::from(interval_to_a4.get_inner()) / f64::from(u8::from(Octave::semitones_number()));
         octaves_from_a4.exp2() * Self::CONCERT_A_FREQUENCY
     }
 }
@@ -165,16 +165,18 @@ impl From<u7> for AbsPitch {
     }
 }
 
-impl From<AbsPitch> for (Octave, u8) {
+impl From<AbsPitch> for (Octave, ux2::u4) {
     fn from(abs_pitch: AbsPitch) -> Self {
         let octave_size = Octave::semitones_number();
-        let abs_pitch = u8::from(abs_pitch.0);
-        let (octave, n) = (abs_pitch / octave_size, abs_pitch % octave_size);
-        let octave = i8::try_from(octave).expect("u8 / 12 is low enough for i8");
+        let (octave, n) = (
+            abs_pitch.0 / u7::from(octave_size),
+            abs_pitch.0 % octave_size,
+        );
+        let octave = u8::try_from(octave).expect("u8 / 12 is low enough for i8");
 
         // TODO: make roundtrip tests for every value in 0..127
         (
-            Octave::from_i8(octave - 1).expect("Abs pitch conversion is always valid"),
+            Octave::from_i8(octave as i8 - 1).expect("Abs pitch conversion is always valid"),
             n,
         )
     }
@@ -184,7 +186,7 @@ impl From<Octave> for AbsPitch {
     fn from(octave: Octave) -> Self {
         let octave_size = Octave::semitones_number();
         let octave = u8::try_from(octave as isize + 1).expect("Invalid octave");
-        let val = octave * octave_size;
+        let val = octave * u8::from(octave_size);
         Self(u7::try_from(val).unwrap())
     }
 }

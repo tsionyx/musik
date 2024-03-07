@@ -104,7 +104,7 @@ impl AbsPitch {
 
         const DIATONIC_SIZE: i8 = 7;
         let oct_size = Octave::semitones_number();
-        let oct_size_i = i8::try_from(oct_size).expect("12 is low enough");
+        let oct_size_i = i8::try_from(u8::from(oct_size)).expect("12 is low enough");
 
         let scale: Vec<_> = key
             .get_intervals_scale()
@@ -116,7 +116,7 @@ impl AbsPitch {
             .enumerate()
             .min_by_key(|(_, x)| {
                 let x = u8::from((self - **x).0);
-                x.rem_euclid(oct_size)
+                x.rem_euclid(oct_size.into())
             })
             .map(|(i, _)| i)
             .expect("Scale is non-empty");
@@ -132,7 +132,8 @@ impl AbsPitch {
             .0;
         let shift = (interval + oct_size_i)
             .checked_sub(
-                i8::try_from(u8::from(self.0) % oct_size).expect("Modulo 12 is low enough for i8"),
+                i8::try_from(u8::from(self.0) % u8::from(oct_size))
+                    .expect("Modulo 12 is low enough for i8"),
             )
             .unwrap()
             % oct_size_i;
