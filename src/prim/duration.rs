@@ -149,6 +149,16 @@ impl Div<Ratio<u8>> for Dur {
     }
 }
 
+#[macro_export]
+macro_rules! dur {
+    ($x:literal / $y:expr) => {
+        Dur::new($x, $y)
+    };
+    ($x:literal : $y:expr) => {
+        Dur::new($x, $y)
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,5 +184,23 @@ mod tests {
             Dur::DOUBLE_DOTTED_EIGHTH.double(),
             Dur::DOUBLE_DOTTED_QUARTER
         );
+    }
+
+    #[test]
+    fn test_macro() {
+        assert_eq!(dur!(1:1), Dur::WHOLE);
+        assert_eq!(dur!(1:2), Dur::HALF);
+        assert_eq!(dur!(1:4), Dur::QUARTER);
+        assert_eq!(dur!(1:8), Dur::EIGHTH);
+        assert_eq!(dur!(1:16), Dur::SIXTEENTH);
+        assert_eq!(dur!(1:32), Dur::THIRTY_SECOND);
+        assert_eq!(dur!(1:64), Dur::SIXTY_FOURTH);
+
+        assert_eq!(dur!(3 / 2), Dur::DOTTED_WHOLE);
+        assert_eq!(dur!(3 / 4), Dur::DOTTED_HALF);
+        assert_eq!(dur!(3 / 8), Dur::DOTTED_QUARTER);
+        assert_eq!(dur!(3 / 16), Dur::DOTTED_EIGHTH);
+        assert_eq!(dur!(3 / 32), Dur::DOTTED_SIXTEENTH);
+        assert_eq!(dur!(3 / 64), Dur::DOTTED_THIRTY_SECOND);
     }
 }
