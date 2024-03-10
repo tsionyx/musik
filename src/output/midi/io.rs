@@ -1,4 +1,7 @@
-use std::io::{ErrorKind, Write};
+use std::{
+    fmt,
+    io::{ErrorKind, Write},
+};
 
 use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
@@ -7,9 +10,9 @@ fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     if ports.is_empty() {
         return None;
     }
-    for p in &ports {
+    for _p in &ports {
         // TODO: log.info
-        println!("{:?}", out.port_name(p));
+        // println!("{:?}", out.port_name(p));
     }
 
     if ports.len() == 1 {
@@ -40,7 +43,7 @@ impl Connection {
         let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
 
         // TODO: log.info
-        println!("Choosing {:?}", out.port_name(&port));
+        // println!("Choosing {:?}", out.port_name(&port));
         let conn = out.connect(&port, "playing Music")?;
         Ok(Self {
             inner: conn,
@@ -62,5 +65,13 @@ impl Write for Connection {
             .map_err(|err| std::io::Error::new(ErrorKind::InvalidData, err))?;
         self.buf.clear();
         Ok(())
+    }
+}
+
+impl fmt::Debug for Connection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(std::any::type_name::<Self>())
+            .field("buf", &self.buf)
+            .finish()
     }
 }

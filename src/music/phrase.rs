@@ -4,7 +4,7 @@ use num_rational::Ratio;
 
 use crate::prim::volume::Volume;
 
-type Rational = num_rational::Ratio<u32>;
+type Rational = Ratio<u32>;
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum PhraseAttribute {
@@ -16,7 +16,7 @@ pub enum PhraseAttribute {
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Dynamic {
-    Accent(num_rational::Ratio<u8>),
+    Accent(Ratio<u8>),
     Crescendo(Rational),
     Diminuendo(Rational),
     StdLoudness(StdLoudness),

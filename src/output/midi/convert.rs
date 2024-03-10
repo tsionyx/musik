@@ -17,7 +17,7 @@ use crate::{
 
 use super::{Channel, UserPatchMap};
 
-pub(super) fn into_relative_time(track: AbsTimeTrack) -> Track<'static> {
+pub(super) fn into_relative_time(track: AbsTimeTrack<'_>) -> Track<'static> {
     track
         .into_iter()
         .scan(0, |acc, (t, kind)| {
@@ -35,7 +35,7 @@ pub(super) fn into_relative_time(track: AbsTimeTrack) -> Track<'static> {
 }
 
 impl Performance {
-    pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf, String> {
+    pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, String> {
         let split = self.split_by_instruments();
         let instruments: Vec<_> = split.keys().cloned().collect();
         let user_patch = user_patch.and_then(|user_patch| {
@@ -87,7 +87,7 @@ impl Performance {
         &self,
         instrument: &InstrumentName,
         user_patch: &UserPatchMap,
-    ) -> Result<AbsTimeTrack, String> {
+    ) -> Result<AbsTimeTrack<'_>, String> {
         let (channel, program) = user_patch
             .lookup(instrument)
             .ok_or_else(|| format!("Not found instrument {:?}", instrument))?;
@@ -124,7 +124,7 @@ pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
 impl Event {
-    fn as_midi(&self, channel: Channel) -> Pair<TimedMessage> {
+    fn as_midi(&self, channel: Channel) -> Pair<TimedMessage<'_>> {
         let ticks_per_second = u32::from(u16::from(DEFAULT_TIME_DIV)) * BEATS_PER_SECOND;
 
         let start = (self.start_time * ticks_per_second).to_integer();
@@ -156,7 +156,7 @@ impl Event {
     }
 }
 
-fn to_absolute(track: Track, drop_track_end: bool) -> AbsTimeTrack {
+fn to_absolute(track: Track<'_>, drop_track_end: bool) -> AbsTimeTrack<'_> {
     track
         .into_iter()
         .filter(|t| !(drop_track_end && t.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack)))
@@ -172,7 +172,7 @@ fn to_absolute(track: Track, drop_track_end: bool) -> AbsTimeTrack {
 /// - convert to absolute time  (remove TrackEnd)
 /// - merge (https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge)
 /// - add TrackEnd
-pub fn merge_tracks(mut tracks: Vec<Track>) -> AbsTimeTrack {
+pub fn merge_tracks(mut tracks: Vec<Track<'_>>) -> AbsTimeTrack<'_> {
     if tracks.is_empty() {
         return AbsTimeTrack::new();
     }

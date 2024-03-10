@@ -62,7 +62,7 @@ impl Dur {
     /// Get the [`Dur`] corresponding to `1/fraction` of note size.
     ///
     /// As the special case, the `Dur:recip(0)` is simply [`Dur::ZERO`].
-    pub fn recip(fraction: u8) -> Self {
+    pub const fn recip(fraction: u8) -> Self {
         if fraction == 0 {
             Self::ZERO
         } else {

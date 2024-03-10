@@ -145,7 +145,7 @@ pub enum Instrument {
     Gunshot,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Enum, Sequence)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Sequence)]
 pub enum PercussionSound {
     AcousticBassDrum,
     BassDrum1,

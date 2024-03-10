@@ -55,7 +55,8 @@ where
             .map(|p| (p.name.clone(), p))
             .collect();
 
-        let ctx = Context::with_player(Cow::Borrowed(players.get(&def_name).unwrap()));
+        let def_player = players.get(&def_name).expect("Just inserted");
+        let ctx = Context::with_player(Cow::Borrowed(def_player));
         self.perform(&players, ctx)
     }
 }
@@ -80,7 +81,8 @@ where
             .map(|p| (p.name.clone(), p))
             .collect();
 
-        let ctx = Context::with_player(Cow::Borrowed(players.get(&def_name).unwrap()));
+        let def_player = players.get(&def_name).expect("Just inserted");
+        let ctx = Context::with_player(Cow::Borrowed(def_player));
         self.perform(&players, ctx)
     }
 }
@@ -191,7 +193,7 @@ pub struct Context<'p, P> {
     pub key: KeySig,
 }
 
-impl<'p, P> Clone for Context<'p, P> {
+impl<P> Clone for Context<'_, P> {
     fn clone(&self) -> Self {
         let Self {
             start_time,
@@ -253,9 +255,9 @@ impl<P> fmt::Debug for Player<P> {
     }
 }
 
-type NoteFun<P> = Arc<dyn Fn(Context<P>, Dur, &P) -> Performance>;
+type NoteFun<P> = Arc<dyn Fn(Context<'_, P>, Dur, &P) -> Performance>;
 type PhraseFun<P> = Arc<
-    dyn Fn(&Music<P>, &PlayerMap<P>, Context<P>, &[PhraseAttribute]) -> (Performance, Duration),
+    dyn Fn(&Music<P>, &PlayerMap<P>, Context<'_, P>, &[PhraseAttribute]) -> (Performance, Duration),
 >;
 // TODO: producing a properly notated score is not defined yet
 type NotateFun<P> = std::marker::PhantomData<P>;
@@ -323,7 +325,7 @@ pub mod defaults {
 
     /// Transform the event according to [`Context`] and Attribute.
     type NoteWithAttributeHandler<P, Attr> =
-        Box<dyn Fn(&Context<(P, Vec<Attr>)>, &Attr, Event) -> Event>;
+        Box<dyn Fn(&Context<'_, (P, Vec<Attr>)>, &Attr, Event) -> Event>;
 
     // Transform the whole performance according to [`Context`] and [`PhraseAttribute`].
     // type PhraseAttributeHandler = Box<dyn Fn(Performance, &PhraseAttribute) -> Performance>;
@@ -390,7 +392,7 @@ pub mod defaults {
     pub fn fancy_interpret_phrase<P>(
         music: &Music<P>,
         players: &PlayerMap<P>,
-        mut ctx: Context<P>,
+        mut ctx: Context<'_, P>,
         attrs: &[PhraseAttribute],
     ) -> (Performance, Duration)
     where

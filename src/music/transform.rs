@@ -34,10 +34,11 @@ impl Music {
             let first_pitch = *first_pitch;
             let inv = |m| {
                 if let Self::Prim(Primitive::Note(d, p)) = m {
-                    // prevent u8 overflow
                     let inverted_pitch = 2 * u16::from(first_pitch.abs().get_inner())
                         - u16::from(p.abs().get_inner());
-                    let inverted_pitch = u8::try_from(inverted_pitch).unwrap();
+                    // TODO: prevent u8 overflow, and then u7 overflow
+                    let inverted_pitch =
+                        u8::try_from(inverted_pitch).expect("TODO: take highest pitch on overflow");
                     let inverted_pitch = AbsPitch::from(ux2::u7::new(inverted_pitch));
                     Self::note(d, inverted_pitch.into())
                 } else {

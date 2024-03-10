@@ -1,5 +1,5 @@
-pub(crate) mod duration;
-pub(crate) mod interval;
-pub(crate) mod pitch;
-pub(crate) mod scale;
-pub(crate) mod volume;
+pub mod duration;
+pub mod interval;
+pub mod pitch;
+pub mod scale;
+pub mod volume;

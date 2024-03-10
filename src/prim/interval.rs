@@ -59,7 +59,7 @@ impl TryFrom<u4> for Octave {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ErrorOctaveFromNum {
     TooLow,
     TooHigh,
@@ -136,7 +136,7 @@ impl AddAssign for Interval {
 }
 
 impl PitchClass {
-    pub(crate) fn distance_from_c(self) -> i8 {
+    pub(crate) const fn distance_from_c(self) -> i8 {
         match self {
             Self::Cff => -2,
             Self::Cf => -1,

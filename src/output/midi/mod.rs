@@ -14,6 +14,8 @@ use midly::num::{u4, u7};
 use crate::{instruments::InstrumentName, music::perf::Performance};
 
 pub use self::instruments::{Instrument, PercussionSound};
+#[cfg(feature = "play-midi")]
+pub use self::player::MidiPlayer;
 
 type AnyError = Box<dyn std::error::Error>;
 
@@ -26,7 +28,7 @@ impl Performance {
 
     #[cfg(feature = "play-midi")]
     pub fn play(self) -> Result<(), AnyError> {
-        use self::{convert::merge_tracks, player::MidiPlayer};
+        use self::convert::merge_tracks;
         use midly::Smf;
 
         let mut player = MidiPlayer::make_default()?;
