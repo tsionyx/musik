@@ -409,9 +409,7 @@ mod max_min_pitches {
     use musik::AbsPitch;
 
     fn max_pitch(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         pitches[1..].iter().fold(pitches[0], |acc, p| {
             if acc.get_inner() > p.get_inner() {
@@ -423,9 +421,7 @@ mod max_min_pitches {
     }
 
     fn max_pitch_rec(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         fn max_pitch_inner(h: AbsPitch, t: &[AbsPitch]) -> AbsPitch {
             if t.is_empty() {
@@ -469,9 +465,7 @@ mod max_min_pitches {
     }
 
     fn min_pitch(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         pitches[1..].iter().fold(pitches[0], |acc, p| {
             if acc.get_inner() < p.get_inner() {
@@ -483,9 +477,7 @@ mod max_min_pitches {
     }
 
     fn min_pitch_rec(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         fn min_pitch_inner(h: AbsPitch, t: &[AbsPitch]) -> AbsPitch {
             if t.is_empty() {
@@ -871,7 +863,7 @@ mod brother_john {
         musics.fold(Music::rest(Dur::ZERO), |melody, m| melody | m)
     }
 
-    fn make_round(one_voice: Music, instruments: Vec<Instrument>, delay: Dur) -> Music {
+    fn make_round(one_voice: &Music, instruments: Vec<Instrument>, delay: Dur) -> Music {
         let voices = instruments.into_iter().enumerate().map(|(i, instrument)| {
             let init_rest = iter::repeat(Music::rest(delay)).take(i);
             let voice = init_rest.chain(iter::once(one_voice.clone().with_instrument(instrument)));
@@ -883,7 +875,7 @@ mod brother_john {
     /// `https://en.wikipedia.org/wiki/Fr%C3%A8re_Jacques`
     fn frere_jacques_four_part_round() -> Music {
         make_round(
-            frere_jacques_one_voice(),
+            &frere_jacques_one_voice(),
             vec![
                 Instrument::AcousticGrandPiano,
                 Instrument::Contrabass,

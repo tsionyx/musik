@@ -177,10 +177,11 @@ impl From<AbsPitch> for (Octave, ux2::u4) {
             abs_pitch.0 / u7::from(octave_size),
             abs_pitch.0 % octave_size,
         );
-        let octave = u8::try_from(octave).expect("u8 / 12 is low enough for i8");
+        let octave = u8::from(octave);
+        let octave = i8::try_from(octave).expect("u7 / 12 is low enough for i8");
 
         (
-            Octave::from_i8(octave as i8 - 1).expect("Abs pitch conversion is always valid"),
+            Octave::from_i8(octave - 1).expect("Abs pitch conversion is always valid"),
             n,
         )
     }
@@ -401,7 +402,7 @@ mod tests {
                 } else {
                     assert_eq!(
                         u8::from(abs.checked_add(int).unwrap().0),
-                        (i16::from(p) + i16::from(i)) as u8,
+                        u8::try_from(i16::from(p) + i16::from(i)).unwrap(),
                     );
                 }
 
@@ -414,7 +415,7 @@ mod tests {
                 } else {
                     assert_eq!(
                         u8::from(abs.checked_sub(int).unwrap().0),
-                        (i16::from(p) - i16::from(i)) as u8,
+                        u8::try_from(i16::from(p) - i16::from(i)).unwrap()
                     );
                 }
             }
@@ -430,7 +431,7 @@ mod tests {
                 } else {
                     assert_eq!(
                         u8::from(abs.checked_sub(int).unwrap().0),
-                        (i16::from(p) - i16::from(i)) as u8,
+                        u8::try_from(i16::from(p) - i16::from(i)).unwrap()
                     );
                 }
 
@@ -443,7 +444,7 @@ mod tests {
                 } else {
                     assert_eq!(
                         u8::from(abs.checked_add(int).unwrap().0),
-                        (i16::from(p) + i16::from(i)) as u8,
+                        u8::try_from(i16::from(p) + i16::from(i)).unwrap()
                     );
                 }
             }
@@ -483,9 +484,9 @@ mod tests {
     #[test]
     fn from_octave() {
         for (i, oc) in enum_iterator::all::<Octave>().enumerate() {
-            assert_eq!(oc, Octave::from_i8(i as i8 - 1).unwrap());
+            assert_eq!(oc, Octave::from_i8(i8::try_from(i).unwrap() - 1).unwrap());
             let p = AbsPitch::from(oc);
-            assert_eq!(u8::from(p.get_inner()), 12 * (i as u8));
+            assert_eq!(u8::from(p.get_inner()), 12 * u8::try_from(i).unwrap());
         }
     }
 
@@ -495,11 +496,14 @@ mod tests {
             let p1 = AbsPitch(u7::new(p));
             let (oc, offset) = p1.into();
             let o = p / 12;
-            assert_eq!(oc, Octave::from_i8(o as i8 - 1).unwrap());
+            assert_eq!(oc, Octave::from_i8(i8::try_from(o).unwrap() - 1).unwrap());
             assert_eq!(u8::from(offset), p % 12);
 
             let p2 = Pitch::from(p1);
-            assert_eq!(p2.class().distance_from_c() as u8, u8::from(offset));
+            assert_eq!(
+                u8::try_from(p2.class().distance_from_c()).unwrap(),
+                u8::from(offset)
+            );
             assert_eq!(p2.octave, oc);
             assert_eq!(p2.abs(), p1);
         }

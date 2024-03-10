@@ -48,6 +48,7 @@
 #![deny(clippy::mem_forget)]
 // suppress some pedantic warnings
 #![allow(clippy::must_use_candidate)]
+#![allow(clippy::return_self_not_must_use)]
 // `use super::*` in tests
 #![cfg_attr(test, allow(clippy::wildcard_imports))]
 // TODO: remove when not 1.67

@@ -92,8 +92,7 @@ impl UserPatchMap {
                     .into_usize()
                     .try_into()
                     .expect("MIDI instruments should be less than 256"),
-                InstrumentName::Percussion => 0,
-                InstrumentName::Custom(_) => 0,
+                InstrumentName::Percussion | InstrumentName::Custom(_) => 0,
             };
             (
                 *x,

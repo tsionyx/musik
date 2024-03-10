@@ -63,17 +63,13 @@ impl<P> Music<P> {
         match self {
             n @ Self::Prim(_) => n,
             Self::Sequential(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
-                (Self::Prim(Primitive::Note(Dur::ZERO, _)), m) => m,
-                (Self::Prim(Primitive::Rest(Dur::ZERO)), m) => m,
-                (m, Self::Prim(Primitive::Note(Dur::ZERO, _))) => m,
-                (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
+                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
+                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
                 (m1, m2) => m1 + m2,
             },
             Self::Parallel(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
-                (Self::Prim(Primitive::Note(Dur::ZERO, _)), m) => m,
-                (Self::Prim(Primitive::Rest(Dur::ZERO)), m) => m,
-                (m, Self::Prim(Primitive::Note(Dur::ZERO, _))) => m,
-                (m, Self::Prim(Primitive::Rest(Dur::ZERO))) => m,
+                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
+                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
                 (m1, m2) => m1 | m2,
             },
             Self::Modify(c, m) => m.remove_zeros().with(c),

@@ -96,13 +96,14 @@ impl Pitch {
     }
 }
 
+const DIATONIC_SIZE: i8 = 7;
+
 impl AbsPitch {
     pub fn diatonic_trans(self, key: KeySig, degrees: i8) -> Self {
         if degrees == 0 {
             return self;
         }
 
-        const DIATONIC_SIZE: i8 = 7;
         let oct_size = Octave::semitones_number();
         let oct_size_i = i8::try_from(u8::from(oct_size)).expect("12 is low enough");
 

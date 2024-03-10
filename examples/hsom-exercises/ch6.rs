@@ -351,8 +351,8 @@ fn sequence_all_percussions() -> Music {
 
 /// Exercise 6.8
 ///
-/// TODO: test more at https://en.wikipedia.org/wiki/Drum_beat
-///   https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295
+/// TODO: test more at <https://en.wikipedia.org/wiki/Drum_beat>
+///   <https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295>
 pub fn drum_pattern() -> Music {
     let m1 = PercussionSound::ClosedHiHat.note(Dur::QUARTER).times(4);
     let m2 = Music::rest(Dur::HALF) + PercussionSound::AcousticSnare.note(Dur::HALF);
