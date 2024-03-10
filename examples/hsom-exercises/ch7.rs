@@ -160,14 +160,10 @@ enum Color {
 /// type in the classes `Eq`, `Ord`, and `Enum`.
 impl PartialEq for Color {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Red, Self::Red) => true,
-            (Self::Red, _) => false,
-            (Self::Green, Self::Green) => true,
-            (Self::Green, _) => false,
-            (Self::Blue, Self::Blue) => true,
-            (Self::Blue, _) => false,
-        }
+        matches!(
+            (self, other),
+            (Self::Red, Self::Red) | (Self::Green, Self::Green) | (Self::Blue, Self::Blue)
+        )
     }
 }
 

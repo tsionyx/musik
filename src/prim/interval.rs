@@ -136,6 +136,7 @@ impl AddAssign for Interval {
 }
 
 impl PitchClass {
+    #[allow(clippy::match_same_arms)]
     pub(crate) const fn distance_from_c(self) -> i8 {
         match self {
             Self::Cff => -2,

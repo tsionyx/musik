@@ -72,6 +72,6 @@ impl fmt::Debug for Connection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct(std::any::type_name::<Self>())
             .field("buf", &self.buf)
-            .finish()
+            .finish_non_exhaustive()
     }
 }

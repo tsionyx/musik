@@ -41,8 +41,7 @@ impl<P> From<Primitive<P>> for Music<P> {
 impl<P> Music<P> {
     pub fn duration(&self) -> Dur {
         match self {
-            Self::Prim(Primitive::Note(d, _)) => *d,
-            Self::Prim(Primitive::Rest(d)) => *d,
+            Self::Prim(Primitive::Note(d, _) | Primitive::Rest(d)) => *d,
             Self::Sequential(m1, m2) => m1.duration() + m2.duration(),
             Self::Parallel(m1, m2) => m1.duration().max(m2.duration()),
             Self::Modify(Control::Tempo(r), m) => m.duration() / *r,

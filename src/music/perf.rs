@@ -663,14 +663,13 @@ pub mod defaults {
             .all(|e| (e.start_time == s) && (e.duration == d)));
 
         if up {
-            events.sort_by_key(|e| e.pitch)
+            events.sort_by_key(|e| e.pitch);
         } else {
-            events.sort_by_key(|e| std::cmp::Reverse(e.pitch))
+            events.sort_by_key(|e| std::cmp::Reverse(e.pitch));
         }
 
         let size = events.len() as u32;
         match size {
-            2 => Box::new(events.into_iter()),
             3 | 5 | 6 | 7 if d.numer() % size == 0 => {
                 if d.numer() % size == 0 {
                     // could split into equal intervals

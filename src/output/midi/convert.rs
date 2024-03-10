@@ -169,9 +169,9 @@ fn to_absolute(track: Track<'_>, drop_track_end: bool) -> AbsTimeTrack<'_> {
 }
 
 /// Join all tracks into a single track with absolute time:
-/// - convert to absolute time  (remove TrackEnd)
-/// - merge (https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge)
-/// - add TrackEnd
+/// - convert to absolute time  (remove `TrackEnd`)
+/// - merge (<https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge>)
+/// - add `TrackEnd`
 pub fn merge_tracks(mut tracks: Vec<Track<'_>>) -> AbsTimeTrack<'_> {
     if tracks.is_empty() {
         return AbsTimeTrack::new();
@@ -189,7 +189,7 @@ pub fn merge_tracks(mut tracks: Vec<Track<'_>>) -> AbsTimeTrack<'_> {
         });
 
     if let Some((last, _)) = single.last() {
-        single.push((*last, TrackEventKind::Meta(MetaMessage::EndOfTrack)))
+        single.push((*last, TrackEventKind::Meta(MetaMessage::EndOfTrack)));
     }
     single
 }
