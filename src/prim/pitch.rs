@@ -191,11 +191,11 @@ impl From<Octave> for AbsPitch {
         let octave_size = Octave::semitones_number();
         let octave = u8::try_from(octave as isize + 1).expect("Invalid octave");
         let val = octave * u8::from(octave_size);
-        Self(u7::try_from(val).unwrap())
+        Self(u7::try_from(val).expect("Highest octave base is 120 < u7::MAX"))
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ErrorPitchClipping {
     TooLow,
     TooHigh,
@@ -203,7 +203,7 @@ pub enum ErrorPitchClipping {
 
 impl ErrorPitchClipping {
     /// Saturating the values into the defined range.
-    fn clip_to(self) -> u7 {
+    const fn clip_to(self) -> u7 {
         match self {
             Self::TooLow => u7::MIN,
             Self::TooHigh => u7::MAX,

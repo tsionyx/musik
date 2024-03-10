@@ -135,7 +135,7 @@ impl AbsPitch {
                 i8::try_from(u8::from(self.0) % u8::from(oct_size))
                     .expect("Modulo 12 is low enough for i8"),
             )
-            .unwrap()
+            .expect("Positive interval + 12 > X mod 12")
             % oct_size_i;
 
         self + Interval(shift) + Interval(whole_octaves * oct_size_i)

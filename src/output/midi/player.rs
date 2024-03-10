@@ -21,6 +21,7 @@ use super::{
     io::Connection,
 };
 
+#[derive(Debug)]
 pub struct MidiPlayer {
     // TODO: allow pause (see https://github.com/insomnimus/nodi/blob/main/src/player.rs)
     conn: Connection,
@@ -39,7 +40,7 @@ impl MidiPlayer {
         })
     }
 
-    pub fn play(&mut self, track: AbsTimeTrack, timing: Timing) -> std::io::Result<()> {
+    pub fn play(&mut self, track: AbsTimeTrack<'_>, timing: Timing) -> std::io::Result<()> {
         let sec_per_tick = tick_size(timing);
         let real_time = track
             .into_iter()
@@ -56,22 +57,26 @@ impl MidiPlayer {
                         self.conn.flush()?;
                     }
                     break;
-                } else {
-                    sleep(sec_per_tick);
                 }
+
+                sleep(sec_per_tick);
             }
         }
         Ok(())
     }
 
-    fn sync_currently_played(&mut self, msg: &TrackEventKind) {
+    fn sync_currently_played(&mut self, msg: &TrackEventKind<'_>) {
         if let TrackEventKind::Midi { channel, message } = msg {
             match message {
                 MidiMessage::NoteOn { key, vel } => {
-                    self.currently_played.insert((*channel, *key, *vel));
+                    if !self.currently_played.insert((*channel, *key, *vel)) {
+                        // TODO: warn on repeating note
+                    }
                 }
                 MidiMessage::NoteOff { key, vel } => {
-                    self.currently_played.remove(&(*channel, *key, *vel));
+                    if !self.currently_played.remove(&(*channel, *key, *vel)) {
+                        // TODO: warn on stopping the note that was not started
+                    }
                 }
                 _ => {}
             }
@@ -95,12 +100,15 @@ impl Drop for MidiPlayer {
     fn drop(&mut self) {
         let notes_left = self.currently_played.len();
         if notes_left > 0 {
-            println!(
-                "Dropping the {:?}: {} notes unfinished",
-                std::any::type_name::<Self>(),
-                notes_left
-            );
-            let _ = self.stop_all();
+            // TODO: log
+            // println!(
+            //     "Dropping the {:?}: {} notes unfinished",
+            //     std::any::type_name::<Self>(),
+            //     notes_left
+            // );
+            if let Err(_err) = self.stop_all() {
+                // TODO: also log here on err
+            }
         }
     }
 }

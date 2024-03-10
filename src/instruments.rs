@@ -1,6 +1,7 @@
 use crate::output::midi::instruments::Instrument;
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord, Hash)]
+#[allow(variant_size_differences)]
 pub enum InstrumentName {
     Midi(Instrument),
     /// Marks the pitches in the [`Music`] as the specific [`PercussionSound`].
