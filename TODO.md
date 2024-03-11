@@ -7,7 +7,6 @@
     - n!(C4, HALF), n!(Df5, QUARTER)
   - pub everything that can be used
   - prelude with Music, Dur, Pitch, Instruments, Performable
-  - use logs!
 
 - made example with listing every playable example and a way to save or play it
 

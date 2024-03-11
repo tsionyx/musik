@@ -9,6 +9,7 @@ use std::{
     time::Instant,
 };
 
+use log::{info, warn};
 use midly::{
     live::LiveEvent,
     num::{u4, u7},
@@ -69,13 +70,15 @@ impl MidiPlayer {
         if let TrackEventKind::Midi { channel, message } = msg {
             match message {
                 MidiMessage::NoteOn { key, vel } => {
-                    if !self.currently_played.insert((*channel, *key, *vel)) {
-                        // TODO: warn on repeating note
+                    let note = (*channel, *key, *vel);
+                    if !self.currently_played.insert(note) {
+                        warn!("Repeating note: {:?}", note);
                     }
                 }
                 MidiMessage::NoteOff { key, vel } => {
+                    let note = (*channel, *key, *vel);
                     if !self.currently_played.remove(&(*channel, *key, *vel)) {
-                        // TODO: warn on stopping the note that was not started
+                        warn!("Stopping the note that was not started: {:?}", note);
                     }
                 }
                 _ => {}
@@ -100,14 +103,13 @@ impl Drop for MidiPlayer {
     fn drop(&mut self) {
         let notes_left = self.currently_played.len();
         if notes_left > 0 {
-            // TODO: log
-            // println!(
-            //     "Dropping the {:?}: {} notes unfinished",
-            //     std::any::type_name::<Self>(),
-            //     notes_left
-            // );
-            if let Err(_err) = self.stop_all() {
-                // TODO: also log here on err
+            info!(
+                "Dropping the {:?}: {} notes unfinished",
+                std::any::type_name::<Self>(),
+                notes_left
+            );
+            if let Err(err) = self.stop_all() {
+                warn!("Stopping the player failed: {:?}", err);
             }
         }
     }

@@ -3,17 +3,20 @@ use std::{
     io::{ErrorKind, Write},
 };
 
+use log::info;
 use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
 fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     let ports = out.ports();
     if ports.is_empty() {
+        info!("Not found any MIDI ports");
         return None;
     }
-    for _p in &ports {
-        // TODO: log.info
-        // println!("{:?}", out.port_name(p));
-    }
+
+    info!(
+        "Available ports: {:?}",
+        Vec::from_iter(ports.iter().map(|p| out.port_name(p)))
+    );
 
     if ports.len() == 1 {
         ports.into_iter().next()
@@ -42,8 +45,7 @@ impl Connection {
         let out = MidiOutput::new("musik library MIDI player")?;
         let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
 
-        // TODO: log.info
-        // println!("Choosing {:?}", out.port_name(&port));
+        info!("Choosing {:?} for playing", out.port_name(&port));
         let conn = out.connect(&port, "playing Music")?;
         Ok(Self {
             inner: conn,

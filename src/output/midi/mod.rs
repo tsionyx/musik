@@ -9,6 +9,7 @@ mod player;
 use std::{collections::HashMap, path::Path};
 
 use enum_map::Enum;
+use log::info;
 use midly::num::{u4, u7};
 
 use crate::{instruments::InstrumentName, music::perf::Performance};
@@ -22,6 +23,7 @@ type AnyError = Box<dyn std::error::Error>;
 impl Performance {
     pub fn save_to_file<P: AsRef<Path>>(self, path: P) -> Result<(), AnyError> {
         let midi = self.into_midi(None)?;
+        info!("Saving to MIDI file {}", path.as_ref().display());
         midi.save(path)?;
         Ok(())
     }
@@ -29,12 +31,12 @@ impl Performance {
     #[cfg(feature = "play-midi")]
     pub fn play(self) -> Result<(), AnyError> {
         use self::convert::merge_tracks;
-        use midly::Smf;
 
         let mut player = MidiPlayer::make_default()?;
-        let Smf { header, tracks } = self.into_midi(None)?;
+        let midly::Smf { header, tracks } = self.into_midi(None)?;
         let single_track = merge_tracks(tracks);
 
+        info!("Playing MIDI with {} events", single_track.len());
         player.play(single_track, header.timing)?;
         Ok(())
     }
