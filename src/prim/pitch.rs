@@ -11,20 +11,75 @@ use super::interval::{Interval, Octave};
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, Sequence)]
+/// Classes of perceived [octave equivalences](https://en.wikipedia.org/wiki/Octave#Equivalence).
+///
+/// Every [`PitchClass`] relates to the same-named [`Pitch`]es
+/// that are a whole number of [`Octave`]s apart.
+///
+/// See more at wikipedia: <https://en.wikipedia.org/wiki/Pitch_class>
 pub enum PitchClass {
-    // https://en.wikipedia.org/wiki/Enharmonic
-    Bs , C , Dff,
+    // Grouped by https://en.wikipedia.org/wiki/Enharmonic
+    Bs , C , Dff,  // do
+
     Bss, Cs, Df,
-    Css, D , Eff,
+    Css, D , Eff,  // re
     Ds , Ef, Fff,
-    Dss, E , Ff,
-    Es , F , Gff,
+    Dss, E , Ff,   // mi
+    Es , F , Gff,  // fa
     Ess, Fs, Gf,
-    Fss, G , Aff,
+    Fss, G , Aff,  // sol
     Gs , Af,
-    Gss, A , Bff,
+    Gss, A , Bff,  // la
     As , Bf, Cff,
-    Ass, B , Cf,
+    Ass, B , Cf,   // si
+}
+
+impl PitchClass {
+    #[allow(clippy::match_same_arms)]
+    pub const fn distance_from_c(self) -> i8 {
+        match self {
+            Self::Cff => -2,
+            Self::Cf => -1,
+            Self::C => 0,
+            Self::Cs => 1,
+            Self::Css => 2,
+            Self::Dff => 0,
+            Self::Df => 1,
+            Self::D => 2,
+            Self::Ds => 3,
+            Self::Dss => 4,
+            Self::Eff => 2,
+            Self::Ef => 3,
+            Self::E => 4,
+            Self::Es => 5,
+            Self::Ess => 6,
+            Self::Fff => 3,
+            Self::Ff => 4,
+            Self::F => 5,
+            Self::Fs => 6,
+            Self::Fss => 7,
+            Self::Gff => 5,
+            Self::Gf => 6,
+            Self::G => 7,
+            Self::Gs => 8,
+            Self::Gss => 9,
+            Self::Aff => 7,
+            Self::Af => 8,
+            Self::A => 9,
+            Self::As => 10,
+            Self::Ass => 11,
+            Self::Bff => 9,
+            Self::Bf => 10,
+            Self::B => 11,
+            Self::Bs => 12,
+            Self::Bss => 13,
+        }
+    }
+
+    /// <https://en.wikipedia.org/wiki/Enharmonic_equivalence>
+    pub const fn is_enharmonic_equivalent(self, other: Self) -> bool {
+        self.distance_from_c() == other.distance_from_c()
+    }
 }
 
 macro_rules! match_str_to_pitch_class {
@@ -62,6 +117,9 @@ impl FromStr for PitchClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// Perceptual equivalent of the frequency of the sound wave.
+///
+/// <https://en.wikipedia.org/wiki/Pitch_(music)>
 pub struct Pitch {
     class: PitchClass,
     octave: Octave,
@@ -152,6 +210,9 @@ impl From<AbsPitch> for Pitch {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// A 7-bit number associated with the most audible [Pitch]es.
+///
+/// <https://en.wikipedia.org/wiki/MIDI_tuning_standard>
 pub struct AbsPitch(pub(crate) u7);
 
 impl AbsPitch {
@@ -197,6 +258,8 @@ impl From<Octave> for AbsPitch {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+/// Signifies that the operations made with an [`AbsPitch`]
+/// jumps out of its defined range [0..127].
 pub enum ErrorPitchClipping {
     TooLow,
     TooHigh,
