@@ -11,6 +11,12 @@ use super::pitch::PitchClass;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, Sequence)]
 #[repr(i8)]
+/// Interval between musical pitch and another with half or double of its frequency.
+///
+/// [`Octave`] registers start from the [`C`][PitchClass::C]
+/// and end with the [`B`][PitchClass::B].
+///
+/// https://en.wikipedia.org/wiki/Octave
 /// <https://en.wikipedia.org/wiki/Scientific_pitch_notation>
 pub enum Octave {
     // about one octave below the human hearing threshold: its overtones, however, are audible
@@ -135,49 +141,6 @@ impl AddAssign for Interval {
     }
 }
 
-impl PitchClass {
-    #[allow(clippy::match_same_arms)]
-    pub(crate) const fn distance_from_c(self) -> i8 {
-        match self {
-            Self::Cff => -2,
-            Self::Cf => -1,
-            Self::C => 0,
-            Self::Cs => 1,
-            Self::Css => 2,
-            Self::Dff => 0,
-            Self::Df => 1,
-            Self::D => 2,
-            Self::Ds => 3,
-            Self::Dss => 4,
-            Self::Eff => 2,
-            Self::Ef => 3,
-            Self::E => 4,
-            Self::Es => 5,
-            Self::Ess => 6,
-            Self::Fff => 3,
-            Self::Ff => 4,
-            Self::F => 5,
-            Self::Fs => 6,
-            Self::Fss => 7,
-            Self::Gff => 5,
-            Self::Gf => 6,
-            Self::G => 7,
-            Self::Gs => 8,
-            Self::Gss => 9,
-            Self::Aff => 7,
-            Self::Af => 8,
-            Self::A => 9,
-            Self::As => 10,
-            Self::Ass => 11,
-            Self::Bff => 9,
-            Self::Bf => 10,
-            Self::B => 11,
-            Self::Bs => 12,
-            Self::Bss => 13,
-        }
-    }
-}
-
 impl From<PitchClass> for Interval {
     fn from(pc: PitchClass) -> Self {
         Self(pc.distance_from_c())
@@ -279,106 +242,48 @@ mod tests {
     }
 
     #[test]
-    /// <https://en.wikipedia.org/wiki/Enharmonic_equivalence>
     fn enharmonic_equivalence() {
         // 0
-        assert_eq!(
-            PitchClass::C.distance_from_c(),
-            PitchClass::Dff.distance_from_c()
-        );
+        assert!(PitchClass::C.is_enharmonic_equivalent(PitchClass::Dff));
 
         // 1
-        assert_eq!(
-            PitchClass::Cs.distance_from_c(),
-            PitchClass::Df.distance_from_c()
-        );
+        assert!(PitchClass::Cs.is_enharmonic_equivalent(PitchClass::Df));
 
         // 2
-        assert_eq!(
-            PitchClass::Css.distance_from_c(),
-            PitchClass::D.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::D.distance_from_c(),
-            PitchClass::Eff.distance_from_c()
-        );
+        assert!(PitchClass::Css.is_enharmonic_equivalent(PitchClass::D));
+        assert!(PitchClass::D.is_enharmonic_equivalent(PitchClass::Eff));
 
         // 3
-        assert_eq!(
-            PitchClass::Ds.distance_from_c(),
-            PitchClass::Ef.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::Ef.distance_from_c(),
-            PitchClass::Fff.distance_from_c()
-        );
+        assert!(PitchClass::Ds.is_enharmonic_equivalent(PitchClass::Ef));
+        assert!(PitchClass::Ef.is_enharmonic_equivalent(PitchClass::Fff));
 
         // 4
-        assert_eq!(
-            PitchClass::Dss.distance_from_c(),
-            PitchClass::E.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::E.distance_from_c(),
-            PitchClass::Ff.distance_from_c()
-        );
+        assert!(PitchClass::Dss.is_enharmonic_equivalent(PitchClass::E));
+        assert!(PitchClass::E.is_enharmonic_equivalent(PitchClass::Ff));
 
         // 5
-        assert_eq!(
-            PitchClass::Es.distance_from_c(),
-            PitchClass::F.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::F.distance_from_c(),
-            PitchClass::Gff.distance_from_c()
-        );
+        assert!(PitchClass::Es.is_enharmonic_equivalent(PitchClass::F));
+        assert!(PitchClass::F.is_enharmonic_equivalent(PitchClass::Gff));
 
         // 6
-        assert_eq!(
-            PitchClass::Ess.distance_from_c(),
-            PitchClass::Fs.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::Fs.distance_from_c(),
-            PitchClass::Gf.distance_from_c()
-        );
+        assert!(PitchClass::Ess.is_enharmonic_equivalent(PitchClass::Fs));
+        assert!(PitchClass::Fs.is_enharmonic_equivalent(PitchClass::Gf));
 
         // 7
-        assert_eq!(
-            PitchClass::Fss.distance_from_c(),
-            PitchClass::G.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::G.distance_from_c(),
-            PitchClass::Aff.distance_from_c()
-        );
+        assert!(PitchClass::Fss.is_enharmonic_equivalent(PitchClass::G));
+        assert!(PitchClass::G.is_enharmonic_equivalent(PitchClass::Aff));
 
         // 8
-        assert_eq!(
-            PitchClass::Gs.distance_from_c(),
-            PitchClass::Af.distance_from_c()
-        );
+        assert!(PitchClass::Gs.is_enharmonic_equivalent(PitchClass::Af));
 
         // 9
-        assert_eq!(
-            PitchClass::Gss.distance_from_c(),
-            PitchClass::A.distance_from_c()
-        );
-        assert_eq!(
-            PitchClass::A.distance_from_c(),
-            PitchClass::Bff.distance_from_c()
-        );
+        assert!(PitchClass::Gss.is_enharmonic_equivalent(PitchClass::A));
+        assert!(PitchClass::A.is_enharmonic_equivalent(PitchClass::Bff));
 
         // 10
-        assert_eq!(
-            PitchClass::As.distance_from_c(),
-            PitchClass::Bf.distance_from_c()
-        );
+        assert!(PitchClass::As.is_enharmonic_equivalent(PitchClass::Bf));
 
         // 11
-        assert_eq!(
-            PitchClass::Ass.distance_from_c(),
-            PitchClass::B.distance_from_c()
-        );
+        assert!(PitchClass::Ass.is_enharmonic_equivalent(PitchClass::B));
     }
 }

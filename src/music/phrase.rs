@@ -7,6 +7,7 @@ use crate::prim::volume::Volume;
 type Rational = Ratio<u32>;
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+/// <https://en.wikipedia.org/wiki/Musical_note>
 pub enum PhraseAttribute {
     Dyn(Dynamic),
     Tmp(Tempo),
@@ -15,6 +16,7 @@ pub enum PhraseAttribute {
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+/// <https://en.wikipedia.org/wiki/Dynamics_(music)>
 pub enum Dynamic {
     Accent(Ratio<u8>),
     Crescendo(Rational),
@@ -60,6 +62,7 @@ pub enum Tempo {
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+/// <https://en.wikipedia.org/wiki/Articulation_(music)>
 pub enum Articulation {
     Staccato(Rational),
     Legato(Rational),
