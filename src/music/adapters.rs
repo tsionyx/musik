@@ -7,7 +7,7 @@ use num_traits::{CheckedSub as _, Zero as _};
 
 use crate::prim::{duration::Dur, interval::Interval};
 
-use super::{control::Control, phrase::TrillOptions, Music, Primitive};
+use super::{control::Control, phrase::TrillOptions, Music, Primitive, Temporal as _};
 
 impl Music {
     pub fn grace_note(&self, offset: Interval, grace_fraction: Ratio<u8>) -> Result<Self, String> {

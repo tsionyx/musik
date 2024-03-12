@@ -3,8 +3,6 @@ use std::cmp::Ordering;
 use enum_iterator::Sequence;
 use enum_map::Enum;
 
-use musik::{Dur, Music};
-
 /// Exercise 7.1
 /// Prove that the instance of `Music` in the class `Eq`
 /// satisfies the laws of its class.
@@ -241,25 +239,9 @@ impl Sequence for Color {
 /// Exercise 7.3
 /// Define a type class called `Temporal` whose members are types
 /// that can be interpreted as having a temporal duration.
-trait Temporal {
-    fn duration_t(&self) -> Dur;
-    fn take_t(self, dur: Dur) -> Self;
-    fn drop_t(self, dur: Dur) -> Self;
-}
-
-impl<P> Temporal for Music<P> {
-    fn duration_t(&self) -> Dur {
-        self.duration()
-    }
-
-    fn take_t(self, dur: Dur) -> Self {
-        self.take(dur)
-    }
-
-    fn drop_t(self, dur: Dur) -> Self {
-        self.drop(dur)
-    }
-}
+///
+/// Already implemented in the library.
+const fn foo() {}
 
 /// Exercise 7.4
 /// Functions are not members of the `Eq` class, because,

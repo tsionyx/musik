@@ -18,11 +18,13 @@ pub enum Control {
 }
 
 impl<P> Music<P> {
-    // TODO: make & operation
     pub fn with(self, control: Control) -> Self {
         Self::Modify(control, Box::new(self))
     }
 
+    /// Annotate the [`Music`] to change its tempo:
+    /// - accelerate if `tempo` > 1;
+    /// - decelerate, otherwise.
     pub fn with_tempo(self, tempo: impl Into<Ratio<u8>>) -> Self {
         self.with(Control::Tempo(tempo.into()))
     }
