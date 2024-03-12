@@ -66,7 +66,7 @@ pub use self::{
     music::{
         perf::{self, Performable, Performance, Player},
         phrase::{PhraseAttribute, TrillOptions},
-        Music,
+        Music, Temporal,
     },
     output::midi,
     prim::{

@@ -13,6 +13,7 @@ use crate::prim::{duration::Dur, pitch::Pitch, volume::Volume};
 pub use self::{
     constructors::{rests, A440},
     control::Control,
+    iter_like::Temporal,
     perf::NoteAttribute,
 };
 
@@ -35,18 +36,6 @@ pub enum Music<P = Pitch> {
 impl<P> From<Primitive<P>> for Music<P> {
     fn from(value: Primitive<P>) -> Self {
         Self::Prim(value)
-    }
-}
-
-impl<P> Music<P> {
-    pub fn duration(&self) -> Dur {
-        match self {
-            Self::Prim(Primitive::Note(d, _) | Primitive::Rest(d)) => *d,
-            Self::Sequential(m1, m2) => m1.duration() + m2.duration(),
-            Self::Parallel(m1, m2) => m1.duration().max(m2.duration()),
-            Self::Modify(Control::Tempo(r), m) => m.duration() / *r,
-            Self::Modify(_, m) => m.duration(),
-        }
     }
 }
 

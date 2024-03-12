@@ -6,7 +6,7 @@ use musik::{
     instruments::InstrumentName,
     midi::{Instrument, PercussionSound},
     music::{rests, Primitive},
-    Dur, Interval, Music, Octave, Pitch, TrillOptions, Volume,
+    Dur, Interval, Music, Octave, Pitch, Temporal as _, TrillOptions, Volume,
 };
 
 type M = Music;

@@ -34,7 +34,7 @@ pub enum Octave {
     FiveLined = 8,
     // G9 is the highest MIDI note
     SixLined = 9,
-    // TODO: The 10-th Octave cannot be represented as MIDI
+    // FIXME: The 10-th Octave cannot be represented as MIDI
     // SevenLined = 10, // Ef10 is the human hearing threshold
 }
 
@@ -93,9 +93,15 @@ impl Octave {
 }
 
 #[derive(Debug, Clone, Copy, Default, Ord, PartialOrd, Eq, PartialEq)]
+/// Distance between pitches in terms of semitones.
+///
+/// Could be positive or negative.
+///
+/// <https://en.wikipedia.org/wiki/Interval_(music)>
 pub struct Interval(pub(crate) i8);
 
 impl Interval {
+    /// No distance. Also known as [unison](https://en.wikipedia.org/wiki/Unison).
     pub const fn zero() -> Self {
         Self(0)
     }
@@ -106,6 +112,11 @@ impl Interval {
 
     pub const fn tone() -> Self {
         Self(2)
+    }
+
+    pub fn octave() -> Self {
+        let twelve_val = ux2::i5::from(Octave::semitones_number());
+        Self(i8::from(twelve_val))
     }
 
     pub const fn get_inner(self) -> i8 {

@@ -1,5 +1,5 @@
 use std::{
-    ops::{Add, Sub},
+    ops::{Add, Shl, Shr, Sub},
     str::FromStr,
 };
 
@@ -16,11 +16,10 @@ use super::interval::{Interval, Octave};
 /// Every [`PitchClass`] relates to the same-named [`Pitch`]es
 /// that are a whole number of [`Octave`]s apart.
 ///
-/// See more at wikipedia: <https://en.wikipedia.org/wiki/Pitch_class>
+/// See more: <https://en.wikipedia.org/wiki/Pitch_class>
 pub enum PitchClass {
     // Grouped by https://en.wikipedia.org/wiki/Enharmonic
     Bs , C , Dff,  // do
-
     Bss, Cs, Df,
     Css, D , Eff,  // re
     Ds , Ef, Fff,
@@ -182,18 +181,53 @@ impl Pitch {
 }
 
 impl Pitch {
-    // TODO: operator >> and <<
+    /// Transpose the [`Pitch`] by a specific number of semitones *higher*.
+    ///
+    /// If the negative [`Interval`] provided, the effective transposition
+    /// will result in a *lower* pitch instead.
+    ///
+    /// This function also has its operations counterparts:
+    /// - shift right (`>>`) for the positive transposition (the given function alias);
+    /// - shift left (`<<`) for the negative transposition.
     pub fn trans(self, delta: Interval) -> Self {
         let abs = self.abs() + delta;
         Self::from(abs)
     }
 
+    /// Get the next [`Pitch`] (one semitone higher).
     pub fn next(self) -> Self {
-        self.trans(Interval::semi_tone())
+        self >> Interval::semi_tone()
     }
 
+    /// Get the previous [`Pitch`] (one semitone lower).
     pub fn prev(self) -> Self {
-        self.trans(Interval::from(-1))
+        self << Interval::semi_tone()
+    }
+}
+
+impl Shr<Interval> for Pitch {
+    type Output = Self;
+
+    /// Transpose the [`Pitch`] by a specific number of semitones up
+    /// to get *higher* pitch (it is located right on the piano keyboard).
+    ///
+    /// If the negative [`Interval`] provided, the effective transposition
+    /// will result in a *lower* pitch instead.
+    fn shr(self, rhs: Interval) -> Self::Output {
+        self.trans(rhs)
+    }
+}
+
+impl Shl<Interval> for Pitch {
+    type Output = Self;
+
+    /// Transpose the [`Pitch`] by a specific number of semitones down
+    /// to get *lower* pitch (it is located left on the piano keyboard).
+    ///
+    /// If the negative [`Interval`] provided, the effective transposition
+    /// will result in a *higher* pitch instead.
+    fn shl(self, rhs: Interval) -> Self::Output {
+        self.trans(-rhs)
     }
 }
 

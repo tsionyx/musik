@@ -1,5 +1,3 @@
-//! <https://en.wikipedia.org/wiki/Transformation_(music)>
-//! <https://en.wikipedia.org/wiki/Permutation_(music)>
 use crate::prim::duration::Dur;
 
 use super::{control::Control, Music, Primitive};
@@ -19,8 +17,49 @@ impl<P> Music<P> {
             .fold(Self::rest(Dur::ZERO), |acc, m| acc | m)
     }
 
+    pub fn remove_zeros(self) -> Self {
+        match self {
+            n @ Self::Prim(_) => n,
+            Self::Sequential(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
+                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
+                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
+                (m1, m2) => m1 + m2,
+            },
+            Self::Parallel(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
+                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
+                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
+                (m1, m2) => m1 | m2,
+            },
+            Self::Modify(c, m) => m.remove_zeros().with(c),
+        }
+    }
+}
+
+/// Entity that have a temporal duration.
+pub trait Temporal {
+    /// Get the temporal size.
+    fn duration(&self) -> Dur;
+
+    /// Take the given [`Dur`] from the beginning and drop the other.
+    fn take(self, dur: Dur) -> Self;
+
+    /// Drop the given [`Dur`] from the beginning and take the other.
+    fn drop(self, dur: Dur) -> Self;
+}
+
+impl<P> Temporal for Music<P> {
+    fn duration(&self) -> Dur {
+        match self {
+            Self::Prim(Primitive::Note(d, _) | Primitive::Rest(d)) => *d,
+            Self::Sequential(m1, m2) => m1.duration() + m2.duration(),
+            Self::Parallel(m1, m2) => m1.duration().max(m2.duration()),
+            Self::Modify(Control::Tempo(r), m) => m.duration() / *r,
+            Self::Modify(_, m) => m.duration(),
+        }
+    }
+
     /// Take the first N whole beats and drop the other
-    pub fn take(self, n: Dur) -> Self {
+    fn take(self, n: Dur) -> Self {
         if n == Dur::ZERO {
             return Self::rest(Dur::ZERO);
         }
@@ -39,9 +78,8 @@ impl<P> Music<P> {
         }
     }
 
-    // TODO: trait Temporal
     /// Drop the first N whole beats and take the other
-    pub fn drop(self, n: Dur) -> Self {
+    fn drop(self, n: Dur) -> Self {
         if n == Dur::ZERO {
             return self;
         }
@@ -56,23 +94,6 @@ impl<P> Music<P> {
             Self::Parallel(m1, m2) => (*m1).drop(n) | (*m2).drop(n),
             Self::Modify(Control::Tempo(r), m) => (*m).drop(n * r).with_tempo(r),
             Self::Modify(c, m) => (*m).drop(n).with(c),
-        }
-    }
-
-    pub fn remove_zeros(self) -> Self {
-        match self {
-            n @ Self::Prim(_) => n,
-            Self::Sequential(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
-                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
-                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
-                (m1, m2) => m1 + m2,
-            },
-            Self::Parallel(m1, m2) => match (m1.remove_zeros(), m2.remove_zeros()) {
-                (Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO)), m)
-                | (m, Self::Prim(Primitive::Note(Dur::ZERO, _) | Primitive::Rest(Dur::ZERO))) => m,
-                (m1, m2) => m1 | m2,
-            },
-            Self::Modify(c, m) => m.remove_zeros().with(c),
         }
     }
 }

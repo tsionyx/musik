@@ -3,17 +3,18 @@
 
 use crate::prim::{duration::Dur, interval::Interval, pitch::AbsPitch};
 
-use super::{Music, Primitive};
+use super::{Music, Primitive, Temporal as _};
 
 impl Music {
-    // TODO: >> and << operator for transpose
-
-    /// Exercise 2.5
-    ///
-    /// In contrast to the annotation of the `Music` with `Transpose`
-    /// (as part of the `Control` data type, which in turn is part of the `Music`),
-    /// this function actually changes each note in a `Music<Pitch>` value by
+    /// In contrast to the annotation of the [`Music`] with [`Transpose`][`Self::with_transpose`]
+    /// this function actually changes each note in a [`Music`] value by
     /// transposing it by the interval specified.
+    ///
+    /// This function also has its operations counterparts:
+    /// - shift right (`>>`) for the positive transposition (the given function alias);
+    /// - shift left (`<<`) for the negative transposition.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Transposition_(music)>
     pub fn trans(self, delta: Interval) -> Self {
         match self {
             Self::Prim(Primitive::Note(duration, pitch)) => {
@@ -26,8 +27,11 @@ impl Music {
         }
     }
 
-    // TODO: operation -
-    /// <https://en.wikipedia.org/wiki/Inversion_(music)#Melodies>
+    /// Get the inverted [`Music`].
+    ///
+    /// Also could be used in the form `!Music`
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Inversion_(music)#Melodies>
     pub fn invert(self) -> Self {
         let line = Vec::from(self.clone());
         if let Some(Self::Prim(Primitive::Note(_, first_pitch))) = line.first() {
@@ -61,7 +65,9 @@ impl Music {
 }
 
 impl<P> Music<P> {
-    /// TODO: shorten or provide operator
+    /// Prepends the [`Music`] with the rest of given [`Dur`].
+    ///
+    /// Also could be used in the form `dur + Music`
     pub fn with_delay(self, dur: Dur) -> Self {
         Self::rest(dur) + self
     }
@@ -70,6 +76,9 @@ impl<P> Music<P> {
         Self::line(Vec::from(self).into_iter().rev().collect())
     }
 
+    /// Play the [`Music`] backwards.
+    ///
+    /// Also could be used in the form `-Music`
     pub fn reverse(self) -> Self {
         match self {
             n @ Self::Prim(_) => n,
@@ -89,7 +98,9 @@ impl<P> Music<P> {
 }
 
 impl<P: Clone> Music<P> {
-    // TODO: implement operation * and / for tempo changing
+    /// Repeats the [`Music`] the given amount of times.
+    ///
+    /// Also could be used in the form `Music * n`.
     pub fn times(&self, n: usize) -> Self {
         // TODO: think about an 'infinite' Music
         std::iter::repeat(self.clone())
