@@ -49,15 +49,11 @@ mod jazz_man {
         dur: Dur,
         (note_pitch, attrs): &AttrNote,
     ) -> Performance {
-        let Context {
-            start_time,
-            player: _ignore_player,
-            instrument,
-            whole_note,
-            pitch,
-            volume,
-            key: _ignore_key,
-        } = ctx.clone();
+        let start_time = ctx.start_time();
+        let instrument = ctx.instrument().clone();
+        let whole_note = ctx.whole_note();
+        let transpose_interval = ctx.transpose_interval();
+        let volume = ctx.volume();
 
         let number_of_beats_since_start = start_time / whole_note;
         // denom belongs to {1, 2, 4}
@@ -70,7 +66,7 @@ mod jazz_man {
                 if is_downbeat {
                     (start_time, dur * Ratio::new(4, 3))
                 } else if is_upbeat {
-                    let lengthened_on = Ratio::new(1, 24) * ctx.whole_note;
+                    let lengthened_on = Ratio::new(1, 24) * ctx.whole_note();
                     (start_time + lengthened_on, dur * Ratio::new(2, 3))
                 } else {
                     (start_time, dur)
@@ -83,7 +79,7 @@ mod jazz_man {
         let init = Event {
             start_time,
             instrument,
-            pitch: note_pitch.abs() + pitch,
+            pitch: note_pitch.abs() + transpose_interval,
             duration: dur.into_ratio() * whole_note,
             volume,
             params: vec![],
@@ -131,7 +127,7 @@ mod jazz_man {
                 .map(|p| (p.name.clone(), p))
                 .collect();
             let ctx = Context::with_player(Cow::Borrowed(players.get("Jazz").unwrap()));
-            let perf = m.perform(&players, ctx);
+            let perf = m.perform_with(&players, ctx);
 
             assert_eq!(
                 perf.into_events(),

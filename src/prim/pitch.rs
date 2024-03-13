@@ -10,13 +10,16 @@ use ux2::u7;
 use super::interval::{Interval, Octave};
 
 #[rustfmt::skip]
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, Sequence)]
 /// Classes of perceived [octave equivalences](https://en.wikipedia.org/wiki/Octave#Equivalence).
 ///
 /// Every [`PitchClass`] relates to the same-named [`Pitch`]es
 /// that are a whole number of [`Octave`]s apart.
 ///
-/// See more: <https://en.wikipedia.org/wiki/Pitch_class>
+/// See more:
+/// - <https://en.wikipedia.org/wiki/Pitch_class>
+/// - <https://en.wikipedia.org/wiki/Musical_note#Pitch_names_and_their_history>
 pub enum PitchClass {
     // Grouped by https://en.wikipedia.org/wiki/Enharmonic
     Bs , C , Dff,  // do
@@ -34,6 +37,9 @@ pub enum PitchClass {
 }
 
 impl PitchClass {
+    /// Chromatic distance in semitones between the given [`PitchClass`]
+    /// and the reference [`PitchClass::C`] used to denote
+    /// the starting pitch in every [octave registry][Octave].
     #[allow(clippy::match_same_arms)]
     pub const fn distance_from_c(self) -> i8 {
         match self {
@@ -75,7 +81,9 @@ impl PitchClass {
         }
     }
 
-    /// <https://en.wikipedia.org/wiki/Enharmonic_equivalence>
+    /// Tests whether two [`PitchClass`]es represent the same [`Pitch`]es.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Enharmonic_equivalence>
     pub const fn is_enharmonic_equivalent(self, other: Self) -> bool {
         self.distance_from_c() == other.distance_from_c()
     }
@@ -118,7 +126,7 @@ impl FromStr for PitchClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 /// Perceptual equivalent of the frequency of the sound wave.
 ///
-/// <https://en.wikipedia.org/wiki/Pitch_(music)>
+/// See more: <https://en.wikipedia.org/wiki/Pitch_(music)>
 pub struct Pitch {
     class: PitchClass,
     octave: Octave,
@@ -127,6 +135,9 @@ pub struct Pitch {
 macro_rules! def_pitch_constructor {
     ($pitch: ident) => {
         #[allow(non_snake_case)]
+        #[doc="Helper function for defining a [`Pitch`] value of [`PitchClass::"]
+        #[doc = stringify!($pitch)]
+        #[doc="`] with the given [`Octave`]"]
         pub const fn $pitch(octave: Octave) -> Self {
             Self::new(PitchClass::$pitch, octave)
         }
@@ -141,14 +152,19 @@ macro_rules! def_pitch_constructor {
 }
 
 impl Pitch {
+    /// Create a new [`Pitch`].
+    ///
+    /// TODO: macro-based constructors in the form C4, Fb3, D#2.
     pub const fn new(class: PitchClass, octave: Octave) -> Self {
         Self { class, octave }
     }
 
+    /// Get the [`Octave`] of the [`Pitch`].
     pub const fn octave(self) -> Octave {
         self.octave
     }
 
+    /// Get the [`PitchClass`] of the [`Pitch`].
     pub const fn class(self) -> PitchClass {
         self.class
     }
@@ -161,16 +177,32 @@ impl Pitch {
     def_pitch_constructor![Fff, Ff, F, Fs, Fss];
     def_pitch_constructor![Gff, Gf, G, Gs, Gss];
 
+    /// Get [`AbsPitch`] numerical value.
     pub fn abs(self) -> AbsPitch {
         AbsPitch::from(self.octave) + Interval::from(self.class)
     }
 
+    /// Get [`AbsPitch`] numerical value, checking for overflow.
+    ///
+    /// Some of the pitches of the [9th octave][Octave::SixLined]
+    /// cannot be exactly converted to a 7-bit [`AbsPitch`],
+    /// so the overflow is handled by returning [`ErrorPitchClipping`]
+    /// which could be further used
+    /// to get the [clipped (saturated) value][ErrorPitchClipping::clip_to].
     pub fn abs_checked(self) -> Result<AbsPitch, ErrorPitchClipping> {
         AbsPitch::from(self.octave).checked_add(Interval::from(self.class))
     }
 
+    /// Reference frequency used as a standard for tuning.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/A440_(pitch_standard)>
     pub const CONCERT_A_FREQUENCY: f64 = 440.0;
 
+    /// Frequency of a pitch in Herz (Hz).
+    ///
+    /// See more:
+    /// - <https://en.wikipedia.org/wiki/Piano_key_frequencies>
+    /// - <https://en.wikipedia.org/wiki/Musical_note#Pitch_frequency_in_hertz>
     pub fn get_frequency(self) -> f64 {
         let a4 = Self::A(Octave::OneLined);
         let interval_to_a4 = self.abs() - a4.abs();
@@ -246,14 +278,16 @@ impl From<AbsPitch> for Pitch {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 /// A 7-bit number associated with the most audible [Pitch]es.
 ///
-/// <https://en.wikipedia.org/wiki/MIDI_tuning_standard>
+/// See more: <https://en.wikipedia.org/wiki/MIDI_tuning_standard>
 pub struct AbsPitch(pub(crate) u7);
 
 impl AbsPitch {
+    /// Get the internal 7-bit representations.
     pub const fn get_inner(self) -> u7 {
         self.0
     }
 
+    /// Convert the internal 7-bit representations to `u8`.
     pub fn get_u8(self) -> u8 {
         u8::from(self.get_inner())
     }
@@ -293,15 +327,24 @@ impl From<Octave> for AbsPitch {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 /// Signifies that the operations made with an [`AbsPitch`]
-/// jumps out of its defined range [0..127].
+/// jumps out of its defined range [0..=127].
 pub enum ErrorPitchClipping {
+    /// Underflow.
+    ///
+    /// The value cannot be represented as it is less
+    /// than the minimum bound.
     TooLow,
+
+    /// Overflow.
+    ///
+    /// The value cannot be represented as it is greater
+    /// than the maximum bound.
     TooHigh,
 }
 
 impl ErrorPitchClipping {
-    /// Saturating the values into the defined range.
-    const fn clip_to(self) -> u7 {
+    /// Saturate the error value back into the valid range.
+    pub const fn clip_to(self) -> u7 {
         match self {
             Self::TooLow => u7::MIN,
             Self::TooHigh => u7::MAX,
@@ -310,6 +353,11 @@ impl ErrorPitchClipping {
 }
 
 impl AbsPitch {
+    /// Adds an [`Interval`] to the [`AbsPitch`], checking for underflow or overflow.
+    ///
+    /// If the resulting [`AbsPitch`] is out of its valid range, the [`ErrorPitchClipping`]
+    /// returned which could be further used
+    /// to get the [clipped (saturated) value][ErrorPitchClipping::clip_to].
     pub fn checked_add(self, rhs: Interval) -> Result<Self, ErrorPitchClipping> {
         let a = i8::try_from(u8::from(self.0)).expect("u7 should convert to i8 seamlessly");
         let b = rhs.0;
@@ -320,6 +368,11 @@ impl AbsPitch {
         Ok(Self(val))
     }
 
+    /// Subtracts an [`Interval`] from the [`AbsPitch`], checking for underflow or overflow.
+    ///
+    /// If the resulting [`AbsPitch`] is out of its valid range, the [`ErrorPitchClipping`]
+    /// returned which could be further used
+    /// to get the [clipped (saturated) value][ErrorPitchClipping::clip_to].
     pub fn checked_sub(self, rhs: Interval) -> Result<Self, ErrorPitchClipping> {
         if rhs.0 == i8::MIN {
             // prevent negate with overflow

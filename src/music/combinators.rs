@@ -1,6 +1,9 @@
 use super::{control::Control, Music, Primitive};
 
 impl<P> Primitive<P> {
+    /// Implementation of _functor_ for [`Primitive`] type.
+    /// Allows to transform [note][Self::Note],
+    /// keeping the [rest][Self::Rest] in place.
     pub fn map<U, F>(self, mut f: F) -> Primitive<U>
     where
         F: FnMut(P) -> U,
@@ -13,6 +16,9 @@ impl<P> Primitive<P> {
 }
 
 impl<P> Music<P> {
+    /// Implementation of _functor_ for [`Music`] type.
+    /// Allows to transform all notes by preserving
+    /// all the structure and annotations for them.
     pub fn map<U, F>(self, f: F) -> Music<U>
     where
         F: FnMut(P) -> U + Clone,
@@ -25,6 +31,12 @@ impl<P> Music<P> {
         }
     }
 
+    /// Folds the whole [`Music`] given rules
+    /// for folding every piece of its structure.
+    ///
+    /// Could provide framework for the implementation
+    /// of various transformations like `reverse()`
+    /// or properties like `duration()`.
     pub fn fold<U, Prim, Seq, Par, Mod>(
         self,
         mut prim: Prim,

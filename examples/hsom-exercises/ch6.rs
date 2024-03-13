@@ -3,10 +3,11 @@ use std::collections::HashSet;
 use num_rational::Ratio;
 
 use musik::{
+    attributes::TrillOptions,
     instruments::InstrumentName,
     midi::{Instrument, PercussionSound},
     music::{rests, Primitive},
-    Dur, Interval, Music, Octave, Pitch, Temporal as _, TrillOptions, Volume,
+    Dur, Interval, Music, Octave, Pitch, Temporal as _, Volume,
 };
 
 type M = Music;
@@ -738,7 +739,7 @@ mod shepard_scale {
                 (Cello, 15000),
             ],
         );
-        m.perform_default().save_to_file("desc.mid").unwrap();
+        m.perform().save_to_file("desc.mid").unwrap();
 
         let m = music(
             Interval::semi_tone(),
@@ -749,6 +750,6 @@ mod shepard_scale {
                 (Cello, 99),
             ],
         );
-        m.perform_default().save_to_file("asc.mid").unwrap();
+        m.perform().save_to_file("asc.mid").unwrap();
     }
 }

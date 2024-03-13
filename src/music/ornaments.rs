@@ -1,4 +1,10 @@
-//! Grace, trill and roll here
+//! Implementation of some ornaments.
+//!
+//! TODO: probably these all should be defined in terms of
+//!  [performance][super::perf::Player] of various
+//!  [`Ornament`][super::phrase::Ornament]s.
+//!
+//! See more: <https://en.wikipedia.org/wiki/Ornament_(music)>
 
 use std::iter;
 
@@ -10,6 +16,10 @@ use crate::prim::{duration::Dur, interval::Interval};
 use super::{control::Control, phrase::TrillOptions, Music, Primitive, Temporal as _};
 
 impl Music {
+    /// Adds a single short transposed note before the principal one
+    /// by shortens the latter.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Grace_note>
     pub fn grace_note(&self, offset: Interval, grace_fraction: Ratio<u8>) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
             Ok(Self::note(*d * grace_fraction, p.trans(offset))
@@ -19,6 +29,9 @@ impl Music {
         }
     }
 
+    /// Rapid alternation between two adjacent notes.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Trill_(music)>
     pub fn trill(
         &self,
         interval: Interval,
@@ -72,6 +85,12 @@ impl Music {
         }
     }
 
+    /// Perform the same note but multiple times with shorter durations
+    /// that sums up for the original duration.
+    ///
+    /// See more:
+    /// - <https://en.wikipedia.org/wiki/Drum_roll>
+    /// - <https://en.wikipedia.org/wiki/Tremolo>
     pub fn roll(&self, opts: impl Into<TrillOptions<Dur>>) -> Result<Self, String> {
         self.trill(Interval::zero(), opts)
     }
@@ -79,9 +98,9 @@ impl Music {
 
 #[cfg(test)]
 mod tests {
+    use crate::prim::{interval::Octave, pitch::Pitch};
+
     use super::*;
-    use crate::prim::interval::Octave;
-    use crate::Pitch;
 
     #[test]
     fn trill() {

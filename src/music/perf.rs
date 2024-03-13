@@ -1,8 +1,11 @@
+//! Defines abstract [`Performance`] which
+//! is a time-ordered sequence of musical [`Event`]s.
 use std::{borrow::Cow, collections::HashMap, fmt, iter, sync::Arc};
 
 use itertools::Itertools as _;
 use num_rational::Ratio;
 use ordered_float::OrderedFloat;
+use ux2::u4;
 
 use crate::{
     instruments::InstrumentName,
@@ -10,7 +13,11 @@ use crate::{
     prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
 };
 
-use super::{control::Control, phrase::PhraseAttribute, Music, PlayerName, Primitive};
+use super::{
+    control::{Control, PlayerName},
+    phrase::PhraseAttribute,
+    Music, Primitive,
+};
 
 #[derive(Debug, Clone)]
 /// [`Performance`] is a time-ordered sequence
@@ -20,35 +27,40 @@ pub struct Performance {
 }
 
 impl Performance {
-    pub fn with_events(evs: Vec<Event>) -> Self {
-        Self { repr: evs }
+    /// Create a [`Performance`] from a number of [`Event`]s.
+    pub fn with_events(events: Vec<Event>) -> Self {
+        Self { repr: events }
     }
 
     #[allow(clippy::missing_const_for_fn)] // for 1.63
+    /// Convert the [`Performance`] into a number of [`Event`]s.
     pub fn into_events(self) -> Vec<Event> {
         self.repr
     }
 
+    /// Iterate over the [`Event`]s of the [`Performance`].
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Event> {
         self.repr.iter()
     }
 }
 
+/// Allows some form of [`Music`]al value to be performed,
+/// i.e. converted to the abstract [`Performance`].
 pub trait Performable<P> {
-    fn perform<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance;
+    /// Create a [`Performance`] using the default [`Context`]
+    /// and the default [`Player`]s mapping.
+    fn perform(self) -> Performance;
 
-    fn perform_default(self) -> Performance;
+    /// Create a [`Performance`] using the custom [`Context`]
+    /// and [`Player`]s mapping.
+    fn perform_with<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance;
 }
 
 impl<P> Performable<P> for &Music<P>
 where
     Player<P>: Default,
 {
-    fn perform<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
-        self.perf(players, ctx).0
-    }
-
-    fn perform_default(self) -> Performance {
+    fn perform(self) -> Performance {
         let def_name = Player::default().name;
 
         let players: PlayerMap<_> = iter::once(Player::default())
@@ -57,7 +69,11 @@ where
 
         let def_player = players.get(&def_name).expect("Just inserted");
         let ctx = Context::with_player(Cow::Borrowed(def_player));
-        self.perform(&players, ctx)
+        self.perform_with(&players, ctx)
+    }
+
+    fn perform_with<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
+        self.perf(players, ctx).0
     }
 }
 
@@ -65,16 +81,8 @@ impl<P> Performable<AttrNote> for Music<P>
 where
     MusicAttr: From<Self>,
 {
-    fn perform<'p>(
-        self,
-        players: &'p PlayerMap<AttrNote>,
-        ctx: Context<'p, AttrNote>,
-    ) -> Performance {
-        MusicAttr::from(self).perf(players, ctx).0
-    }
-
-    fn perform_default(self) -> Performance {
-        let def_name = Player::fancy().name;
+    fn perform(self) -> Performance {
+        let def_name = Player::<AttrNote>::fancy().name;
 
         let players: PlayerMap<_> = [Player::default(), Player::fancy()]
             .into_iter()
@@ -83,7 +91,15 @@ where
 
         let def_player = players.get(&def_name).expect("Just inserted");
         let ctx = Context::with_player(Cow::Borrowed(def_player));
-        self.perform(&players, ctx)
+        self.perform_with(&players, ctx)
+    }
+
+    fn perform_with<'p>(
+        self,
+        players: &'p PlayerMap<AttrNote>,
+        ctx: Context<'p, AttrNote>,
+    ) -> Performance {
+        MusicAttr::from(self).perf(players, ctx).0
     }
 }
 
@@ -131,7 +147,7 @@ where
                 m.perf(players, ctx)
             }
             Self::Modify(Control::Transpose(p), m) => {
-                ctx.pitch += *p;
+                ctx.transpose_interval += *p;
                 m.perf(players, ctx)
             }
             Self::Modify(Control::Instrument(i), m) => {
@@ -167,30 +183,45 @@ where
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
 /// The playing of one individual note.
 pub struct Event {
+    /// The start time of the [`Event`] in seconds since
+    /// the start of the whole performance.
     pub start_time: TimePoint,
+
+    /// The instrument to play the [`Event`]'s note.
     pub instrument: InstrumentName,
+
+    /// The note's pitch.
     pub pitch: AbsPitch,
+
+    /// The duration of the [`Event`]'s note in seconds.
     pub duration: Duration,
+
+    /// The note's volume.
     pub volume: Volume,
+
+    /// Additional parameters to customize the note's performance.
+    ///
     /// Used for instruments [other than MIDI][InstrumentName::Custom].
     pub params: Vec<OrderedFloat<f64>>,
 }
 
-/// Measured in seconds both.
+/// Point on the time line to identify start of the event. Measured in seconds.
 pub type TimePoint = Ratio<u32>;
+
+/// Distance on the time line to identify length of the event. Measured in seconds.
 pub type Duration = Ratio<u32>;
 
 #[derive(Debug)]
 /// The state of the [`Performance`] that changes
 /// as we go through the interpretation.
 pub struct Context<'p, P> {
-    pub start_time: TimePoint,
-    pub player: Cow<'p, Player<P>>,
-    pub instrument: InstrumentName,
-    pub whole_note: Duration,
-    pub pitch: Interval,
-    pub volume: Volume,
-    pub key: KeySig,
+    start_time: TimePoint,
+    player: Cow<'p, Player<P>>,
+    instrument: InstrumentName,
+    whole_note: Duration,
+    transpose_interval: Interval,
+    volume: Volume,
+    key: KeySig,
 }
 
 impl<P> Clone for Context<'_, P> {
@@ -200,7 +231,7 @@ impl<P> Clone for Context<'_, P> {
             player,
             instrument,
             whole_note,
-            pitch,
+            transpose_interval,
             volume,
             key,
         } = self;
@@ -209,23 +240,55 @@ impl<P> Clone for Context<'_, P> {
             player: player.clone(),
             instrument: instrument.clone(),
             whole_note: *whole_note,
-            pitch: *pitch,
+            transpose_interval: *transpose_interval,
             volume: *volume,
             key: *key,
         }
     }
 }
 
-/// Defines a tempo of X notes per minute
-fn metro(setting: u32, note_dur: Dur) -> Duration {
+/// Defines a tempo of X beats per minute
+/// using the size of a single beat for reference
+/// (common value for a beat is [quarter note][Dur::QUARTER]).
+///
+/// E.g. default tempo of 120 bpm defined as
+/// ```
+/// # use musik::{perf::metro, Dur};
+/// # use num_rational::Ratio;
+///
+/// let tempo = metro(120, Dur::QUARTER);
+///
+/// // the whole note lasts exactly 2 seconds with this tempo.
+/// assert_eq!(tempo, Ratio::from_integer(2));
+/// ```
+///
+/// This function should be used as a helper for [`Context::with_tempo`].
+pub fn metro(setting: u32, note_dur: Dur) -> Duration {
     Ratio::from_integer(60) / (Ratio::from_integer(setting) * note_dur.into_ratio())
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+/// Attributes that can be attached to each individual note.
 pub enum NoteAttribute {
+    /// How loud to play the note.
     Volume(Volume),
-    Fingering(u32),
+
+    /// Which finger to use while playing.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Fingering_(music)>.
+    Fingering(u4),
+
+    /// Individual note dynamics.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Accent_(music)#Marks>
+    ///
+    /// TODO: fill more from <https://www.musictheoryacademy.com/how-to-read-sheet-music/dynamics/>
     Dynamics(String),
+
+    /// Additional parameters to customize the note's performance.
+    ///
+    /// Used for instruments [other than MIDI][InstrumentName::Custom].
+    /// It is up to the instrument designer to decide how these parameters are used.
     Params(Vec<OrderedFloat<f64>>),
 }
 
@@ -289,14 +352,14 @@ pub mod defaults {
                 player: _ignore_player,
                 instrument,
                 whole_note,
-                pitch,
+                transpose_interval,
                 volume,
                 key: _ignore_key,
             } = ctx.clone();
             let init = Event {
                 start_time,
                 instrument,
-                pitch: note_pitch.abs() + pitch,
+                pitch: note_pitch.abs() + transpose_interval,
                 duration: dur.into_ratio() * whole_note,
                 volume,
                 params: vec![],
@@ -792,8 +855,8 @@ pub mod defaults {
         P: 'static,
         Self: Default,
     {
-        /// All like the [default][Self::default] one but
-        /// with changed interpretations of the [phrases][PhraseAttribute].
+        /// Slightly customized [default][Self::default] player with changed
+        /// interpretations of some of the [phrases][PhraseAttribute].
         pub fn fancy() -> Self {
             Self {
                 name: "Fancy".to_string(),
@@ -804,16 +867,111 @@ pub mod defaults {
     }
 
     impl<'p, P> Context<'p, P> {
+        /// Defines the default [`Context`] with the given [`Player`].
+        ///
+        /// All the other fields could be changed using
+        /// the family of other `with_*` methods.
+        ///
+        /// The [player][Player] could be changed during performance
+        /// for the [`Music`] value itself by using [`Music::with_player`].
         pub fn with_player(player: Cow<'p, Player<P>>) -> Self {
             Self {
                 start_time: TimePoint::from_integer(0),
                 player,
                 instrument: Instrument::AcousticGrandPiano.into(),
                 whole_note: metro(120, Dur::QUARTER),
-                pitch: Interval::default(),
+                transpose_interval: Interval::default(),
                 volume: Volume::loudest(),
                 key: KeySig::default(),
             }
+        }
+
+        /// Changes the default tempo for the performance.
+        ///
+        /// The provided value should define the number of seconds
+        /// the [`whole note`][`Dur::WHOLE`] lasts.
+        ///
+        /// Use the [`metro`] helper function to define the tempo
+        /// using standard metronome markings.
+        pub fn with_tempo(self, whole_note: Duration) -> Self {
+            Self { whole_note, ..self }
+        }
+
+        /// Changes the default volume for the performance.
+        ///
+        /// You could provide the explicit [`Volume`] value or use the
+        /// [`StdLoudness::get_volume`][crate::attributes::StdLoudness::get_volume] here.
+        pub fn with_volume(self, volume: Volume) -> Self {
+            Self { volume, ..self }
+        }
+
+        /// Changes the default instrument for the performance.
+        ///
+        /// It is better to express the same more explicitly
+        /// for the [`Music`] value itself by using [`Music::with_instrument`].
+        pub fn with_instrument(self, instrument: impl Into<InstrumentName>) -> Self {
+            Self {
+                instrument: instrument.into(),
+                ..self
+            }
+        }
+
+        /// Changes the default transpose interval for the performance.
+        ///
+        /// It is better to express the same more explicitly
+        /// for the [`Music`] value itself by using [`Music::with_transpose`].
+        pub fn with_transpose(self, transpose_interval: Interval) -> Self {
+            Self {
+                transpose_interval,
+                ..self
+            }
+        }
+
+        /// Changes the default tonality for the performance.
+        /// which could be useful while interpreting
+        /// [phrase attributes][Self::with_phrase].
+        ///
+        /// It is better to express the same more explicitly
+        /// for the [`Music`] value itself by using [`Music::with_key_sig`].
+        pub fn with_key_sig(self, key: KeySig) -> Self {
+            Self { key, ..self }
+        }
+
+        /// Current start time of the [`Context`] in seconds since
+        /// the start of the whole performance.
+        pub const fn start_time(&self) -> TimePoint {
+            self.start_time
+        }
+
+        /// Current [`Player`] of the [`Context`].
+        pub fn player(&self) -> &Player<P> {
+            self.player.as_ref()
+        }
+
+        /// Current instrument of the [`Context`].
+        pub const fn instrument(&self) -> &InstrumentName {
+            &self.instrument
+        }
+
+        /// Current tempo of the context
+        /// in terms of seconds per [`whole note`][Dur::WHOLE].
+        pub const fn whole_note(&self) -> Duration {
+            self.whole_note
+        }
+
+        /// Current transpose setting of the [`Context`].
+        pub const fn transpose_interval(&self) -> Interval {
+            self.transpose_interval
+        }
+
+        /// Current volume of the [`Context`].
+        pub const fn volume(&self) -> Volume {
+            self.volume
+        }
+
+        /// Current tonality of the [`Context`].
+        pub const fn key(&self) -> KeySig {
+            self.key
         }
     }
 
@@ -822,6 +980,8 @@ pub mod defaults {
         P: 'static,
         Player<P>: Default,
     {
+        /// Defines the default [`Context`] with
+        /// the [`fancy`][Player::fancy] player.
         fn default() -> Self {
             Self::with_player(Cow::Owned(Player::fancy()))
         }
@@ -843,7 +1003,7 @@ mod tests {
                 .collect(),
         );
 
-        let perf = m.perform_default();
+        let perf = m.perform();
         assert!(perf.repr.is_empty());
     }
 }

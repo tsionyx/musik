@@ -20,7 +20,7 @@ where
 fn main() {
     use musik::Performable as _;
     let m = ch6::drum_pattern();
-    m.perform_default().play().unwrap();
+    m.perform().play().unwrap();
 }
 
 fn compose<T, U, V, F, G>(f: F, g: G) -> impl Fn(T) -> V

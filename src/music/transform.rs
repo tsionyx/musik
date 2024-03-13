@@ -1,5 +1,9 @@
-//! <https://en.wikipedia.org/wiki/Transformation_(music)>
-//! <https://en.wikipedia.org/wiki/Permutation_(music)>
+//! Defines some ways to change the given [`Music`] value
+//! turning it into another [`Music`] value.
+//!
+//! See more:
+//! - <https://en.wikipedia.org/wiki/Transformation_(music)>
+//! - <https://en.wikipedia.org/wiki/Permutation_(music)>
 
 use crate::prim::{duration::Dur, interval::Interval, pitch::AbsPitch};
 
