@@ -1,11 +1,21 @@
-mod adapters;
+//! The module defines central notion of [`Music`]
+//! which is the high-level representation of music
+//! kinda musical score. In fact, it resembles
+//! most of the score's functionality but rather
+//! representing the music with declarative syntax,
+//! instead of fancy musical symbols.
+//!
+//! Also, a number of high-level abstractions are defined
+//! to reduce the burden of repetitions.
 mod combinators;
 mod constructors;
 mod control;
 mod iter_like;
+mod r#macro;
 mod ops;
+mod ornaments;
 pub mod perf;
-pub(crate) mod phrase;
+pub mod phrase;
 mod transform;
 
 use crate::prim::{duration::Dur, pitch::Pitch, volume::Volume};
@@ -18,18 +28,38 @@ pub use self::{
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
+/// 'Atomic' musical values.
 pub enum Primitive<P> {
+    /// The note key and its [value](https://en.wikipedia.org/wiki/Note_value).
     Note(Dur, P),
+
+    /// Absence of sound for a defined period of time.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Rest_(music)>
     Rest(Dur),
 }
 
-pub type PlayerName = String;
-
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+/// High-level representation of music.
 pub enum Music<P = Pitch> {
+    /// Single atomic building block of music,
+    /// usually a [note][Primitive::Note] or a [rest][Primitive::Rest].
     Prim(Primitive<P>),
+
+    /// Sequentially composed two pieces.
+    /// Could be combined to create arbitrarily
+    /// long series resembling a complex linked list.
     Sequential(Box<Self>, Box<Self>),
+
+    /// The polyphonic composition of two parts
+    /// which should be played simultaneously.
+    /// Allows to play different lines for different
+    /// melodies and/or instruments.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Polyphony>
     Parallel(Box<Self>, Box<Self>),
+
+    /// Annotate the music with one of [modifiers][Control].
     Modify(Control, Box<Self>),
 }
 
@@ -40,13 +70,16 @@ impl<P> From<Primitive<P>> for Music<P> {
 }
 
 impl Music {
+    /// Assign [`Volume`] to every note of [`Music`].
     pub fn with_volume(self, vol: Volume) -> Music<(Pitch, Volume)> {
         self.map(|p| (p, vol))
     }
 }
 
+/// Pitch with Attributes
 pub type AttrNote = (Pitch, Vec<NoteAttribute>);
 
+/// Music with [attributed pitches][AttrNote].
 pub type MusicAttr = Music<AttrNote>;
 
 impl From<Music> for MusicAttr {

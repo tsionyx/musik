@@ -4,8 +4,19 @@ use super::{
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
+/// Diatonic tonality of the piece with the tonic specified.
+///
+/// See more: <https://en.wikipedia.org/wiki/Key_signature>
+///           <https://en.wikipedia.org/wiki/Tonality>
 pub enum KeySig {
+    /// Major scale with a starting tonic.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Major_scale>
     Major(PitchClass),
+
+    /// Minor scale with a starting tonic.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Minor_scale>
     Minor(PitchClass),
 }
 

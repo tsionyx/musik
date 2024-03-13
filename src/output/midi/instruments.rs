@@ -14,6 +14,7 @@ use crate::{
 
 // https://github.com/rust-lang/rfcs/issues/284#issuecomment-1592343574
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord, Hash, Enum, Sequence)]
+#[allow(missing_docs)]
 pub enum Instrument {
     AcousticGrandPiano,
     BrightAcousticPiano,
@@ -146,6 +147,7 @@ pub enum Instrument {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Sequence)]
+#[allow(missing_docs)]
 pub enum PercussionSound {
     AcousticBassDrum,
     BassDrum1,
@@ -197,6 +199,7 @@ pub enum PercussionSound {
 }
 
 impl PercussionSound {
+    /// Produce a MIDI note for the [`PercussionSound`].
     pub fn note(self, dur: Dur) -> Music {
         let midi_key = u7::try_from(self.into_usize())
             .expect("<=46 fits into u7")

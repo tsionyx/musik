@@ -6,8 +6,9 @@ use std::{
 use num_rational::Ratio;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// <https://en.wikipedia.org/wiki/Duration_(music)>
-/// <https://en.wikipedia.org/wiki/Note_value>
+/// [Duration][Dur] is the length of time a pitch, or tone, is sounded.
+///
+/// See more: <https://en.wikipedia.org/wiki/Duration_(music)>
 pub struct Dur(u8, u8);
 
 impl PartialOrd for Dur {
@@ -22,12 +23,35 @@ impl Ord for Dur {
     }
 }
 
+#[macro_export]
+/// Define a [duration][Dur]
+/// using a division syntax to express fractions:
+///
+/// ```
+/// # use musik::{dur, Dur};
+/// assert_eq!(dur!(1/16), Dur::recip(16));
+/// assert_eq!(dur!(3:32), Dur::DOTTED_SIXTEENTH);
+/// ```
+macro_rules! dur {
+    ($x:literal / $y:expr) => {
+        Dur::new($x, $y)
+    };
+    ($x:literal : $y:expr) => {
+        Dur::new($x, $y)
+    };
+}
+
+#[allow(missing_docs)]
 impl Dur {
     const fn from_integer(i: u8) -> Self {
         Self(i, 1)
     }
 
-    const fn new(num: u8, denom: u8) -> Self {
+    /// Low level constructor for [`Dur`].
+    ///
+    /// It is almost always better to use predefined constants,
+    /// or functions. Also the [handy macro][crate::dur] is available.
+    pub const fn new(num: u8, denom: u8) -> Self {
         Self(num, denom)
     }
 
@@ -38,16 +62,74 @@ impl Dur {
         Ratio::new(T::from(self.0), T::from(self.1))
     }
 
+    /// Zero [`Dur`] is a no-op.
+    /// Not very useful in real composition, but used intensively in functions.
     pub const ZERO: Self = Self::from_integer(0);
+
+    // see all the constants here: <https://en.wikipedia.org/wiki/Note_value>
+
+    /// Quadruple whole note. Lasts four times as long as a [whole note][Self::WHOLE].
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Longa_(music)>
+    pub const LONGA: Self = Self::from_integer(4);
+
+    /// Double whole note. Lasts two times as long as a [whole note][Self::WHOLE].
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Double_whole_note>
     pub const BREVIS: Self = Self::from_integer(2);
+
+    /// Single note duration.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Whole_note>
     pub const WHOLE: Self = Self::from_integer(1);
+
+    /// Half the duration of a [whole note][Self::WHOLE].
+    ///
+    /// Aka _minim_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Half_note>
     pub const HALF: Self = Self::new(1, 2);
+
+    /// One quarter of the duration of a [whole note][Self::WHOLE].
+    ///
+    /// Aka _crotchet_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Quarter_note>
     pub const QUARTER: Self = Self::new(1, 4);
+
+    /// One eight of the duration of a [whole note][Self::WHOLE].
+    ///
+    /// Aka _quaver_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Eighth_note>
     pub const EIGHTH: Self = Self::new(1, 8);
+
+    /// One half of the duration of a [eighth note][Self::EIGHTH].
+    ///
+    /// Aka _semiquaver_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Sixteenth_note>
     pub const SIXTEENTH: Self = Self::new(1, 16);
+
+    /// One quarter of the duration of a [eighth note][Self::EIGHTH].
+    ///
+    /// Aka _demisemiquaver_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Thirty-second_note>
     pub const THIRTY_SECOND: Self = Self::new(1, 32);
+
+    /// One eight of the duration of a [eighth note][Self::EIGHTH].
+    ///
+    /// Aka _hemidemisemiquaver_.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Sixty-fourth_note>
     pub const SIXTY_FOURTH: Self = Self::new(1, 64);
 
+    // dotted notes are simply increased on a half of its duration
+    // and double dotted on a half plus a quarter of its duration
+    // See more: <https://en.wikipedia.org/wiki/Dotted_note>
+
+    pub const DOTTED_BREVIS: Self = Self::from_integer(3);
     pub const DOTTED_WHOLE: Self = Self::new(3, 2);
     pub const DOTTED_HALF: Self = Self::new(3, 4);
     pub const DOTTED_QUARTER: Self = Self::new(3, 8);
@@ -55,6 +137,7 @@ impl Dur {
     pub const DOTTED_SIXTEENTH: Self = Self::new(3, 32);
     pub const DOTTED_THIRTY_SECOND: Self = Self::new(3, 64);
 
+    pub const DOUBLE_DOTTED_WHOLE: Self = Self::new(7, 4);
     pub const DOUBLE_DOTTED_HALF: Self = Self::new(7, 8);
     pub const DOUBLE_DOTTED_QUARTER: Self = Self::new(7, 16);
     pub const DOUBLE_DOTTED_EIGHTH: Self = Self::new(7, 32);
@@ -70,6 +153,7 @@ impl Dur {
         }
     }
 
+    /// Double the duration.
     pub const fn double(self) -> Self {
         if self.1 & 1 == 0 {
             Self::new(self.0, self.1 >> 1)
@@ -78,6 +162,7 @@ impl Dur {
         }
     }
 
+    /// Halve the duration.
     pub const fn halve(self) -> Self {
         if self.0 & 1 == 0 {
             Self::new(self.0 >> 1, self.1)
@@ -86,11 +171,14 @@ impl Dur {
         }
     }
 
+    /// Increase the duration on a half (* 3/2).
     pub const fn dotted(self) -> Self {
         let self_ = self.halve();
         Self::new(self_.0 * 3, self_.1)
     }
 
+    /// Find the difference of two [durations][Dur].
+    /// If the second one is bigger, simply yield [`Self::ZERO`].
     pub fn saturating_sub(self, rhs: Self) -> Self {
         if self > rhs {
             self - rhs
@@ -160,22 +248,13 @@ impl Div<Ratio<u8>> for Dur {
     }
 }
 
-#[macro_export]
-macro_rules! dur {
-    ($x:literal / $y:expr) => {
-        Dur::new($x, $y)
-    };
-    ($x:literal : $y:expr) => {
-        Dur::new($x, $y)
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn double_duration() {
+        assert_eq!(Dur::BREVIS.double(), Dur::LONGA);
         assert_eq!(Dur::WHOLE.double(), Dur::BREVIS);
         assert_eq!(Dur::HALF.double(), Dur::WHOLE);
         assert_eq!(Dur::QUARTER.double(), Dur::HALF);
@@ -184,12 +263,14 @@ mod tests {
         assert_eq!(Dur::THIRTY_SECOND.double(), Dur::SIXTEENTH);
         assert_eq!(Dur::SIXTY_FOURTH.double(), Dur::THIRTY_SECOND);
 
+        assert_eq!(Dur::DOTTED_WHOLE.double(), Dur::DOTTED_BREVIS);
         assert_eq!(Dur::DOTTED_HALF.double(), Dur::DOTTED_WHOLE);
         assert_eq!(Dur::DOTTED_QUARTER.double(), Dur::DOTTED_HALF);
         assert_eq!(Dur::DOTTED_EIGHTH.double(), Dur::DOTTED_QUARTER);
         assert_eq!(Dur::DOTTED_SIXTEENTH.double(), Dur::DOTTED_EIGHTH);
         assert_eq!(Dur::DOTTED_THIRTY_SECOND.double(), Dur::DOTTED_SIXTEENTH);
 
+        assert_eq!(Dur::DOUBLE_DOTTED_HALF.double(), Dur::DOUBLE_DOTTED_WHOLE);
         assert_eq!(Dur::DOUBLE_DOTTED_QUARTER.double(), Dur::DOUBLE_DOTTED_HALF);
         assert_eq!(
             Dur::DOUBLE_DOTTED_EIGHTH.double(),

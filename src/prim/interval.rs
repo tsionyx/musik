@@ -11,48 +11,121 @@ use super::pitch::PitchClass;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Enum, Sequence)]
 #[repr(i8)]
-/// Interval between musical pitch and another with half or double of its frequency.
-///
 /// [`Octave`] registers start from the [`C`][PitchClass::C]
 /// and end with the [`B`][PitchClass::B].
 ///
-/// https://en.wikipedia.org/wiki/Octave
-/// <https://en.wikipedia.org/wiki/Scientific_pitch_notation>
+/// A single octave registry occupies one [whole octave][Interval::octave] (in terms of intervals).
+///
+/// See more:
+/// - <https://en.wikipedia.org/wiki/Scientific_pitch_notation>
+/// - <https://en.wikipedia.org/wiki/Musical_note#Scientific_versus_Helmholtz_pitch_notation>
 pub enum Octave {
-    // about one octave below the human hearing threshold: its overtones, however, are audible
+    /// About one octave below the human
+    /// [hearing threshold](https://en.wikipedia.org/wiki/Hearing_range):
+    /// its overtones, however, are audible.
+    ///
+    /// Frequency range: 8.176 Hz - 15.434 Hz
+    ///
+    /// The lowest pitch (C-1) is also called 'Quadruple low C' or 'Quadruple pedal C'.
     OctoContra = -1,
-    // A0 is the lowest pitch on a full piano
+
+    /// E0 is the commonly accepted lower limit of human
+    /// [hearing threshold](https://en.wikipedia.org/wiki/Hearing_range).
+    ///
+    /// A0 is the lowest pitch on a full piano.
+    ///
+    /// Frequency range: 16.352 Hz - 30.868 Hz
+    ///
+    /// The lowest pitch (C0) is also called 'Triple low C' or 'Triple pedal C'.
     SubContra = 0,
+
+    /// Frequency range: 32.703 Hz - 61.735 Hz
+    ///
+    /// The lowest pitch (C1) is also called 'Double low C' or 'Double pedal C'.
     Contra = 1,
+
+    /// Frequency range: 65.406 Hz - 123.47 Hz
+    ///
+    /// The lowest pitch (C2) is also called 'Low C', 'Pedal C' or 'Cello C'.
     Great = 2,
+
+    /// Frequency range: 130.813 Hz - 246.941 Hz
+    ///
+    /// The lowest pitch (C3) is also called 'Bass C' or 'Viola C'.
     Small = 3,
+
+    /// [A4](https://en.wikipedia.org/wiki/A440_(pitch_standard))
+    /// is the reference note for tuning standard
+    /// (also known as [A440][crate::music::constructors::A440]).
+    ///
+    /// Frequency range: 261.626 Hz - 493.883 Hz
+    ///
+    /// The lowest pitch (C4) is also called
+    /// ['Middle C'](https://en.wikipedia.org/wiki/C_(musical_note)#Middle_C).
     OneLined = 4,
+
+    /// Frequency range: 523.251 Hz - 987.767 Hz
+    ///
+    /// The lowest pitch (C5) is also called 'Treble C'.
     TwoLined = 5,
+
+    /// Frequency range: 1046.502 Hz - 1975.533 Hz
+    ///
+    /// The lowest pitch (C6) is also called 'High C' or 'Top C'.
     ThreeLined = 6,
+
+    /// Frequency range: 2093.005 Hz - 3951.066 Hz
+    ///
+    /// The lowest pitch (C7) is also called 'Double high C' or 'Double top C'.
     FourLined = 7,
-    // C8 is the highest pitch on a full piano
+
+    /// C8 is the highest pitch on a full piano.
+    ///
+    /// Frequency range: 4186.009 Hz - 7902.133 Hz
+    ///
+    /// The lowest pitch (C8) is also called 'Triple high C' or 'Triple top C'.
     FiveLined = 8,
-    // G9 is the highest MIDI note
+
+    /// G9 is the highest MIDI note.
+    ///
+    /// All the subsequent pitches:
+    /// - _G#9_ (_Ab9_);
+    /// - _A9_ (_G##9_, _Bbb9_);
+    /// - _A#9_ (_Bb9_, _Cbb9_);
+    /// - _B9_ (_A##9_)
+    ///
+    /// representable with this [octave][Octave::SixLined]
+    /// will be eventually clipped to G9 when playing through MIDI.
+    ///
+    /// Frequency range: 8372.018 Hz - 15804.27 Hz
+    ///
+    /// The lowest pitch (C9) is also called 'Quadruple high C' or 'Quadruple top C'.
     SixLined = 9,
     // FIXME: The 10-th Octave cannot be represented as MIDI
-    // SevenLined = 10, // Ef10 is the human hearing threshold
+    // /// Ef10 is the commonly accepted upper limit of human
+    // /// [hearing threshold](https://en.wikipedia.org/wiki/Hearing_range).
+    // ///
+    // /// Frequency range: 16744.04 Hz - 31608.53 Hz
+    // ///
+    // /// The lowest pitch (C10) is also called 'Quintuple high C' or 'Quintuple top C'.
+    // SevenLined = 10,
 }
 
 impl Octave {
-    pub(crate) fn from_i8(val: i8) -> Result<Self, ErrorOctaveFromNum> {
+    pub(crate) fn from_i8(val: i8) -> Result<Self, ErrorOctaveTryFromNum> {
         if let Ok(val) = u8::try_from(val) {
-            let val = u4::try_from(val).map_err(|_| ErrorOctaveFromNum::TooHigh)?;
+            let val = u4::try_from(val).map_err(|_| ErrorOctaveTryFromNum::TooHigh)?;
             Self::try_from(val)
         } else if val == -1 {
             Ok(Self::OctoContra)
         } else {
-            Err(ErrorOctaveFromNum::TooLow)
+            Err(ErrorOctaveTryFromNum::TooLow)
         }
     }
 }
 
 impl TryFrom<u4> for Octave {
-    type Error = ErrorOctaveFromNum;
+    type Error = ErrorOctaveTryFromNum;
 
     fn try_from(value: u4) -> Result<Self, Self::Error> {
         match u8::from(value) {
@@ -60,18 +133,38 @@ impl TryFrom<u4> for Octave {
                 let val: usize = oc.into();
                 Ok(Self::from_usize(val + 1))
             }
-            _ => Err(ErrorOctaveFromNum::TooHigh),
+            _ => Err(ErrorOctaveTryFromNum::TooHigh),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum ErrorOctaveFromNum {
+/// Signifies that the conversion of a number
+/// to the [`Octave`] value
+/// jumps out of its defined range [-1..=9].
+pub enum ErrorOctaveTryFromNum {
+    /// Underflow.
+    ///
+    /// The [`Octave`] cannot be created as the
+    /// given number is less than the minimum bound.
     TooLow,
+
+    /// Overflow.
+    ///
+    /// The [`Octave`] cannot be created as the
+    /// given number is greater than the maximum bound.
     TooHigh,
 }
 
 impl Octave {
+    /// The set of unique [`PitchClass`]es in a single [`Octave`]
+    /// (up to enharmonic equivalence).
+    ///
+    /// If the [`PitchClass`] have an enharmonically equivalent
+    /// diatonic pitch class (a white piano key),
+    /// then this [`PitchClass`] is used here.
+    ///
+    /// Otherwise (for black piano keys), the minimal form with # (sharp) is used.
     pub const MINIMAL_PITCHES: [PitchClass; 12] = [
         PitchClass::C,
         PitchClass::Cs,
@@ -87,6 +180,12 @@ impl Octave {
         PitchClass::B,
     ];
 
+    /// Number of chromatic semitones in an [`Octave`].
+    ///
+    /// ```
+    /// # use musik::Octave;
+    /// assert_eq!(u8::from(Octave::semitones_number()), 12);
+    /// ```
     pub fn semitones_number() -> u4 {
         u4::try_from(Self::MINIMAL_PITCHES.len()).expect("12 is low enough")
     }
@@ -97,7 +196,7 @@ impl Octave {
 ///
 /// Could be positive or negative.
 ///
-/// <https://en.wikipedia.org/wiki/Interval_(music)>
+/// See more: <https://en.wikipedia.org/wiki/Interval_(music)>
 pub struct Interval(pub(crate) i8);
 
 impl Interval {
@@ -106,19 +205,31 @@ impl Interval {
         Self(0)
     }
 
+    /// The smallest possible [`Interval`].
+    /// Defined as the interval between two adjacent notes in a 12-tone scale.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Semitone>
     pub const fn semi_tone() -> Self {
         Self(1)
     }
 
+    /// Interval composed of two [semitones][Self::semi_tone].
+    /// Also called whole tone or major second (M2).
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Major_second>
     pub const fn tone() -> Self {
         Self(2)
     }
 
+    /// Interval between musical pitch and another with half or double of its frequency.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Octave>
     pub fn octave() -> Self {
         let twelve_val = ux2::i5::from(Octave::semitones_number());
         Self(i8::from(twelve_val))
     }
 
+    /// Get the internal numeric representation.
     pub const fn get_inner(self) -> i8 {
         self.0
     }
@@ -166,7 +277,7 @@ mod tests {
     fn octave_conversion_from_i8() {
         for i in -128..-1 {
             let err = Octave::from_i8(i).unwrap_err();
-            assert_eq!(err, ErrorOctaveFromNum::TooLow);
+            assert_eq!(err, ErrorOctaveTryFromNum::TooLow);
         }
 
         let oc = Octave::from_i8(-1).unwrap();
@@ -207,7 +318,7 @@ mod tests {
 
         for i in 10..=127 {
             let err = Octave::from_i8(i).unwrap_err();
-            assert_eq!(err, ErrorOctaveFromNum::TooHigh);
+            assert_eq!(err, ErrorOctaveTryFromNum::TooHigh);
         }
     }
 
@@ -248,7 +359,7 @@ mod tests {
 
         for i in 10..16 {
             let err = Octave::try_from(u4::new(i)).unwrap_err();
-            assert_eq!(err, ErrorOctaveFromNum::TooHigh);
+            assert_eq!(err, ErrorOctaveTryFromNum::TooHigh);
         }
     }
 

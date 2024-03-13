@@ -3,20 +3,27 @@ use crate::prim::duration::Dur;
 use super::{control::Control, Music, Primitive};
 
 impl<P> Music<P> {
-    /// <https://en.wikipedia.org/wiki/Melody>
+    /// Linear succession of musical parts.
+    /// One of the most basic form of composition.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Melody>
     pub fn line(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
             .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
     }
 
-    /// <https://en.wikipedia.org/wiki/Chord_progression>
+    /// A set of musical parts that are supposed to play simultaneously.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Chord_(music)>
     pub fn chord(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
             .fold(Self::rest(Dur::ZERO), |acc, m| acc | m)
     }
 
+    /// Strip away the [`Dur::ZERO`] occurrences that could appear
+    /// during composition and [transformations][super::transform].
     pub fn remove_zeros(self) -> Self {
         match self {
             n @ Self::Prim(_) => n,

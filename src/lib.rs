@@ -18,7 +18,7 @@
 #![warn(missing_abi)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]  // TODO
+#![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(pointer_structural_match)]
 #![warn(rust_2021_incompatible_closure_captures)]
@@ -64,14 +64,14 @@ mod prim;
 
 pub use self::{
     music::{
-        perf::{self, Performable, Performance, Player},
-        phrase::{PhraseAttribute, TrillOptions},
+        perf::{self, metro, Performable, Performance, Player},
+        phrase::{self as attributes, PhraseAttribute},
         Music, Temporal,
     },
     output::midi,
     prim::{
         duration::Dur,
-        interval::{ErrorOctaveFromNum, Interval, Octave},
+        interval::{ErrorOctaveTryFromNum, Interval, Octave},
         pitch::{AbsPitch, ErrorPitchClipping, Pitch, PitchClass},
         volume::Volume,
     },
