@@ -49,7 +49,17 @@ impl Performance {
 pub trait Performable<P> {
     /// Create a [`Performance`] using the default [`Context`]
     /// and the default [`Player`]s mapping.
-    fn perform(self) -> Performance;
+    fn perform(self) -> Performance
+    where
+        Player<P>: Default,
+        Self: Sized,
+    {
+        self.perform_with_context(Context::with_player(Cow::Owned(Player::default())))
+    }
+
+    /// Create a [`Performance`] using the custom [`Context`]
+    /// and the default [`Player`]s mapping.
+    fn perform_with_context(self, ctx: Context<'_, P>) -> Performance;
 
     /// Create a [`Performance`] using the custom [`Context`]
     /// and [`Player`]s mapping.
@@ -60,7 +70,7 @@ impl<P> Performable<P> for &Music<P>
 where
     Player<P>: Default,
 {
-    fn perform(self) -> Performance {
+    fn perform_with_context(self, ctx: Context<'_, P>) -> Performance {
         let def_name = Player::default().name;
 
         let players: PlayerMap<_> = iter::once(Player::default())
@@ -68,8 +78,8 @@ where
             .collect();
 
         let def_player = players.get(&def_name).expect("Just inserted");
-        let ctx = Context::with_player(Cow::Borrowed(def_player));
-        self.perform_with(&players, ctx)
+        let player = Cow::Borrowed(def_player);
+        self.perform_with(&players, Context { player, ..ctx })
     }
 
     fn perform_with<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
@@ -81,7 +91,7 @@ impl<P> Performable<AttrNote> for Music<P>
 where
     MusicAttr: From<Self>,
 {
-    fn perform(self) -> Performance {
+    fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
         let def_name = Player::<AttrNote>::fancy().name;
 
         let players: PlayerMap<_> = [Player::default(), Player::fancy()]
@@ -90,8 +100,8 @@ where
             .collect();
 
         let def_player = players.get(&def_name).expect("Just inserted");
-        let ctx = Context::with_player(Cow::Borrowed(def_player));
-        self.perform_with(&players, ctx)
+        let player = Cow::Borrowed(def_player);
+        self.perform_with(&players, Context { player, ..ctx })
     }
 
     fn perform_with<'p>(
