@@ -1,25 +1,35 @@
-# Based on https://github.com/actions-rs/meta/blob/master/recipes/msrv.md
-name: Rust
+name: Rust CI
 
 on:
   push:
-    branches:
-      - master
-      - dev
   pull_request:
     branches: [ master ]
 
+env:
+  RUST_VERSIONS: "['1.69.0','stable','beta']"
+  APT_DEPENDENCIES: "['libasound2-dev']"
+  GITHUB_REGISTRY: ghcr.io
 
 jobs:
-  fmt:
-    name: Rustfmt on rust '${{ matrix.rust }}'
+  get-env-vars:
+    name: Get Environment vars
     runs-on: ubuntu-latest
+    outputs:
+      RUST_VERSIONS: ${{ env.RUST_VERSIONS }}
+      APT_DEPENDENCIES: ${{ env.APT_DEPENDENCIES }}
+      GITHUB_REGISTRY: ${{ env.GITHUB_REGISTRY }}
+    steps:
+      - run: echo "null"
+
+  fmt:
+    name: Verify formatting with `rustfmt` on rust '${{ matrix.rust }}'
+    runs-on: ubuntu-latest
+    needs: [ get-env-vars ]
     strategy:
       matrix:
-        rust:
-          - 1.69.0
-          - stable
-          - beta
+        # https://github.com/orgs/community/discussions/46785#discussioncomment-4909718
+        # https://github.com/actions/runner/issues/2372#issuecomment-1591370444
+        rust: ${{ fromJSON(needs.get-env-vars.outputs.RUST_VERSIONS) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -30,10 +40,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
+          profile: minimal
+          components: rustfmt
           override: true
-
-      - name: Install rustfmt
-        run: rustup component add rustfmt
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -41,15 +50,13 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  test:
-    name: Test Suite on rust '${{ matrix.rust }}'
+  clippy:
+    name: Static analysis with `clippy` on rust '${{ matrix.rust }}'
     runs-on: ubuntu-latest
+    needs: [ get-env-vars ]
     strategy:
       matrix:
-        rust:
-          - 1.69.0
-          - stable
-          - beta
+        rust: ${{ fromJSON(needs.get-env-vars.outputs.RUST_VERSIONS) }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -57,7 +64,79 @@ jobs:
           submodules: recursive
 
       - name: Install deps
-        run: sudo apt-get -y install libasound2-dev
+        # https://github.com/orgs/community/discussions/27125#discussioncomment-3254720
+        if: ${{ fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES)[0] != null }}
+        run: sudo apt-get -y install ${{ join(fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES), ' ') }}
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          components: clippy
+          override: true
+
+      #- name: Generate Cargo.lock before the hash
+      #  uses: actions-rs/cargo@v1
+      #  with:
+      #    command: generate-lockfile
+
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo_registry-
+
+      - name: Cache cargo build
+        uses: actions/cache@v2
+        with:
+          path: target
+          key: ${{ runner.os }}-${{ matrix.rust }}-cargo_target-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            - ${{ runner.os }}-${{ matrix.rust }}-cargo_target-clippy-
+            - ${{ runner.os }}-${{ matrix.rust }}-cargo_target-
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --workspace -- -D warnings -W clippy::nursery #-W clippy::pedantic
+
+      - name: Run cargo clippy with all features
+        uses: actions-rs/cargo@v1
+        #uses: actions-rs/clippy-check@v1  # TODO: annotating does not work: "Error: Resource not accessible by integration"
+        with:
+          command: clippy
+          #token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-targets --all-features --workspace -- -D warnings -W clippy::nursery #-W clippy::pedantic
+
+  test:
+    name: Test Suite on rust '${{ matrix.rust }}'
+
+    runs-on: ubuntu-latest
+    needs: [ get-env-vars, fmt, clippy ]
+
+    # ignoring all branches but 'master', 'dev' and 'release/*'
+    if: ${{
+      (github.ref == 'refs/heads/master') ||
+      (github.ref == 'refs/heads/dev') ||
+      startsWith(github.ref, 'refs/heads/release/') }}
+
+    strategy:
+      matrix:
+        rust: ${{ fromJSON(needs.get-env-vars.outputs.RUST_VERSIONS) }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install deps
+        if: ${{ fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES)[0] != null }}
+        run: sudo apt-get -y install ${{ join(fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES), ' ') }}
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -95,59 +174,72 @@ jobs:
       #     command: test
       #     args: --all-targets --all-features --workspace -- --ignored
 
-  clippy:
-    name: Clippy on rust '${{ matrix.rust }}'
+
+  create-release:
+    # https://codingpackets.com/blog/rust-binary-and-docker-releases-using-github-actions/#release-workflow
+    # https://twitter.com/mjovanc/article/1757733086236643419
+    # https://cjwebb.com/rust-github-actions-on-arm/
+
+    name: Create Release
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust:
-          - 1.69.0
-          - stable
-          - beta
+    needs: [ get-env-vars, test ]
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAME: ${{ needs.get-env-vars.outputs.GITHUB_REGISTRY }}/${{ github.repository }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
           submodules: recursive
 
-      - name: Install deps
-        run: sudo apt-get -y install libasound2-dev
+      - name: Get abbreviated SHA hash of the commit
+        uses: benjlevesque/short-sha@v2.2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITHUB_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
+          profile: minimal
           override: true
 
-      - name: Install clippy
-        run: rustup component add clippy
+      - name: Install deps
+        if: ${{ fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES)[0] != null }}
+        run: sudo apt-get -y install ${{ join(fromJSON(needs.get-env-vars.outputs.APT_DEPENDENCIES), ' ') }}
 
-      - name: Cache cargo registry
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo_registry-
-
-      - name: Cache cargo build
-        uses: actions/cache@v2
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ matrix.rust }}-cargo_target-clippy-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            - ${{ runner.os }}-${{ matrix.rust }}-cargo_target-clippy-
-            - ${{ runner.os }}-${{ matrix.rust }}-cargo_target-
-
-      - name: Run cargo clippy
+      - name: Build release artifact
         uses: actions-rs/cargo@v1
         with:
-          command: clippy
-          args: --all-targets --workspace -- -Dwarnings -W clippy::nursery #-W clippy::pedantic
+          command: build
+          args: --release --timings --workspace
 
-      - name: Run cargo clippy with all features
-        uses: actions-rs/cargo@v1
+      - name: Save build timings
+        uses: actions/upload-artifact@v3
         with:
-          command: clippy
-          args: --all-targets --all-features --workspace -- -Dwarnings -W clippy::nursery #-W clippy::pedantic
+          name: release build timings
+          path: target/cargo-timings/cargo-timing.html
+
+      # 1. Ensure the docker could be run
+      #   https://stackoverflow.com/questions/48957195/how-to-fix-docker-got-permission-denied-issue
+      # 2. Ensure you have access to packages
+      #   https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic
+      #   https://github.com/settings/tokens/new (read:packages)
+      #   apply your token to `docker`
+      # 3. docker run -it --entrypoint /bin/sh ghcr.io/NAMESPACE/IMAGE_NAME:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.SHA }}
