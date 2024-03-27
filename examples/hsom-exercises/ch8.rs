@@ -92,11 +92,9 @@ mod jazz_man {
     }
 
     fn get_simple_swing_player() -> Player<AttrNote> {
-        Player {
-            name: "Jazz".to_string(),
-            play_note: Arc::new(swing_play_note),
-            ..Player::default()
-        }
+        Player::default()
+            .with_name("Jazz")
+            .with_play_note(Arc::new(swing_play_note))
     }
 
     #[cfg(test)]

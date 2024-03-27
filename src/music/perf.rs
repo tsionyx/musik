@@ -304,11 +304,16 @@ pub enum NoteAttribute {
 
 type PlayerMap<P> = HashMap<PlayerName, Player<P>>;
 
+/// Defines the way to interpret different parts of [`Music`]
+/// to produce the [`Performance`]:
+/// - playing individual notes with the [`NoteAttribute`]s;
+/// - playing phrases with the [`PhraseAttribute`]s;
+/// - notating a musical score in its own unique way (**not implemented**).
 pub struct Player<P> {
-    pub name: String,
-    pub play_note: NoteFun<P>,
-    pub interpret_phrase: PhraseFun<P>,
-    pub notate_player: NotateFun<P>,
+    name: String,
+    play_note: NoteFun<P>,
+    interpret_phrase: PhraseFun<P>,
+    notate_player: NotateFun<P>,
 }
 
 impl<P> Clone for Player<P> {
@@ -318,6 +323,34 @@ impl<P> Clone for Player<P> {
             play_note: self.play_note.clone(),
             interpret_phrase: self.interpret_phrase.clone(),
             notate_player: self.notate_player,
+        }
+    }
+}
+
+impl<P> Player<P> {
+    /// Get player's name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Change the name of the [`Player`].
+    pub fn with_name(self, name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            ..self
+        }
+    }
+
+    /// Set the interpreter of the individual notes.
+    pub fn with_play_note(self, play_note: NoteFun<P>) -> Self {
+        Self { play_note, ..self }
+    }
+
+    /// Set the interpreter of the phrases.
+    pub fn with_interpret_phrase(self, interpret_phrase: PhraseFun<P>) -> Self {
+        Self {
+            interpret_phrase,
+            ..self
         }
     }
 }
@@ -335,6 +368,7 @@ type PhraseFun<P> = Arc<
 // TODO: producing a properly notated score is not defined yet
 type NotateFun<P> = std::marker::PhantomData<P>;
 
+/// Defines default interpreters for the [`Player`].
 pub mod defaults {
     use std::iter;
 
