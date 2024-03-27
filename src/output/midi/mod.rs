@@ -1,11 +1,4 @@
-mod convert;
-pub(crate) mod instruments;
-
-#[cfg(feature = "play-midi")]
-mod io;
-#[cfg(feature = "play-midi")]
-mod player;
-
+//! Saving MIDI files and playing via MIDI devices.
 use std::{collections::HashMap, path::Path};
 
 use enum_map::Enum;
@@ -18,9 +11,18 @@ pub use self::instruments::{Instrument, PercussionSound};
 #[cfg(feature = "play-midi")]
 pub use self::player::MidiPlayer;
 
+mod convert;
+pub(crate) mod instruments;
+#[cfg(feature = "play-midi")]
+mod io;
+#[cfg(feature = "play-midi")]
+mod player;
+
 type AnyError = Box<dyn std::error::Error>;
 
 impl Performance {
+    /// Save the [`Performance`] into MIDI file format
+    /// using the [`midly`](https://crates.io/crates/midly) library.
     pub fn save_to_file<P: AsRef<Path>>(self, path: P) -> Result<(), AnyError> {
         let midi = self.into_midi(None)?;
         info!("Saving to MIDI file {}", path.as_ref().display());
@@ -29,6 +31,9 @@ impl Performance {
     }
 
     #[cfg(feature = "play-midi")]
+    /// Play the [`Performance`] through MIDI device
+    /// using the [`midir`](https://crates.io/crates/midir) library
+    /// to access and select a device.
     pub fn play(self) -> Result<(), AnyError> {
         use self::convert::merge_tracks;
 
@@ -49,6 +54,8 @@ type Channel = u4;
 type ProgNum = u7;
 
 #[derive(Debug, Clone)]
+/// The [patch map][UserPatchMap]
+/// assigns MIDI channels to instruments.
 pub struct UserPatchMap {
     repr: HashMap<InstrumentName, Channel>,
 }
@@ -65,6 +72,8 @@ impl UserPatchMap {
             .expect("Should contains exactly 15 Channels")
     }
 
+    /// Create the [`UserPatchMap`] by assigning
+    /// given instruments to consecutive MIDI channels.
     pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, String> {
         let available_channels = Self::available_channels();
         if instruments.len() > available_channels.len() {
@@ -87,23 +96,24 @@ impl UserPatchMap {
         })
     }
 
+    /// Given the [instrument][InstrumentName],
+    /// find the MIDI channel for it, and its Program Number (ID).
     pub fn lookup(&self, instrument: &InstrumentName) -> Option<(Channel, ProgNum)> {
-        self.repr.get(instrument).map(|x| {
-            let prog_num = match instrument {
-                InstrumentName::Midi(i) => i
-                    .into_usize()
-                    .try_into()
-                    .expect("MIDI instruments should be less than 256"),
-                InstrumentName::Percussion | InstrumentName::Custom(_) => 0,
-            };
-            (
-                *x,
-                ProgNum::try_from(prog_num).expect("exactly 128 instruments"),
-            )
-        })
+        let channel = self.repr.get(instrument)?;
+        let prog_num = match instrument {
+            InstrumentName::Midi(i) => i
+                .into_usize()
+                .try_into()
+                .expect("MIDI instruments should be less than 256"),
+            InstrumentName::Percussion | InstrumentName::Custom(_) => 0,
+        };
+        Some((
+            *channel,
+            ProgNum::try_from(prog_num).expect("exactly 128 instruments"),
+        ))
     }
 
-    pub fn contains_all(&self, instruments: &[InstrumentName]) -> bool {
+    fn contains_all(&self, instruments: &[InstrumentName]) -> bool {
         instruments.iter().all(|i| self.lookup(i).is_some())
     }
 }

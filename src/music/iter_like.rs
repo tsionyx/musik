@@ -50,8 +50,8 @@ pub trait Temporal {
     /// Take the given [`Dur`] from the beginning and drop the other.
     fn take(self, dur: Dur) -> Self;
 
-    /// Drop the given [`Dur`] from the beginning and take the other.
-    fn drop(self, dur: Dur) -> Self;
+    /// Skip the given [`Dur`] from the beginning and take the other.
+    fn skip(self, dur: Dur) -> Self;
 }
 
 impl<P> Temporal for Music<P> {
@@ -86,7 +86,7 @@ impl<P> Temporal for Music<P> {
     }
 
     /// Drop the first N whole beats and take the other
-    fn drop(self, n: Dur) -> Self {
+    fn skip(self, n: Dur) -> Self {
         if n == Dur::ZERO {
             return self;
         }
@@ -95,12 +95,12 @@ impl<P> Temporal for Music<P> {
             Self::Prim(Primitive::Note(d, p)) => Self::note(d.saturating_sub(n), p),
             Self::Prim(Primitive::Rest(d)) => Self::rest(d.saturating_sub(n)),
             Self::Sequential(m1, m2) => {
-                let m2 = (*m2).drop(n.saturating_sub(m1.duration()));
-                (*m1).drop(n) + m2
+                let m2 = (*m2).skip(n.saturating_sub(m1.duration()));
+                (*m1).skip(n) + m2
             }
-            Self::Parallel(m1, m2) => (*m1).drop(n) | (*m2).drop(n),
-            Self::Modify(Control::Tempo(r), m) => (*m).drop(n * r).with_tempo(r),
-            Self::Modify(c, m) => (*m).drop(n).with(c),
+            Self::Parallel(m1, m2) => (*m1).skip(n) | (*m2).skip(n),
+            Self::Modify(Control::Tempo(r), m) => (*m).skip(n * r).with_tempo(r),
+            Self::Modify(c, m) => (*m).skip(n).with(c),
         }
     }
 }

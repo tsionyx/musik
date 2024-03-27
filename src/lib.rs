@@ -73,6 +73,7 @@ pub use self::{
         duration::Dur,
         interval::{ErrorOctaveTryFromNum, Interval, Octave},
         pitch::{AbsPitch, ErrorPitchClipping, Pitch, PitchClass},
+        scale::KeySig,
         volume::Volume,
     },
 };

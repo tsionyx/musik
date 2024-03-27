@@ -18,6 +18,7 @@ sudo apt install libasound2-dev   # also `qjackctl` and `qsynth` for handling au
     - https://en.wikipedia.org/wiki/Music_and_mathematics
     - https://en.wikipedia.org/wiki/Algorithmic_composition
     - https://en.wikipedia.org/wiki/Computational_musicology
+    - https://wiki.ccarh.org/wiki/Guido_Music_Notation
 
 - On MIDI:
     - http://tedfelix.com/linux/linux-midi.html
@@ -30,7 +31,7 @@ sudo apt install libasound2-dev   # also `qjackctl` and `qsynth` for handling au
     - https://www.youtube.com/watch?v=odeWLp96fdo
     - https://crates.io/crates/hound
     - https://crates.io/crates/rodio
-    - https://crates.io/crates/fundsp
+    - https://crates.io/crates/fundsp (see the `combinator` module for signal processing arrows-style)
 
 
 ### Similar crates

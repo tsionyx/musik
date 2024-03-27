@@ -28,6 +28,7 @@ impl Default for KeySig {
 }
 
 impl KeySig {
+    /// Iterate over a sequence of [`PitchClass`]-es of the scale.
     pub fn get_scale(self) -> impl Iterator<Item = PitchClass> {
         let oc4 = Octave::OneLined;
         let with_octave: Box<dyn Iterator<Item = Pitch>> = match self {
@@ -37,12 +38,14 @@ impl KeySig {
         with_octave.map(Pitch::class)
     }
 
-    const fn pitch_class(self) -> PitchClass {
+    /// [Tonic](https://en.wikipedia.org/wiki/Tonic_(music)) [`PitchClass`] for this scale.
+    pub const fn pitch_class(self) -> PitchClass {
         match self {
             Self::Major(pc) | Self::Minor(pc) => pc,
         }
     }
 
+    /// Iterate over a sequence of [`Interval`]-s of the scale.
     pub fn get_intervals_scale(self) -> impl Iterator<Item = Interval> {
         let scale = match self {
             Self::Major(_) => Interval::major_scale(),
@@ -57,6 +60,8 @@ impl KeySig {
 }
 
 impl Interval {
+    /// Sequence of [`Interval`]-s to create
+    /// a [major scale](https://en.wikipedia.org/wiki/Major_scale)
     pub const fn major_scale() -> [Self; 8] {
         [
             Self::zero(),
@@ -70,6 +75,8 @@ impl Interval {
         ]
     }
 
+    /// Sequence of [`Interval`]s to create
+    /// a [minor scale](https://en.wikipedia.org/wiki/Minor_scale#Natural_minor_scale)
     pub const fn natural_minor_scale() -> [Self; 8] {
         [
             Self::zero(),
@@ -85,6 +92,9 @@ impl Interval {
 }
 
 impl Pitch {
+    /// Create a sequence of [`Pitch`]-es
+    /// corresponding to cumulative sums of the
+    /// given sequence of intervals.
     pub fn get_scale<I, Int>(self, intervals: I) -> impl Iterator<Item = Self> + 'static
     where
         I: Iterator<Item = Int> + 'static,
@@ -98,10 +108,16 @@ impl Pitch {
             .map(move |distance| self.trans(distance))
     }
 
+    /// Sequence of [`Pitch`]-es that forms
+    /// a [major scale](https://en.wikipedia.org/wiki/Major_scale)
+    /// starting with the given [`Pitch`].
     pub fn major_scale(self) -> impl Iterator<Item = Self> {
         self.get_scale(Interval::major_scale().into_iter())
     }
 
+    /// Sequence of [`Pitch`]-es that forms
+    /// a [minor scale](https://en.wikipedia.org/wiki/Minor_scale#Natural_minor_scale)
+    /// starting with the given [`Pitch`].
     pub fn natural_minor_scale(self) -> impl Iterator<Item = Self> {
         self.get_scale(Interval::natural_minor_scale().into_iter())
     }
@@ -110,6 +126,8 @@ impl Pitch {
 const DIATONIC_SIZE: i8 = 7;
 
 impl AbsPitch {
+    /// Transpose current [`AbsPitch`]
+    /// in the given [diatonic scale][KeySig].
     pub fn diatonic_trans(self, key: KeySig, degrees: i8) -> Self {
         if degrees == 0 {
             return self;

@@ -215,7 +215,7 @@ mod tests {
         let oc4 = Octave::OneLined;
         let m = M::C(oc4, Dur::EIGHTH) + M::D(oc4, Dur::EIGHTH).times(16);
         assert_eq!(
-            m.drop(Dur::HALF).take(Dur::HALF).remove_zeros(),
+            m.skip(Dur::HALF).take(Dur::HALF).remove_zeros(),
             M::D(oc4, Dur::EIGHTH).times(4).remove_zeros()
         );
     }

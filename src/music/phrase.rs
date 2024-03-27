@@ -76,6 +76,10 @@ pub enum StdLoudness {
 }
 
 impl StdLoudness {
+    /// Get the numeric [`Volume`]
+    /// from standard names using one of the predefined scales.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Dynamics_(music)#Interpretation_by_notation_programs>
     pub fn get_volume(self) -> Volume {
         let vol: u8 = match self {
             Self::PianoPianissimo => 40,
@@ -141,6 +145,7 @@ pub enum Articulation {
 ///
 /// See more: <https://en.wikipedia.org/wiki/Ornament_(music)>
 pub enum Ornament {
+    /// See more: <https://en.wikipedia.org/wiki/Trill_(music)>
     Trill(TrillOptions<Ratio<u32>>),
     Mordent,
     InvMordent,
@@ -158,8 +163,11 @@ pub enum Ornament {
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+/// Defines performance parameter for a [`Trill`][Ornament::Trill].
 pub enum TrillOptions<D> {
+    /// How long should last every single trilled note.
     Duration(D),
+    /// How many trilled notes will be in ornament.
     Count(u8),
 }
 
@@ -169,6 +177,7 @@ impl<D> From<D> for TrillOptions<D> {
     }
 }
 
+#[allow(missing_docs)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NoteHead {
     DiamondHead,

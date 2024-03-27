@@ -31,8 +31,11 @@ impl Music {
         }
     }
 
-    /// Get the inverted [`Music`].
+    /// Get the inverted [musical line][Self::line]
+    /// where all the pitch intervals _from the first note_
+    /// replaced with their simple arithmetic inverses (-).
     ///
+    /// It resembles in some sense the playing of the 'upside-down' music.
     /// Also could be used in the form `!Music`
     ///
     /// See more: <https://en.wikipedia.org/wiki/Inversion_(music)#Melodies>
@@ -59,10 +62,21 @@ impl Music {
         }
     }
 
+    /// [Playing the reversed version][Self::retrograde]
+    /// of the [inverted][Self::invert] [musical line][Self::line].
+    ///
+    /// In other words, it is a function composition `retrograde * invert`.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Retrograde_inversion>
     pub fn retro_invert(self) -> Self {
         self.invert().retrograde()
     }
 
+    /// [Invert][Self::invert] the [reversed][Self::retrograde] [musical line][Self::line].
+    ///
+    /// In other words, it is a function composition `invert * retrograde`.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Retrograde_inversion>
     pub fn invert_retro(self) -> Self {
         self.retrograde().invert()
     }
@@ -76,11 +90,18 @@ impl<P> Music<P> {
         Self::rest(dur) + self
     }
 
+    /// Playing the reversed version of a simple [musical line][Self::line].
+    ///
+    /// It is more simple version of the more exact [`Self::reverse`].
     pub fn retrograde(self) -> Self {
         Self::line(Vec::from(self).into_iter().rev().collect())
     }
 
     /// Play the [`Music`] backwards.
+    ///
+    /// In contrast with the [`Self::retrograde`]
+    /// it supports reversing the [`Music`] with arbitrary nesting,
+    /// not just the simple [succession of values][Self::line].
     ///
     /// Also could be used in the form `-Music`
     pub fn reverse(self) -> Self {

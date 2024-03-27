@@ -23,6 +23,9 @@ use super::{
 };
 
 #[derive(Debug)]
+/// Holds the connection to MIDI device
+/// and handles the playback of provided MIDI track
+/// through the former.
 pub struct MidiPlayer {
     // TODO: allow pause (see https://github.com/insomnimus/nodi/blob/main/src/player.rs)
     conn: Connection,
@@ -32,7 +35,10 @@ pub struct MidiPlayer {
 type AnyError = Box<dyn std::error::Error>;
 
 impl MidiPlayer {
-    // TODO: provide the port here
+    /// Create a [MIDI player][Self] by choosing
+    /// the most appropriate MIDI device.
+    ///
+    /// To choose the device manually, use the [Self::with_port].
     pub fn make_default() -> Result<Self, AnyError> {
         let conn = Connection::get_default()?;
         Ok(Self {
@@ -41,6 +47,11 @@ impl MidiPlayer {
         })
     }
 
+    // TODO: provide the port here
+    //  pub fn with_port() -> Result<Self, AnyError> {}
+
+    /// Play the series of [MIDI events][midly::TrackEventKind]
+    /// by adjusting the playback speed with [`Timing`].
     pub fn play(&mut self, track: AbsTimeTrack<'_>, timing: Timing) -> std::io::Result<()> {
         let sec_per_tick = tick_size(timing);
         let real_time = track

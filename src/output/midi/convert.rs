@@ -35,6 +35,11 @@ pub(super) fn into_relative_time(track: AbsTimeTrack<'_>) -> Track<'static> {
 }
 
 impl Performance {
+    /// Convert the [`Performance`] into MIDI representation
+    /// to [save it into file][Self::save_to_file] or play.
+    ///
+    /// Optionally, the [patch map][UserPatchMap] could be provided to
+    /// explicitly assign MIDI channels to instruments.
     pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, String> {
         let split = self.split_by_instruments();
         let instruments: Vec<_> = split.keys().cloned().collect();
@@ -44,10 +49,10 @@ impl Performance {
                 .then_some(Cow::Borrowed(user_patch))
         });
 
-        let user_patch = match user_patch {
-            Some(x) => x,
-            None => Cow::Owned(UserPatchMap::with_instruments(instruments)?),
-        };
+        let user_patch = user_patch.map_or_else(
+            || UserPatchMap::with_instruments(instruments).map(Cow::Owned),
+            Ok,
+        )?;
 
         let file_type = if split.len() == 1 {
             Format::SingleTrack
