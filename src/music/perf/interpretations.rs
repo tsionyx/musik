@@ -11,6 +11,7 @@ use crate::{
         AttrNote, Music, NoteAttribute,
     },
     prim::{
+        duration::Dur,
         pitch::{AbsPitch, Pitch},
         scale::KeySig,
         volume::Volume,
@@ -18,59 +19,66 @@ use crate::{
 };
 
 use super::{
-    player::{NoteFun, PhraseFun, Player},
+    player::{PhraseFun, Player},
     Context, Duration, Event, Performance, PlayerMap, TimePoint,
 };
 
-pub fn default_play_note<Attr>(
-    attr_modifier: NoteWithAttributeHandler<Pitch, Attr>,
-) -> NoteFun<(Pitch, Vec<Attr>)>
+pub fn default_play_note<A, NoteWithAttributeHandler>(
+    ctx: Context<'_, (Pitch, Vec<A>)>,
+    dur: Dur,
+    (note_pitch, attrs): &(Pitch, Vec<A>),
+    attr_modifier: NoteWithAttributeHandler,
+) -> Performance
 where
-    Attr: 'static,
+    NoteWithAttributeHandler: Fn(Event, &A, &Context<'_, (Pitch, Vec<A>)>) -> Event,
 {
-    Arc::new(move |ctx, dur, (note_pitch, attrs)| {
-        let Context {
-            start_time,
-            player: _ignore_player,
-            instrument,
-            whole_note,
-            transpose_interval,
-            volume,
-            key: _ignore_key,
-        } = ctx.clone();
-        let init = Event {
-            start_time,
-            instrument,
-            pitch: note_pitch.abs() + transpose_interval,
-            duration: dur.into_ratio() * whole_note,
-            volume,
-            params: vec![],
-        };
+    let Context {
+        start_time,
+        player: _ignore_player,
+        instrument,
+        whole_note,
+        transpose_interval,
+        volume,
+        key: _ignore_key,
+    } = ctx.clone();
+    let init = Event {
+        start_time,
+        instrument,
+        pitch: note_pitch.abs() + transpose_interval,
+        duration: dur.into_ratio() * whole_note,
+        volume,
+        params: vec![],
+    };
 
-        let event = attrs
-            .iter()
-            .fold(init, |acc, attr| attr_modifier(&ctx, attr, acc));
-        Performance::with_events(vec![event])
-    })
+    let event = attrs
+        .iter()
+        .fold(init, |acc, attr| attr_modifier(acc, attr, &ctx));
+    Performance::with_events(vec![event])
 }
 
-pub fn default_note_attribute_handler<P>() -> NoteWithAttributeHandler<P, NoteAttribute> {
-    Box::new(|_ignore_context, attr, event| match attr {
-        NoteAttribute::Volume(vol) => Event {
-            volume: *vol,
-            ..event
-        },
-        NoteAttribute::Params(params) => Event {
-            params: params.clone(),
-            ..event
-        },
-        NoteAttribute::Fingering(_) | NoteAttribute::Dynamics(_) => event,
-    })
+pub trait NoteAttributeHandler<A> {
+    fn handle<P>(self, attr: &A, ctx: &Context<'_, (P, Vec<A>)>) -> Self;
 }
 
-/// Transform the event according to [`Context`] and Attribute.
-type NoteWithAttributeHandler<P, Attr> =
-    Box<dyn Fn(&Context<'_, (P, Vec<Attr>)>, &Attr, Event) -> Event>;
+impl NoteAttributeHandler<NoteAttribute> for Event {
+    fn handle<P>(self, attr: &NoteAttribute, _: &Context<'_, (P, Vec<NoteAttribute>)>) -> Self {
+        match attr {
+            NoteAttribute::Volume(vol) => Self {
+                volume: *vol,
+                ..self
+            },
+            NoteAttribute::Params(params) => Self {
+                params: params.clone(),
+                ..self
+            },
+            NoteAttribute::Fingering(_) | NoteAttribute::Dynamics(_) => self,
+        }
+    }
+}
+
+// Transform the event according to [`Context`] and Attribute.
+// type NoteWithAttributeHandler<P, Attr> =
+//     Box<dyn Fn(&Context<'_, (P, Vec<Attr>)>, &Attr, Event) -> Event>;
 
 // Transform the whole performance according to [`Context`] and [`PhraseAttribute`].
 // type PhraseAttributeHandler = Box<dyn Fn(Performance, &PhraseAttribute) -> Performance>;
@@ -122,7 +130,9 @@ impl Default for Player<AttrNote> {
     fn default() -> Self {
         Self {
             name: "Default".to_string(),
-            play_note: default_play_note(default_note_attribute_handler()),
+            play_note: Arc::new(move |ctx, dur, note| {
+                default_play_note(ctx, dur, note, Event::handle)
+            }),
             interpret_phrase: default_interpret_phrase(default_phrase_attribute_handler),
             notate_player: Default::default(),
         }

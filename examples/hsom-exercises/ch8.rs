@@ -40,7 +40,7 @@ mod jazz_man {
 
     use musik::{
         music::AttrNote,
-        perf::{interpretations::default_note_attribute_handler, Context, Event},
+        perf::{interpretations::NoteAttributeHandler as _, Context, Event},
         Dur, Performance, Player,
     };
 
@@ -85,9 +85,7 @@ mod jazz_man {
             params: vec![],
         };
 
-        let event = attrs.iter().fold(init, |acc, attr| {
-            default_note_attribute_handler()(&ctx, attr, acc)
-        });
+        let event = attrs.iter().fold(init, |acc, attr| acc.handle(attr, &ctx));
         Performance::with_events(vec![event])
     }
 
