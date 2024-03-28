@@ -18,13 +18,15 @@ pub mod perf;
 pub mod phrase;
 mod transform;
 
+use ordered_float::OrderedFloat;
+use ux2::u4;
+
 use crate::prim::{duration::Dur, pitch::Pitch, volume::Volume};
 
 pub use self::{
     constructors::{rests, A440},
     control::Control,
     iter_like::Temporal,
-    perf::NoteAttribute,
 };
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
@@ -74,6 +76,31 @@ impl Music {
     pub fn with_volume(self, vol: Volume) -> Music<(Pitch, Volume)> {
         self.map(|p| (p, vol))
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+/// Attributes that can be attached to each individual note.
+pub enum NoteAttribute {
+    /// How loud to play the note.
+    Volume(Volume),
+
+    /// Which finger to use while playing.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Fingering_(music)>.
+    Fingering(u4),
+
+    /// Individual note dynamics.
+    ///
+    /// See more: <https://en.wikipedia.org/wiki/Accent_(music)#Marks>
+    ///
+    /// TODO: fill more from <https://www.musictheoryacademy.com/how-to-read-sheet-music/dynamics/>
+    Dynamics(String),
+
+    /// Additional parameters to customize the note's performance.
+    ///
+    /// Used for instruments [other than MIDI][crate::instruments::InstrumentName::Custom].
+    /// It is up to the instrument designer to decide how these parameters are used.
+    Params(Vec<OrderedFloat<f64>>),
 }
 
 /// Pitch with Attributes
