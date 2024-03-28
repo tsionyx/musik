@@ -220,7 +220,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --timings --workspace
+          args: --release --timings --workspace --examples
 
       - name: Save build timings
         uses: actions/upload-artifact@v3
