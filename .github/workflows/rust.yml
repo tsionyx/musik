@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.65.0
+          - 1.69.0
           - stable
           - beta
     steps:
@@ -47,7 +47,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.65.0
+          - 1.69.0
           - stable
           - beta
     steps:
@@ -101,7 +101,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.65.0
+          - 1.69.0
           - stable
           - beta
     steps:

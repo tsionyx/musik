@@ -1,7 +1,4 @@
-use std::{
-    convert::TryFrom,
-    ops::{Add, AddAssign, Neg, Sub},
-};
+use std::ops::{Add, AddAssign, Neg, Sub};
 
 use super::{pitch::PitchClass, KeySig};
 
@@ -289,10 +286,7 @@ impl AbsPitch {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        super::{pitch::Pitch, KeySig},
-        *,
-    };
+    use super::{super::pitch::Pitch, *};
 
     #[test]
     fn diatonic_trans_c_major() {

@@ -263,8 +263,6 @@ type PhraseFun<P> = Arc<
 type NotateFun<P> = std::marker::PhantomData<P>;
 
 pub mod defaults {
-    use std::iter;
-
     use num_traits::{ops::checked::CheckedSub as _, One as _, Zero as _};
 
     use crate::instruments::StandardMidiInstrument;
@@ -273,7 +271,6 @@ pub mod defaults {
         super::{
             phrases::{Articulation, Dynamic, Ornament, Tempo, TrillOptions},
             pitch::Pitch,
-            AttrNote,
         },
         *,
     };
