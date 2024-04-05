@@ -64,7 +64,7 @@ mod blues {
     //! and, in the key of C, approximately corresponds
     //! to the notes C, Ef, F, G, and Bf.
     use super::{Dur, Music, Octave, Pitch};
-    use musik::{music::Primitive, PitchClass};
+    use musik::PitchClass;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum BluesPitchClass {
@@ -141,21 +141,7 @@ mod blues {
     }
 
     fn blues_into_western(blues_music: Music<BluesPitch>) -> Music {
-        match blues_music {
-            Music::Prim(Primitive::Note(duration, pitch)) => {
-                Music::note(duration, pitch.to_western())
-            }
-            Music::Prim(Primitive::Rest(duration)) => Music::rest(duration),
-            Music::Sequential(m1, m2) => Music::Sequential(
-                Box::new(blues_into_western(*m1)),
-                Box::new(blues_into_western(*m2)),
-            ),
-            Music::Parallel(m1, m2) => Music::Parallel(
-                Box::new(blues_into_western(*m1)),
-                Box::new(blues_into_western(*m2)),
-            ),
-            Music::Modify(control, m) => Music::Modify(control, Box::new(blues_into_western(*m))),
-        }
+        blues_music.map(|p| p.to_western())
     }
 
     fn melody() -> Music {

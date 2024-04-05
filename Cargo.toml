@@ -19,6 +19,7 @@ enum-map ="2.6"
 enum-iterator = "1.4"
 ordered-float = "4.2"
 itertools = "0.12"
+dyn-clone = "1.0"
 ux2 = { version = "0.8", default_features = false, features = ["8"] }
 log = "0.4"
 

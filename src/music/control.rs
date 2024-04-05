@@ -5,14 +5,16 @@ use crate::{
     prim::{interval::Interval, scale::KeySig},
 };
 
-use super::{phrase::PhraseAttribute, Music};
-
-/// Identifier for a player.  // TODO: make it a pointer to the `Player` instance.
-pub type PlayerName = String;
+use super::{
+    combinators::MapToOther,
+    perf::{DynPlayer, Player},
+    phrase::PhraseAttribute,
+    Music,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 /// A set of modifiers to change the [`Music`]'s performance.
-pub enum Control {
+pub enum Control<P> {
     /// Scale the tempo.
     Tempo(Ratio<u8>),
 
@@ -27,7 +29,7 @@ pub enum Control {
 
     /// Set-up the [player][super::perf::Player] which defines
     /// more fine-grained control over the performance details.
-    Player(PlayerName),
+    Player(DynPlayer<P>),
 
     /// Specify the key signature for a piece,
     /// which could be useful while interpreting
@@ -39,7 +41,7 @@ impl<P> Music<P> {
     /// Annotate the [`Music`] with one of [modifiers][Control].
     ///
     /// Also could be used in the form `Music & control`
-    pub fn with(self, control: Control) -> Self {
+    pub fn with(self, control: Control<P>) -> Self {
         Self::Modify(control, Box::new(self))
     }
 
@@ -67,8 +69,11 @@ impl<P> Music<P> {
     }
 
     /// Specify which [player][super::perf::Player] should be used for performing.
-    pub fn with_player(self, name: PlayerName) -> Self {
-        self.with(Control::Player(name))
+    pub fn with_player<Pl>(self, player: Pl) -> Self
+    where
+        Pl: Player<P> + 'static,
+    {
+        self.with(Control::Player(DynPlayer::from_player(player)))
     }
 
     /// Specify the key signature for a piece,
@@ -76,5 +81,21 @@ impl<P> Music<P> {
     /// [phrase attributes][Self::with_phrase].
     pub fn with_key_sig(self, key_signature: KeySig) -> Self {
         self.with(Control::KeySig(key_signature))
+    }
+}
+
+impl<T, U> MapToOther<Control<U>> for Control<T>
+where
+    DynPlayer<T>: MapToOther<DynPlayer<U>>,
+{
+    fn into_other(self) -> Option<Control<U>> {
+        match self {
+            Self::Tempo(x) => Some(Control::Tempo(x)),
+            Self::Transpose(x) => Some(Control::Transpose(x)),
+            Self::Instrument(x) => Some(Control::Instrument(x)),
+            Self::Phrase(x) => Some(Control::Phrase(x)),
+            Self::Player(x) => x.into_other().map(Control::Player),
+            Self::KeySig(x) => Some(Control::KeySig(x)),
+        }
     }
 }

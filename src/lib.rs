@@ -41,7 +41,6 @@
 #![warn(unused_macro_rules)]
 #![warn(unused_qualifications)]
 #![warn(unused_results)]
-#![warn(unused_tuple_struct_fields)]
 #![warn(variant_size_differences)]
 //
 // additional recommendations

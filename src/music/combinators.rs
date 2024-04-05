@@ -22,12 +22,20 @@ impl<P> Music<P> {
     pub fn map<U, F>(self, f: F) -> Music<U>
     where
         F: FnMut(P) -> U + Clone,
+        Control<P>: MapToOther<Control<U>>,
     {
         match self {
             Self::Prim(p) => Music::Prim(p.map(f)),
             Self::Sequential(m1, m2) => m1.map(f.clone()) + m2.map(f),
             Self::Parallel(m1, m2) => m1.map(f.clone()) | m2.map(f),
-            Self::Modify(c, m) => m.map(f).with(c),
+            Self::Modify(c, m) => {
+                let m = m.map(f);
+                if let Some(control) = c.into_other() {
+                    m.with(control)
+                } else {
+                    m
+                }
+            }
         }
     }
 
@@ -48,7 +56,7 @@ impl<P> Music<P> {
         Prim: FnMut(Primitive<P>) -> U + Clone,
         Seq: FnMut(U, U) -> U + Clone,
         Par: FnMut(U, U) -> U + Clone,
-        Mod: FnMut(Control, U) -> U + Clone,
+        Mod: FnMut(Control<P>, U) -> U + Clone,
     {
         match self {
             Self::Prim(p) => prim(p),
@@ -65,4 +73,14 @@ impl<P> Music<P> {
             Self::Modify(c, m) => modify.clone()(c, m.fold(prim, seq, par, modify)),
         }
     }
+}
+
+/// Workaround for the lack of specialization.
+/// Useful to convert generic types
+/// with one generic argument to the other one.
+///
+/// Default `Into` (`From`) trait cannot be blanket impl
+/// due to conflicting `impl<T, U> From<X<T>> for X<U> {}`
+pub trait MapToOther<T> {
+    fn into_other(self) -> Option<T>;
 }

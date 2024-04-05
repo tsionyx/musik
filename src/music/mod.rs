@@ -62,7 +62,7 @@ pub enum Music<P = Pitch> {
     Parallel(Box<Self>, Box<Self>),
 
     /// Annotate the music with one of [modifiers][Control].
-    Modify(Control, Box<Self>),
+    Modify(Control<P>, Box<Self>),
 }
 
 impl<P> From<Primitive<P>> for Music<P> {

@@ -24,10 +24,10 @@ impl<P> BitOr for Music<P> {
     }
 }
 
-impl<P> BitAnd<Control> for Music<P> {
+impl<P> BitAnd<Control<P>> for Music<P> {
     type Output = Self;
 
-    fn bitand(self, rhs: Control) -> Self::Output {
+    fn bitand(self, rhs: Control<P>) -> Self::Output {
         self.with(rhs)
     }
 }

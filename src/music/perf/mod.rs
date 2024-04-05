@@ -1,6 +1,6 @@
 //! Defines abstract [`Performance`] which
 //! is a time-ordered sequence of musical [`Event`]s.
-use std::{borrow::Cow, collections::HashMap, iter};
+use std::{borrow::Cow, ops::Deref};
 
 use itertools::Itertools as _;
 use num_rational::Ratio;
@@ -13,14 +13,14 @@ use crate::{
     prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
 };
 
-use super::{
-    control::{Control, PlayerName},
-    Music, Primitive,
+use super::{control::Control, Music, Primitive};
+
+pub use self::{
+    interpretations::{DefaultPlayer, EventAnnotator, FancyPlayer},
+    player::{DynPlayer, Player},
 };
 
-pub use self::player::Player;
-
-pub mod interpretations;
+mod interpretations;
 mod player;
 
 #[derive(Debug, Clone)]
@@ -53,98 +53,50 @@ impl Performance {
 pub trait Performable<P> {
     /// Create a [`Performance`] using the default [`Context`]
     /// and the default [`Player`]s mapping.
-    fn perform(self) -> Performance
-    where
-        Player<P>: Default,
-        Self: Sized,
-    {
-        self.perform_with_context(Context::with_player(Cow::Owned(Player::default())))
-    }
+    fn perform(self) -> Performance;
 
-    /// Create a [`Performance`] using the custom [`Context`]
-    /// and the default [`Player`]s mapping.
+    /// Create a [`Performance`] using the custom [`Context`].
     fn perform_with_context(self, ctx: Context<'_, P>) -> Performance;
-
-    /// Create a [`Performance`] using the custom [`Context`]
-    /// and [`Player`]s mapping.
-    fn perform_with<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance;
-}
-
-impl<P> Performable<P> for &Music<P>
-where
-    Player<P>: Default,
-{
-    fn perform_with_context(self, ctx: Context<'_, P>) -> Performance {
-        let def_name = Player::default().name;
-
-        let players: PlayerMap<_> = iter::once(Player::default())
-            .map(|p| (p.name.clone(), p))
-            .collect();
-
-        let def_player = players.get(&def_name).expect("Just inserted");
-        let player = Cow::Borrowed(def_player);
-        self.perform_with(&players, Context { player, ..ctx })
-    }
-
-    fn perform_with<'p>(self, players: &'p PlayerMap<P>, ctx: Context<'p, P>) -> Performance {
-        self.perf(players, ctx).0
-    }
 }
 
 impl<P> Performable<AttrNote> for Music<P>
 where
     MusicAttr: From<Self>,
 {
-    fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
-        let def_name = Player::<AttrNote>::fancy().name;
-
-        let players: PlayerMap<_> = [Player::default(), Player::fancy()]
-            .into_iter()
-            .map(|p| (p.name.clone(), p))
-            .collect();
-
-        let def_player = players.get(&def_name).expect("Just inserted");
-        let player = Cow::Borrowed(def_player);
-        self.perform_with(&players, Context { player, ..ctx })
+    fn perform(self) -> Performance {
+        let def_ctx = Context::with_default_player::<DefaultPlayer>();
+        self.perform_with_context(def_ctx)
     }
 
-    fn perform_with<'p>(
-        self,
-        players: &'p PlayerMap<AttrNote>,
-        ctx: Context<'p, AttrNote>,
-    ) -> Performance {
-        MusicAttr::from(self).perf(players, ctx).0
+    fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
+        MusicAttr::from(self).perf(ctx).0
     }
 }
 
-impl<P> Music<P>
-where
-    Player<P>: Default,
-{
-    fn perf<'p>(
-        &self,
-        players: &'p PlayerMap<P>,
-        mut ctx: Context<'p, P>,
-    ) -> (Performance, Duration) {
+impl<P> Music<P> {
+    fn perf<'s, 'ctx>(&'s self, mut ctx: Context<'ctx, P>) -> (Performance, Duration)
+    where
+        's: 'ctx,
+    {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
-                ((ctx.player.play_note.clone())(ctx, *d, p), dur)
+                (ctx.player.clone().play_note((*d, p), ctx), dur)
             }
             Self::Prim(Primitive::Rest(d)) => (
                 Performance::with_events(vec![]),
                 d.into_ratio() * ctx.whole_note,
             ),
             Self::Sequential(m1, m2) => {
-                let (mut p1, d1) = m1.perf(players, ctx.clone());
+                let (mut p1, d1) = m1.perf(ctx.clone());
                 ctx.start_time += d1;
-                let (p2, d2) = m2.perf(players, ctx);
+                let (p2, d2) = m2.perf(ctx);
                 p1.repr.extend(p2.repr);
                 (p1, d1 + d2)
             }
             Self::Parallel(m1, m2) => {
-                let (p1, d1) = m1.perf(players, ctx.clone());
-                let (p2, d2) = m2.perf(players, ctx);
+                let (p1, d1) = m1.perf(ctx.clone());
+                let (p2, d2) = m2.perf(ctx);
                 (
                     Performance::with_events(
                         p1.repr
@@ -158,29 +110,26 @@ where
             }
             Self::Modify(Control::Tempo(t), m) => {
                 ctx.whole_note /= convert_ratio(*t);
-                m.perf(players, ctx)
+                m.perf(ctx)
             }
             Self::Modify(Control::Transpose(p), m) => {
                 ctx.transpose_interval += *p;
-                m.perf(players, ctx)
+                m.perf(ctx)
             }
             Self::Modify(Control::Instrument(i), m) => {
                 ctx.instrument = i.clone();
-                m.perf(players, ctx)
+                m.perf(ctx)
             }
             Self::Modify(Control::Phrase(phrases), m) => {
-                (ctx.player.interpret_phrase.clone())(m, players, ctx, phrases)
+                ctx.player.clone().interpret_phrases(m, phrases, ctx)
             }
             Self::Modify(Control::Player(p), m) => {
-                let player = players
-                    .get(p)
-                    .map_or_else(|| Cow::Owned(Player::default()), Cow::Borrowed);
-                ctx.player = player;
-                m.perf(players, ctx)
+                ctx.player = Cow::Borrowed(p);
+                m.perf(ctx)
             }
             Self::Modify(Control::KeySig(ks), m) => {
                 ctx.key = *ks;
-                m.perf(players, ctx)
+                m.perf(ctx)
             }
         }
     }
@@ -230,14 +179,13 @@ pub type Duration = Ratio<u32>;
 /// as we go through the interpretation.
 pub struct Context<'p, P> {
     start_time: TimePoint,
-    player: Cow<'p, Player<P>>,
+    player: Cow<'p, DynPlayer<P>>,
     instrument: InstrumentName,
     whole_note: Duration,
     transpose_interval: Interval,
     volume: Volume,
     key: KeySig,
 }
-
 impl<P> Clone for Context<'_, P> {
     fn clone(&self) -> Self {
         let Self {
@@ -281,8 +229,6 @@ pub fn metro(setting: u32, note_dur: Dur) -> Duration {
     Ratio::from_integer(60) / (Ratio::from_integer(setting) * note_dur.into_ratio())
 }
 
-type PlayerMap<P> = HashMap<PlayerName, Player<P>>;
-
 impl<'p, P> Context<'p, P> {
     /// Defines the default [`Context`] with the given [`Player`].
     ///
@@ -291,7 +237,7 @@ impl<'p, P> Context<'p, P> {
     ///
     /// The [player][Player] could be changed during performance
     /// for the [`Music`] value itself by using [`Music::with_player`].
-    pub fn with_player(player: Cow<'p, Player<P>>) -> Self {
+    pub fn with_player(player: Cow<'p, DynPlayer<P>>) -> Self {
         Self {
             start_time: TimePoint::from_integer(0),
             player,
@@ -301,6 +247,14 @@ impl<'p, P> Context<'p, P> {
             volume: Volume::loudest(),
             key: KeySig::default(),
         }
+    }
+
+    /// Defines the default [`Context`] with the given type of [`Player`].
+    pub fn with_default_player<Pl>() -> Self
+    where
+        Pl: Player<P> + Default + 'static,
+    {
+        Self::with_player(Cow::Owned(DynPlayer::from_player(Pl::default())))
     }
 
     /// Changes the default tempo for the performance.
@@ -361,8 +315,8 @@ impl<'p, P> Context<'p, P> {
     }
 
     /// Current [`Player`] of the [`Context`].
-    pub fn player(&self) -> &Player<P> {
-        self.player.as_ref()
+    pub fn player(&self) -> &dyn Player<P> {
+        self.player.deref().as_ref()
     }
 
     /// Current instrument of the [`Context`].
@@ -389,18 +343,6 @@ impl<'p, P> Context<'p, P> {
     /// Current tonality of the [`Context`].
     pub const fn key(&self) -> KeySig {
         self.key
-    }
-}
-
-impl<P> Default for Context<'_, P>
-where
-    P: 'static,
-    Player<P>: Default,
-{
-    /// Defines the default [`Context`] with
-    /// the [`fancy`][Player::fancy] player.
-    fn default() -> Self {
-        Self::with_player(Cow::Owned(Player::fancy()))
     }
 }
 

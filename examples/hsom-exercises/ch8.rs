@@ -34,71 +34,78 @@ const fn scale_volume() {
 /// Whether an event falls on a downbeat or upbeat can be determined from
 /// the `start_time` and `duration` of the context.)
 mod jazz_man {
-    use std::sync::Arc;
-
     use num_rational::Ratio;
 
     use musik::{
         music::AttrNote,
-        perf::{interpretations::NoteAttributeHandler as _, Context, Event},
-        Dur, Performance, Player,
+        perf::{Context, DefaultPlayer, Event, EventAnnotator},
+        Dur, Performance, PhraseAttribute, Player,
     };
 
-    pub fn swing_play_note(
-        ctx: Context<AttrNote>,
-        dur: Dur,
-        (note_pitch, attrs): &AttrNote,
-    ) -> Performance {
-        let start_time = ctx.start_time();
-        let instrument = ctx.instrument().clone();
-        let whole_note = ctx.whole_note();
-        let transpose_interval = ctx.transpose_interval();
-        let volume = ctx.volume();
+    #[derive(Debug, Clone, Default)]
+    struct SwingPlayer {
+        default_player: DefaultPlayer,
+    }
 
-        let number_of_beats_since_start = start_time / whole_note;
-        // denom belongs to {1, 2, 4}
-        let is_downbeat = 4 % (*number_of_beats_since_start.denom()) == 0;
-        let is_upbeat = number_of_beats_since_start.denom() == &8;
+    impl Player<AttrNote> for SwingPlayer {
+        fn name(&self) -> &'static str {
+            "Jazz"
+        }
 
-        let (start_time, dur) = {
-            // only for eight notes
-            if dur == Dur::EIGHTH {
-                if is_downbeat {
-                    (start_time, dur * Ratio::new(4, 3))
-                } else if is_upbeat {
-                    let lengthened_on = Ratio::new(1, 24) * ctx.whole_note();
-                    (start_time + lengthened_on, dur * Ratio::new(2, 3))
+        fn play_note(
+            &self,
+            (dur, (note_pitch, attrs)): (Dur, &AttrNote),
+            ctx: Context<'_, AttrNote>,
+        ) -> Performance {
+            let start_time = ctx.start_time();
+            let instrument = ctx.instrument().clone();
+            let whole_note = ctx.whole_note();
+            let transpose_interval = ctx.transpose_interval();
+            let volume = ctx.volume();
+
+            let number_of_beats_since_start = start_time / whole_note;
+            // denom belongs to {1, 2, 4}
+            let is_downbeat = 4 % (*number_of_beats_since_start.denom()) == 0;
+            let is_upbeat = number_of_beats_since_start.denom() == &8;
+
+            let (start_time, dur) = {
+                // only for eight notes
+                if dur == Dur::EIGHTH {
+                    if is_downbeat {
+                        (start_time, dur * Ratio::new(4, 3))
+                    } else if is_upbeat {
+                        let lengthened_on = Ratio::new(1, 24) * ctx.whole_note();
+                        (start_time + lengthened_on, dur * Ratio::new(2, 3))
+                    } else {
+                        (start_time, dur)
+                    }
                 } else {
                     (start_time, dur)
                 }
-            } else {
-                (start_time, dur)
-            }
-        };
+            };
 
-        let init = Event {
-            start_time,
-            instrument,
-            pitch: note_pitch.abs() + transpose_interval,
-            duration: dur.into_ratio() * whole_note,
-            volume,
-            params: vec![],
-        };
+            let init = Event {
+                start_time,
+                instrument,
+                pitch: note_pitch.abs() + transpose_interval,
+                duration: dur.into_ratio() * whole_note,
+                volume,
+                params: vec![],
+            };
 
-        let event = attrs.iter().fold(init, |acc, attr| acc.handle(attr, &ctx));
-        Performance::with_events(vec![event])
-    }
+            let event = attrs.iter().fold(init, |acc, attr| {
+                self.default_player.modify_event_with_attr(acc, attr, &ctx)
+            });
+            Performance::with_events(vec![event])
+        }
 
-    fn get_simple_swing_player() -> Player<AttrNote> {
-        Player::default()
-            .with_name("Jazz")
-            .with_play_note(Arc::new(swing_play_note))
+        fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
+            <DefaultPlayer as Player<AttrNote>>::interpret_phrase(&self.default_player, perf, attr)
+        }
     }
 
     #[cfg(test)]
     mod tests {
-        use std::{borrow::Cow, collections::HashMap};
-
         use ux2::u7;
 
         use musik::{
@@ -118,12 +125,7 @@ mod jazz_man {
             )
             .into();
 
-            let players: HashMap<_, _> = Some(get_simple_swing_player())
-                .into_iter()
-                .map(|p| (p.name.clone(), p))
-                .collect();
-            let ctx = Context::with_player(Cow::Borrowed(players.get("Jazz").unwrap()));
-            let perf = m.perform_with(&players, ctx);
+            let perf = m.with_player(Box::new(SwingPlayer::default())).perform();
 
             assert_eq!(
                 perf.into_events(),
