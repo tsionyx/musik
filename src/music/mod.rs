@@ -43,7 +43,7 @@ pub enum Primitive<P> {
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 /// High-level representation of music.
-pub enum Music<P = Pitch> {
+pub enum Music<P: 'static = Pitch> {
     /// Single atomic building block of music,
     /// usually a [note][Primitive::Note] or a [rest][Primitive::Rest].
     Prim(Primitive<P>),
@@ -101,6 +101,12 @@ pub enum NoteAttribute {
     /// Used for instruments [other than MIDI][crate::instruments::InstrumentName::Custom].
     /// It is up to the instrument designer to decide how these parameters are used.
     Params(Vec<OrderedFloat<f64>>),
+}
+
+impl From<Music> for Music<(Pitch, Volume)> {
+    fn from(value: Music) -> Self {
+        value.map(|pitch| (pitch, Volume::loudest()))
+    }
 }
 
 /// Pitch with Attributes

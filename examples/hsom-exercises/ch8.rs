@@ -125,7 +125,7 @@ mod jazz_man {
             )
             .into();
 
-            let perf = m.with_player(Box::new(SwingPlayer::default())).perform();
+            let perf = m.with_player(SwingPlayer::default()).perform();
 
             assert_eq!(
                 perf.into_events(),

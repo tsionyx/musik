@@ -1,6 +1,7 @@
 //!  Defines default interpreters for the [`Player`]s.
 use std::iter;
 
+use intertrait::{cast_to, castable_to};
 use itertools::Itertools as _;
 use num_rational::Ratio;
 use num_traits::{ops::checked::CheckedSub as _, One as _, Zero as _};
@@ -35,6 +36,7 @@ pub trait EventAnnotator<P, A> {
 /// Most basic interpretation of [Player]'s capabilities.
 pub struct DefaultPlayer {}
 
+#[cast_to]
 impl Player<Pitch> for DefaultPlayer {
     fn name(&self) -> &'static str {
         "Default (Pitch)"
@@ -50,6 +52,7 @@ impl Player<Pitch> for DefaultPlayer {
     }
 }
 
+#[cast_to]
 impl Player<(Pitch, Volume)> for DefaultPlayer {
     fn name(&self) -> &'static str {
         "Default (Pitch + Volume)"
@@ -112,6 +115,8 @@ fn default_interpret_phrase(perf: Performance, attr: &PhraseAttribute) -> Perfor
     }
 }
 
+castable_to!(DefaultPlayer => Player<(Pitch, Vec<NoteAttribute>)>);
+
 impl<A> Player<(Pitch, Vec<A>)> for DefaultPlayer
 where
     Self: EventAnnotator<Pitch, A>,
@@ -165,6 +170,8 @@ impl<P> EventAnnotator<P, NoteAttribute> for DefaultPlayer {
 pub struct FancyPlayer {
     inner: DefaultPlayer,
 }
+
+// TODO: more impls for `FancyPlayer`
 
 impl<A> Player<(Pitch, Vec<A>)> for FancyPlayer
 where

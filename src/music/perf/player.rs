@@ -2,6 +2,8 @@
 use std::{cmp::Ordering, fmt, ops::Deref};
 
 use dyn_clone::{clone_trait_object, DynClone};
+use intertrait::{cast::CastBox as _, CastFrom};
+use log::{info, warn};
 
 use crate::{
     music::{combinators::MapToOther, phrase::PhraseAttribute, Music},
@@ -12,7 +14,14 @@ use super::{Context, Duration, Performance};
 
 /// Defines the ways to interpret different parts of [`Music`]
 /// to produce the [`Performance`].
-pub trait Player<P>: DynClone {
+///
+/// # Warning
+/// When implementing many versions of this trait
+/// for a particular struct, do not forget to provide
+/// ways to cast between various `dyn Player<T>` -> `dyn Player<U>`
+/// using [`intertrait::cast_to`] or [`intertrait::castable_to`] for the target `impl Player<U>`
+/// (see [interpretations](../interpretations.rs) for examples).
+pub trait Player<P>: DynClone + CastFrom {
     /// Distinguish player struct from other implementations.
     fn name(&self) -> &'static str;
 
@@ -69,7 +78,7 @@ impl<P> Deref for DynPlayer<P> {
     }
 }
 
-impl<P> fmt::Debug for DynPlayer<P> {
+impl<P: 'static> fmt::Debug for DynPlayer<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DynPlayer")
             .field("name", &self.inner.name())
@@ -86,32 +95,46 @@ impl<P> Clone for DynPlayer<P> {
     }
 }
 
-impl<P> PartialEq for DynPlayer<P> {
+impl<P: 'static> PartialEq for DynPlayer<P> {
     fn eq(&self, other: &Self) -> bool {
         self.inner.name() == other.inner.name()
     }
 }
 
-impl<P> Eq for DynPlayer<P> {}
+impl<P: 'static> Eq for DynPlayer<P> {}
 
-impl<P> PartialOrd for DynPlayer<P> {
+impl<P: 'static> PartialOrd for DynPlayer<P> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<P> Ord for DynPlayer<P> {
+impl<P: 'static> Ord for DynPlayer<P> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.inner.name().cmp(other.inner.name())
     }
 }
 
-impl<T, U> MapToOther<DynPlayer<U>> for DynPlayer<T> {
-    /// TODO: implement some logic here,
-    ///  otherwise the annotation [`Control::Player`][super::Control::Player]
-    ///  does nothing when converted (e.g. during [`Music::map`]).
+impl<T: 'static, U: 'static> MapToOther<DynPlayer<U>> for DynPlayer<T> {
     fn into_other(self) -> Option<DynPlayer<U>> {
-        None
+        self.inner
+            .cast::<dyn Player<U>>()
+            .map(|inner| {
+                info!(
+                    "Successfully casted `dyn Player<{}>` to `dyn Player<{}>`",
+                    std::any::type_name::<T>(),
+                    std::any::type_name::<U>(),
+                );
+                DynPlayer { inner }
+            })
+            .map_err(|_| {
+                warn!(
+                    "Cannot cast `dyn Player<{}>` to `dyn Player<{}>`",
+                    std::any::type_name::<T>(),
+                    std::any::type_name::<U>(),
+                );
+            })
+            .ok()
     }
 }
 
@@ -119,15 +142,56 @@ impl<T, U> MapToOther<DynPlayer<U>> for DynPlayer<T> {
 mod tests {
     use super::*;
 
-    use crate::{perf::DefaultPlayer, Octave, Performable as _, Pitch, PitchClass};
+    use crate::{
+        music::{Control, MusicAttr},
+        perf::DefaultPlayer,
+        Octave, Pitch, PitchClass, Volume,
+    };
 
     #[test]
-    fn convert_player() {
+    fn convert_player_to_volume() {
         let tonic = Pitch::new(PitchClass::C, Octave::OneLined);
         let scale: Vec<_> = tonic.major_scale().collect();
-        let perf = Music::with_dur(scale, Dur::QUARTER)
+        let m = Music::with_dur(scale, Dur::QUARTER).with_player(DefaultPlayer::default());
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch)")
+        );
+
+        let m: Music<(Pitch, Volume)> = m.into();
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch + Volume)")
+        );
+    }
+
+    #[test]
+    fn convert_player_to_attributes() {
+        let tonic = Pitch::new(PitchClass::C, Octave::OneLined);
+        let scale: Vec<_> = tonic.major_scale().collect();
+        let m = Music::with_dur(scale, Dur::QUARTER).with_player(DefaultPlayer::default());
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch)")
+        );
+
+        let m = MusicAttr::from(m);
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch with attributes)")
+        );
+    }
+
+    #[test]
+    fn convert_player_to_volume_then_to_attributes() {
+        let tonic = Pitch::new(PitchClass::C, Octave::OneLined);
+        let scale: Vec<_> = tonic.major_scale().collect();
+        let m: Music<(Pitch, Volume)> = Music::with_dur(scale, Dur::QUARTER)
             .with_player(DefaultPlayer::default())
-            .perform();
-        assert!(!perf.into_events().is_empty());
+            .into();
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch + Volume)")
+        );
+
+        let m = MusicAttr::from(m);
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch with attributes)")
+        );
     }
 }

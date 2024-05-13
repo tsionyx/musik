@@ -14,7 +14,7 @@ use super::{
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 /// A set of modifiers to change the [`Music`]'s performance.
-pub enum Control<P> {
+pub enum Control<P: 'static> {
     /// Scale the tempo.
     Tempo(Ratio<u8>),
 
