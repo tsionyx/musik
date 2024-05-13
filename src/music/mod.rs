@@ -43,7 +43,7 @@ pub enum Primitive<P> {
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 /// High-level representation of music.
-pub enum Music<P = Pitch> {
+pub enum Music<P: 'static = Pitch> {
     /// Single atomic building block of music,
     /// usually a [note][Primitive::Note] or a [rest][Primitive::Rest].
     Prim(Primitive<P>),

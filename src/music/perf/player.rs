@@ -2,6 +2,8 @@
 use std::{cmp::Ordering, fmt, ops::Deref};
 
 use dyn_clone::{clone_trait_object, DynClone};
+use intertrait::{cast::CastBox as _, CastFrom};
+use log::{info, warn};
 
 use crate::{
     music::{combinators::MapToOther, phrase::PhraseAttribute, Music},
@@ -12,7 +14,13 @@ use super::{Context, Duration, Performance};
 
 /// Defines the ways to interpret different parts of [`Music`]
 /// to produce the [`Performance`].
-pub trait Player<P>: DynClone {
+///
+/// # Warning
+/// When implementing many versions of this trait
+/// for a particular struct, do not forget to provide
+/// ways to cast between various `dyn Player<T>` -> `dyn Player<U>`
+/// using [`intertrait::cast_to`] or [`intertrait::castable_to`].
+pub trait Player<P>: DynClone + CastFrom {
     /// Distinguish player struct from other implementations.
     fn name(&self) -> &'static str;
 
@@ -69,7 +77,7 @@ impl<P> Deref for DynPlayer<P> {
     }
 }
 
-impl<P> fmt::Debug for DynPlayer<P> {
+impl<P: 'static> fmt::Debug for DynPlayer<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DynPlayer")
             .field("name", &self.inner.name())
@@ -86,32 +94,49 @@ impl<P> Clone for DynPlayer<P> {
     }
 }
 
-impl<P> PartialEq for DynPlayer<P> {
+impl<P: 'static> PartialEq for DynPlayer<P> {
     fn eq(&self, other: &Self) -> bool {
         self.inner.name() == other.inner.name()
     }
 }
 
-impl<P> Eq for DynPlayer<P> {}
+impl<P: 'static> Eq for DynPlayer<P> {}
 
-impl<P> PartialOrd for DynPlayer<P> {
+impl<P: 'static> PartialOrd for DynPlayer<P> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<P> Ord for DynPlayer<P> {
+impl<P: 'static> Ord for DynPlayer<P> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.inner.name().cmp(other.inner.name())
     }
 }
 
-impl<T, U> MapToOther<DynPlayer<U>> for DynPlayer<T> {
+impl<T: 'static, U: 'static> MapToOther<DynPlayer<U>> for DynPlayer<T> {
     /// TODO: implement some logic here,
     ///  otherwise the annotation [`Control::Player`][super::Control::Player]
     ///  does nothing when converted (e.g. during [`Music::map`]).
     fn into_other(self) -> Option<DynPlayer<U>> {
-        None
+        self.inner
+            .cast::<dyn Player<U>>()
+            .map(|inner| {
+                info!(
+                    "Successfully casted `dyn Player<{}>` to `dyn Player<{}>`",
+                    std::any::type_name::<T>(),
+                    std::any::type_name::<U>(),
+                );
+                DynPlayer { inner }
+            })
+            .map_err(|_| {
+                warn!(
+                    "Cannot cast `dyn Player<{}>` to `dyn Player<{}>`",
+                    std::any::type_name::<T>(),
+                    std::any::type_name::<U>(),
+                );
+            })
+            .ok()
     }
 }
 

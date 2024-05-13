@@ -3,6 +3,7 @@
 use std::{borrow::Cow, ops::Deref};
 
 use itertools::Itertools as _;
+use log::info;
 use num_rational::Ratio;
 use ordered_float::OrderedFloat;
 
@@ -73,7 +74,7 @@ where
     }
 }
 
-impl<P> Music<P> {
+impl<P: 'static> Music<P> {
     fn perf<'s, 'ctx>(&'s self, mut ctx: Context<'ctx, P>) -> (Performance, Duration)
     where
         's: 'ctx,
@@ -124,6 +125,7 @@ impl<P> Music<P> {
                 ctx.player.clone().interpret_phrases(m, phrases, ctx)
             }
             Self::Modify(Control::Player(p), m) => {
+                info!("Overwriting player during `perform`: {}", p.name());
                 ctx.player = Cow::Borrowed(p);
                 m.perf(ctx)
             }
@@ -177,7 +179,7 @@ pub type Duration = Ratio<u32>;
 #[derive(Debug)]
 /// The state of the [`Performance`] that changes
 /// as we go through the interpretation.
-pub struct Context<'p, P> {
+pub struct Context<'p, P: 'static> {
     start_time: TimePoint,
     player: Cow<'p, DynPlayer<P>>,
     instrument: InstrumentName,
@@ -186,7 +188,8 @@ pub struct Context<'p, P> {
     volume: Volume,
     key: KeySig,
 }
-impl<P> Clone for Context<'_, P> {
+
+impl<P: 'static> Clone for Context<'_, P> {
     fn clone(&self) -> Self {
         let Self {
             start_time,
@@ -229,7 +232,7 @@ pub fn metro(setting: u32, note_dur: Dur) -> Duration {
     Ratio::from_integer(60) / (Ratio::from_integer(setting) * note_dur.into_ratio())
 }
 
-impl<'p, P> Context<'p, P> {
+impl<'p, P: 'static> Context<'p, P> {
     /// Defines the default [`Context`] with the given [`Player`].
     ///
     /// All the other fields could be changed using
