@@ -9,7 +9,7 @@ use crate::{instruments::InstrumentName, music::perf::Performance};
 
 pub use self::instruments::{Instrument, PercussionSound};
 #[cfg(feature = "play-midi")]
-pub use self::player::MidiPlayer;
+pub use self::player::{Config as MidiPlayerConfig, MidiPlayer};
 
 mod convert;
 pub(crate) mod instruments;
