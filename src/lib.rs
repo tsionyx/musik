@@ -69,6 +69,7 @@ pub use self::{
     output::midi,
     prim::{
         duration::Dur,
+        helpers::{self, pitch_class::accidentals},
         interval::{ErrorOctaveTryFromNum, Interval, Octave},
         pitch::{AbsPitch, ErrorPitchClipping, Pitch, PitchClass},
         scale::KeySig,

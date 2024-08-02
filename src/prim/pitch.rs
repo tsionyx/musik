@@ -154,7 +154,7 @@ macro_rules! def_pitch_constructor {
 impl Pitch {
     /// Create a new [`Pitch`].
     ///
-    /// TODO: macro-based constructors in the form C4, Fb3, D#2.
+    ///  TODO: macro-based constructors in the form C4, Fb3, D#2.
     pub const fn new(class: PitchClass, octave: Octave) -> Self {
         Self { class, octave }
     }
