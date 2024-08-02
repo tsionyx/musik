@@ -517,18 +517,18 @@ mod crazy_recursion {
 
 /// Exercise 6.12
 /// 1. Define a function `to_intervals` that takes a list of N numbers,
-/// and generates a list of N lists, such that the i-th list is
-/// the sequence of differences between the adjacent items of the previous sequence.
+///    and generates a list of N lists, such that the i-th list is
+///    the sequence of differences between the adjacent items of the previous sequence.
 /// 2. Define a function `get_heads` that takes a list of N lists
-/// and returns a list of N numbers such that the i-th element
-/// is the head of the i-th list.
+///    and returns a list of N numbers such that the i-th element
+///    is the head of the i-th list.
 /// 3. Compose the above two functions in a suitable way
-/// to define a function `interval_closure` that takes an N-element list
-/// and returns its interval closure.
+///    to define a function `interval_closure` that takes an N-element list
+///    and returns its interval closure.
 /// 4. Define a function `interval_closures` that takes an N-element list
-/// and returns an infinite sequence of interval closures.
+///    and returns an infinite sequence of interval closures.
 /// 5. Now for the open-ended part of this exercise:  // TODO and play
-/// Interpret the outputs of any of the functions above to create some “interesting” music.
+///    Interpret the outputs of any of the functions above to create some “interesting” music.
 mod intervals {
     fn adjacent_diff<T: Copy + std::ops::Sub<Output = T>>(numbers: &[T]) -> Vec<T> {
         numbers

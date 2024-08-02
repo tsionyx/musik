@@ -20,7 +20,6 @@
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(non_ascii_idents)]
-#![warn(pointer_structural_match)]
 #![warn(rust_2021_incompatible_closure_captures)]
 #![warn(rust_2021_incompatible_or_patterns)]
 #![warn(rust_2021_prefixes_incompatible_syntax)]
