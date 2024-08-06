@@ -1,5 +1,4 @@
 - improve ergonomics
-  - mandatory doc comments
   - remove some functions (like roll or trill) in favor of PhraseAttributes
   - pub everything that can be used
 

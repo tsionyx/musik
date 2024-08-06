@@ -41,7 +41,6 @@ macro_rules! dur {
     };
 }
 
-#[allow(missing_docs)]
 impl Dur {
     const fn from_integer(i: u8) -> Self {
         Self(i, 1)
@@ -55,6 +54,8 @@ impl Dur {
         Self(num, denom)
     }
 
+    /// Convert a [`Dur`] into a [`Ratio`]
+    /// of any type `T` that can be constructed from `u8`.
     pub fn into_ratio<T>(self) -> Ratio<T>
     where
         T: From<u8> + Clone + num_integer::Integer,
@@ -129,17 +130,32 @@ impl Dur {
     // and double dotted on a half plus a quarter of its duration
     // See more: <https://en.wikipedia.org/wiki/Dotted_note>
 
+    /// [BREVIS][Self::BREVIS] lengthened by 50% (multiplied by 3/2) to make `Dur(3)`.
     pub const DOTTED_BREVIS: Self = Self::from_integer(3);
+    /// [WHOLE][Self::WHOLE] lengthened by 50% (multiplied by 3/2) to make `Dur(3/2)`.
     pub const DOTTED_WHOLE: Self = Self::new(3, 2);
+    /// [HALF][Self::HALF] lengthened by 50% (multiplied by 3/2) to make `Dur(3/4)`.
     pub const DOTTED_HALF: Self = Self::new(3, 4);
+    /// [QUARTER][Self::QUARTER] lengthened by 50% (multiplied by 3/2) to make `Dur(3/8)`.
     pub const DOTTED_QUARTER: Self = Self::new(3, 8);
+    /// [EIGHTH][Self::EIGHTH] lengthened by 50% (multiplied by 3/2) to make `Dur(3/16)`.
     pub const DOTTED_EIGHTH: Self = Self::new(3, 16);
+    /// [SIXTEENTH][Self::SIXTEENTH] lengthened by 50% (multiplied by 3/2) to make `Dur(3/32)`.
     pub const DOTTED_SIXTEENTH: Self = Self::new(3, 32);
+    /// [THIRTY_SECOND][Self::THIRTY_SECOND] lengthened by 50% (multiplied by 3/2) to make `Dur(3/64)`.
     pub const DOTTED_THIRTY_SECOND: Self = Self::new(3, 64);
 
+    /// [WHOLE][Self::WHOLE] lengthened by 50% twice
+    /// (a half and a quarter, which is equivalent to multiplying by 7/4) to make `Dur(7/4)`.
     pub const DOUBLE_DOTTED_WHOLE: Self = Self::new(7, 4);
+    /// [HALF][Self::HALF] lengthened by 50% twice
+    /// (a half and a quarter, which is equivalent to multiplying by 7/4) to make `Dur(7/8)`.
     pub const DOUBLE_DOTTED_HALF: Self = Self::new(7, 8);
+    /// [QUARTER][Self::QUARTER] lengthened by 50% twice
+    /// (a half and a quarter, which is equivalent to multiplying by 7/4) to make `Dur(7/16)`.
     pub const DOUBLE_DOTTED_QUARTER: Self = Self::new(7, 16);
+    /// [EIGHTH][Self::EIGHTH] lengthened by 50% twice
+    /// (a half and a quarter, which is equivalent to multiplying by 7/4) to make `Dur(7/32)`.
     pub const DOUBLE_DOTTED_EIGHTH: Self = Self::new(7, 32);
 
     /// Get the [`Dur`] corresponding to `1/fraction` of note size.
