@@ -4,10 +4,9 @@ use num_rational::Ratio;
 
 use musik::{
     attributes::TrillOptions,
-    instruments::InstrumentName,
     midi::{Instrument, PercussionSound},
     music::{rests, Primitive},
-    Dur, Interval, Music, Octave, Pitch, Temporal as _, Volume,
+    Dur, InstrumentName, Interval, Music, Octave, Pitch, Temporal as _, Volume,
 };
 
 #[allow(dead_code)]

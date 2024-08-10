@@ -55,12 +55,13 @@
 #![cfg_attr(not(test), warn(clippy::unwrap_used))]
 // #![warn(clippy::expect_used)]
 
-pub mod instruments;
+mod instruments;
 pub mod music;
 mod output;
 mod prim;
 
 pub use self::{
+    instruments::InstrumentName,
     music::{
         perf::{self, metro, Performable, Performance, Player},
         phrase::{self as attributes, PhraseAttribute},

@@ -11,7 +11,6 @@ mod combinators;
 mod constructors;
 mod control;
 mod iter_like;
-mod r#macro;
 mod ops;
 mod ornaments;
 pub mod perf;
