@@ -1,5 +1,8 @@
 //! Musical theory and audio signals concepts expressed in Rust
 
+// TODO: move to Cargo.toml's [lints] when on >=1.74
+//  https://doc.rust-lang.org/nightly/cargo/reference/manifest.html#the-lints-section
+
 // do not warn on older Rust versions
 #![allow(unknown_lints)]
 //

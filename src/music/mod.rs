@@ -59,6 +59,8 @@ pub enum Music<P: 'static = Pitch> {
     /// usually a [note][Primitive::Note] or a [rest][Primitive::Rest].
     Prim(Primitive<P>),
 
+    // TODO: made iterator-based version of Sequential
+    //  to allow playing infinite music
     /// Sequentially composed two pieces.
     /// Could be combined to create arbitrarily
     /// long series resembling a complex linked list.
