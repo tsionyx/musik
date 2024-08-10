@@ -1,7 +1,5 @@
 use musik::{AbsPitch, Dur, Music};
 
-use crate::compose;
-
 // twice:: (a->a) -> (a->a)
 fn twice<T>(f: impl Fn(T) -> T) -> impl Fn(T) -> T {
     move |x| f(f(x))
@@ -17,6 +15,23 @@ fn twice_test() {
 
     let f = |x| x * x + 5;
     assert_eq!(twice(f)(1), 6 * 6 + 5);
+}
+
+pub(super) fn compose<T, U, V, F, G>(f: F, g: G) -> impl Fn(T) -> V
+where
+    F: Fn(T) -> U,
+    G: Fn(U) -> V,
+{
+    move |x| g(f(x))
+}
+
+#[test]
+fn compose_test() {
+    let duplicate = |v: Vec<_>| v.clone().into_iter().chain(v).collect();
+    let size = |v: Vec<_>| v.len();
+
+    let size_of_duplicated = compose(duplicate, size);
+    assert_eq!(size_of_duplicated(vec![1, 2, 3, 4]), 8);
 }
 
 fn twice_using_compose<T>(f: impl Fn(T) -> T + Clone) -> impl Fn(T) -> T {

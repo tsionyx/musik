@@ -6,7 +6,7 @@ use musik::Octave;
 use musik::{music::Primitive, Dur, Interval, Music, Pitch};
 
 #[cfg(test)]
-use super::simple;
+use super::ch1::simple;
 
 /// Exercise 3.1.1
 /// Transposes each pitch by the amount specified.

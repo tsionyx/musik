@@ -1,5 +1,10 @@
-#[cfg(test)]
-use super::simple;
+pub(super) fn simple<A, B, C, D, E>(x: A, y: B, z: C) -> E
+where
+    A: std::ops::Mul<D, Output = E>,
+    B: std::ops::Add<C, Output = D>,
+{
+    x * (y + z)
+}
 
 /// Exercise 1.1 Write out all of the steps in the calculation of the value of
 /// simple (simple 2 3 4) 5 6

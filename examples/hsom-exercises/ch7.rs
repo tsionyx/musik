@@ -256,7 +256,7 @@ mod tests {
 
     use musik::{Interval, Octave, Pitch, PitchClass};
 
-    use crate::compose;
+    use crate::ch5::compose;
 
     use super::*;
 
