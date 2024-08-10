@@ -8,6 +8,7 @@ use musik::{music::Primitive, Dur, Interval, Music, Pitch};
 #[cfg(test)]
 use super::ch1::simple;
 
+#[cfg(test)]
 /// Exercise 3.1.1
 /// Transposes each pitch by the amount specified.
 fn f1(pitches: &[Pitch], delta: Interval) -> Vec<Pitch> {
@@ -29,6 +30,7 @@ fn test_trans_map() {
     );
 }
 
+#[cfg(test)]
 /// Exercise 3.1.2
 /// Turns a list of durations into a list of rests, each having the corresponding duration.
 fn f2(durations: &[Dur]) -> Vec<Music> {
@@ -53,7 +55,7 @@ fn test_durations_map() {
 /// Given a list of `Music` values (that are assumed to be single notes),
 /// for each such note, halves its duration and places
 /// a rest of that same duration after it.
-fn staccato(musics: Vec<Music>) -> Vec<Music> {
+pub fn staccato<P>(musics: Vec<Music<P>>) -> Vec<Music<P>> {
     musics
         .into_iter()
         .map(|music| {
@@ -96,6 +98,7 @@ fn test_staccato() {
     );
 }
 
+#[cfg(test)]
 fn flip<A, B, C, F>(f: F) -> impl Fn(B, A) -> C
 where
     F: Fn(A, B) -> C,
@@ -113,6 +116,7 @@ fn test_flip() {
     assert_eq!(flip(flip(f))(5, -100), -195);
 }
 
+#[cfg(test)]
 fn partially_applied<T, U, V, F>(f: F, xs: Vec<T>) -> impl Iterator<Item = Box<dyn FnOnce(U) -> V>>
 where
     F: FnOnce(T, U) -> V + Copy + 'static,
@@ -122,6 +126,7 @@ where
         .map(move |x| Box::new(move |y: U| f(x, y)) as Box<dyn FnOnce(U) -> V>)
 }
 
+#[cfg(test)]
 /// Exercise 3.3
 /// What is the type of ys in:
 /// xs = [1, 2, 3] :: [Integer ]
@@ -138,6 +143,7 @@ fn partially_applied_test() {
     }
 }
 
+#[cfg(test)]
 fn apply_each<F, T, U>(fs: Vec<Box<F>>, x: T) -> impl Iterator<Item = U>
 where
     F: Fn(T) -> U + ?Sized,
@@ -157,6 +163,7 @@ fn apply_each_test() {
     assert_eq!(apply_each(fs, 5).collect::<Vec<_>>(), vec![14, 8]);
 }
 
+#[cfg(test)]
 fn apply_all<F, T>(fs: Vec<Box<F>>, v: T) -> T
 where
     F: Fn(T) -> T + ?Sized,
@@ -183,6 +190,7 @@ fn apply_all_test() {
     assert_eq!(apply_all(fs, 5), 17);
 }
 
+#[cfg(test)]
 /// Sum two lists together.
 /// The complexity of this is the size of the first list.
 fn sum_vec<T>(v1: Vec<T>, v2: Vec<T>) -> Vec<T> {
@@ -200,6 +208,7 @@ fn test_sum() {
     );
 }
 
+#[cfg(test)]
 mod append {
     //! Exercise 3.6
     //! Recall the discussion about the efficiency of (++) and concat in Chapter 3.
@@ -307,6 +316,7 @@ mod append {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.7 Rewrite the definition of length non-recursively
 fn len<T>(xs: &[T]) -> usize {
     xs.iter().fold(0, |acc, _| acc + 1)
@@ -318,6 +328,7 @@ fn test_length() {
     assert_eq!(len(x), 4);
 }
 
+#[cfg(test)]
 mod map_examples {
     //! Exercise 3.8
 
@@ -377,6 +388,7 @@ mod map_examples {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.9
 /// Combines a list of durations with a list of notes
 /// lacking a duration, to create a list of complete notes.
@@ -411,6 +423,7 @@ fn test_fuse() {
     );
 }
 
+#[cfg(test)]
 mod max_min_pitches {
     //! Exercise 3.10
 
@@ -532,7 +545,7 @@ mod max_min_pitches {
     }
 }
 
-mod chromatic {
+pub mod chromatic {
     //! Exercise 3.11
     //! Define a function chrom :: Pitch → Pitch → Music Pitch
     //! such that chrom p1 p2 is a chromatic scale of quarter-notes whose first pitch
@@ -545,7 +558,7 @@ mod chromatic {
 
     use super::*;
 
-    fn chrom(p1: Pitch, p2: Pitch) -> Music {
+    pub fn chrom(p1: Pitch, p2: Pitch) -> Music {
         let interval = p2.abs() - p1.abs();
         let current_note = Music::note(Dur::QUARTER, p1);
 
@@ -589,6 +602,7 @@ mod chromatic {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.12 Abstractly, a scale can be described by the intervals between
 /// successive notes. For example, the 7-note major scale can be defined as the
 /// sequence of 6 intervals [2, 2, 1, 2, 2, 2], and the 12-note chromatic scale by the
@@ -628,6 +642,7 @@ fn test_mk_scale_at_7_major() {
     );
 }
 
+#[cfg(test)]
 mod major_scale {
     //! Exercise 3.13
     //! Define an enumerated data type that captures each of the
@@ -810,7 +825,7 @@ mod major_scale {
     }
 }
 
-mod brother_john {
+pub mod brother_john {
     //! Exercise 3.14
     //! Write the melody of “Frère Jacques” (or, “Are You Sleeping”) in Euterpea.
     //! Try to make it as succinct as possible. Then, using functions already defined,
@@ -883,7 +898,7 @@ mod brother_john {
     }
 
     /// `https://en.wikipedia.org/wiki/Fr%C3%A8re_Jacques`
-    fn frere_jacques_four_part_round() -> Music {
+    pub fn frere_jacques_four_part_round() -> Music {
         make_round(
             &frere_jacques_one_voice(),
             vec![
@@ -897,6 +912,7 @@ mod brother_john {
     }
 }
 
+#[cfg(test)]
 mod freddie_the_frog {
     //! Exercise 3.15
     //! Freddie the Frog wants to communicate privately with his girlfriend Francine

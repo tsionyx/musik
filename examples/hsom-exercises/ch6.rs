@@ -10,6 +10,7 @@ use musik::{
     Dur, Interval, Music, Octave, Pitch, Temporal as _, Volume,
 };
 
+#[allow(dead_code)]
 type M = Music;
 
 /// Exercise 6.1
@@ -85,6 +86,7 @@ mod retro_invert {
     }
 }
 
+#[allow(dead_code)]
 /// Exercise 6.2
 /// Define a function `properRow :: Music Pitch -> Bool`
 /// that determines whether or not its argument is a “proper” twelve-tone row,
@@ -123,6 +125,7 @@ fn is_proper_row(m: Music) -> bool {
     uniq.len() == tones.len()
 }
 
+#[allow(dead_code)]
 /// Exercise 6.3
 /// Define a function `palin :: Music Pitch -> Bool`
 /// that determines whether or not a given line
@@ -149,6 +152,7 @@ fn is_palindrome(m: Music) -> bool {
     abs_pitches.iter().copied().rev().collect::<Vec<_>>() == abs_pitches
 }
 
+#[allow(dead_code)]
 /// Exercise 6.4
 /// Define a function `retroPitches :: Music Pitch -> Music Pitch`
 /// that reverses the pitches in a line, but maintains
@@ -221,10 +225,7 @@ mod tests {
     }
 }
 
-// TODO: play me
-fn stars_and_stripes() -> Music {
-    type M = Music;
-
+pub fn stars_and_stripes() -> Music {
     let oc5 = Octave::TwoLined;
     let oc6 = Octave::ThreeLined;
     let oc7 = Octave::FourLined;
@@ -271,6 +272,7 @@ fn stars_and_stripes() -> Music {
 mod ornamentations {
     use super::*;
 
+    #[allow(dead_code)]
     fn mordent(music: Music, upper: bool) -> Result<Music, String> {
         if let Music::Prim(Primitive::Note(d, p)) = music {
             let other = if upper {
@@ -289,6 +291,7 @@ mod ornamentations {
         }
     }
 
+    #[allow(dead_code)]
     fn turn(music: Music, upper: bool) -> Result<Music, String> {
         if let Music::Prim(Primitive::Note(d, p)) = music {
             let other = if upper {
@@ -308,8 +311,7 @@ mod ornamentations {
     }
 }
 
-// TODO: play me
-fn funk_groove() -> Music {
+pub fn funk_groove() -> Music {
     let p1 = PercussionSound::LowTom.note(Dur::QUARTER);
     let p2 = PercussionSound::AcousticSnare.note(Dur::EIGHTH);
     let m1 = Music::line(vec![
@@ -339,13 +341,14 @@ fn funk_groove() -> Music {
 /// Exercise 6.7
 /// Write a program that generates all of the General MIDI
 /// percussion sounds, playing through each of them one at a time.
-fn sequence_all_percussions() -> Music {
+pub fn sequence_all_percussions() -> Music {
     let dur = Dur::QUARTER;
     Music::line(
         enum_iterator::all::<PercussionSound>()
             .map(|s| s.note(dur))
             .collect(),
     )
+    .with_instrument(InstrumentName::Percussion)
 }
 
 // TODO: Exercise 6.8
@@ -366,10 +369,7 @@ pub fn drum_pattern() -> Music {
         .with_tempo(Ratio::new(4, 3))
 }
 
-// TODO: play me
-fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
-    type M = Music;
-
+pub fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
     let oc4 = Octave::OneLined;
     Music::line(vec![
         M::C(oc4, Dur::QUARTER),
@@ -380,6 +380,7 @@ fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
     .with_volume(vol)
 }
 
+#[allow(dead_code)]
 /// Exercise 6.9
 /// Using mMap, define a function that
 /// scales the volume of each note in `m` by the factor `s`.
@@ -390,9 +391,10 @@ fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume
     })
 }
 
+#[allow(dead_code)]
 /// Exercise 6.10
 /// Redefine `revM` from Section 6.6 using `mFold`.
-pub fn rev<P>(m: Music<P>) -> Music<P> {
+fn rev<P>(m: Music<P>) -> Music<P> {
     m.fold(
         Music::Prim,
         |m1, m2| m2 + m1,
@@ -419,9 +421,10 @@ pub fn rev<P>(m: Music<P>) -> Music<P> {
 /// - find a value `Music<Pitch>` such that
 ///   `m + inside_out(m) + m` sounds interesting.
 ///   (You are free to define what “sounds interesting” means.)
-mod inside_out {
+pub mod inside_out {
     use super::*;
 
+    #[allow(dead_code)]
     fn inside_out(m: Music) -> Music {
         m.fold(
             Music::Prim,
@@ -443,7 +446,7 @@ mod inside_out {
     /// voice1     C4        -         D4
     /// voice2     -         -         D4
     /// voice3     D4        D4        E4
-    fn example() -> Music {
+    pub fn example() -> Music {
         let oc4 = Octave::OneLined;
         Music::line(vec![
             Music::C(oc4, Dur::QUARTER),
@@ -461,7 +464,7 @@ mod inside_out {
     }
 }
 
-mod crazy_recursion {
+pub mod crazy_recursion {
     use super::*;
 
     fn rep<P, F, G>(m: Music<P>, f: F, g: G, n: usize) -> Music<P>
@@ -477,8 +480,7 @@ mod crazy_recursion {
         m.clone() | g.clone()(rep(f(m), f, g, n - 1))
     }
 
-    // TODO: play me
-    fn example1() -> Music {
+    pub fn example1() -> Music {
         let oc4 = Octave::OneLined;
         let run = rep(
             Music::C(oc4, Dur::THIRTY_SECOND),
@@ -496,7 +498,7 @@ mod crazy_recursion {
         cascades.clone() + cascades.reverse()
     }
 
-    fn example2() -> Music {
+    pub fn example2() -> Music {
         let oc4 = Octave::OneLined;
         let run = rep(
             Music::C(oc4, Dur::THIRTY_SECOND),
@@ -557,6 +559,7 @@ mod intervals {
             .collect()
     }
 
+    #[allow(dead_code)]
     fn interval_closures<T: Copy + std::ops::Sub<Output = T>>(
         numbers: Vec<T>,
     ) -> impl Iterator<Item = Vec<T>> {
@@ -604,7 +607,7 @@ mod intervals {
 ///
 /// Try to parameterize things in such a way that, for example,
 /// with a simple change, you could generate an infinite _ascension_ as well.
-mod shepard_scale {
+pub mod shepard_scale {
     use std::iter;
 
     use musik::{midi::Instrument, AbsPitch, Dur, Interval, Music, Octave, Pitch, Volume};
@@ -706,7 +709,7 @@ mod shepard_scale {
         }
     }
 
-    fn music(delta: Interval, lines: &[(Instrument, u16)]) -> Music<(Pitch, Volume)> {
+    pub fn music(delta: Interval, lines: &[(Instrument, u16)]) -> Music<(Pitch, Volume)> {
         Music::chord(
             lines
                 .iter()
@@ -724,32 +727,5 @@ mod shepard_scale {
                 })
                 .collect(),
         )
-    }
-
-    #[test]
-    fn test_save() {
-        use musik::{midi::Instrument::*, Performable as _};
-
-        let m = music(
-            -Interval::semi_tone(),
-            &[
-                (AcousticGrandPiano, 2323),
-                (ElectricGuitarClean, 9940),
-                (Flute, 7899),
-                (Cello, 15000),
-            ],
-        );
-        m.perform().save_to_file("desc.mid").unwrap();
-
-        let m = music(
-            Interval::semi_tone(),
-            &[
-                (AcousticGrandPiano, 18774),
-                (ElectricGuitarClean, 33300),
-                (Flute, 19231),
-                (Cello, 99),
-            ],
-        );
-        m.perform().save_to_file("asc.mid").unwrap();
     }
 }

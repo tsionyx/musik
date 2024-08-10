@@ -6,7 +6,7 @@ type M = Music;
 type P = Pitch;
 
 /// Excerpt from Chick Corea’s Children’s Songs No. 6
-fn child_song_6() -> Music {
+pub fn child_song_6() -> Music {
     let oc3 = Octave::Small;
     let oc4 = Octave::OneLined;
 
@@ -188,7 +188,7 @@ fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
     m.clone() + m.clone().with_transpose(5.into()) + m
 }
 
-fn prefixed_mel_1() -> Music {
+pub fn prefixed_mel_1() -> Music {
     let oc4 = Octave::OneLined;
     let oc5 = Octave::TwoLined;
     prefix(vec![
@@ -204,7 +204,7 @@ fn prefixed_mel_1() -> Music {
     ])
 }
 
-fn prefixed_mel_2() -> Music {
+pub fn prefixed_mel_2() -> Music {
     let oc4 = Octave::OneLined;
     let oc5 = Octave::TwoLined;
     prefix(vec![

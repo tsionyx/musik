@@ -1,3 +1,4 @@
+#[cfg(test)]
 pub(super) fn simple<A, B, C, D, E>(x: A, y: B, z: C) -> E
 where
     A: std::ops::Mul<D, Output = E>,
@@ -43,7 +44,7 @@ fn type_me() {
     let _: Vec<&str> = vec!["I", "love", "Euterpea"];
 }
 
-mod harmonic {
+pub mod harmonic {
     //! Exercise 1.4 Modify the definitions of hNote and hList so that they each
     //! take an extra argument that specifies the interval of harmonization (rather
     //! than being fixed at -3). Rewrite the definition of mel to take these changes
@@ -60,7 +61,7 @@ mod harmonic {
         })
     }
 
-    fn mel(pitches: [Pitch; 3]) -> Music {
+    pub fn mel(pitches: [Pitch; 3]) -> Music {
         harmonic_list(Dur::QUARTER, &pitches, Interval::from(-3))
     }
 }

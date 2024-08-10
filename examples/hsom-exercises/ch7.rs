@@ -236,6 +236,7 @@ impl Sequence for Color {
     }
 }
 
+#[allow(dead_code)]
 /// Exercise 7.3
 /// Define a type class called `Temporal` whose members are types
 /// that can be interpreted as having a temporal duration.

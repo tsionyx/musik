@@ -5,7 +5,7 @@ use ux2::{u4, u7};
 use musik::{AbsPitch, Interval};
 use musik::{Dur, Music, Octave, Pitch};
 
-fn t251() -> Music {
+pub fn t251() -> Music {
     let oc4 = Octave::OneLined;
     let oc5 = Octave::TwoLined;
     let d_minor = Music::D(oc4, Dur::WHOLE) | Music::F(oc4, Dur::WHOLE) | Music::A(oc4, Dur::WHOLE);
@@ -22,7 +22,7 @@ fn t251() -> Music {
 /// (i.e. the first degree of the major scale on which the progression is being constructed)
 /// where the duration of the first two chords is each `duration`,
 /// and the duration of the last chord is `2 ∗ duration`.
-fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
+pub fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
     let double_duration = duration.double();
     let whole_major_scale: Vec<_> = pitch.major_scale().collect();
     let second = whole_major_scale[1];
@@ -58,7 +58,7 @@ fn test_t251() {
     assert_eq!(t251(), two_five_one(Pitch::C(oc), Dur::WHOLE));
 }
 
-mod blues {
+pub mod blues {
     //! Exercise 2.2
     //! Pentatonic blues scale consists of five notes
     //! and, in the key of C, approximately corresponds
@@ -144,7 +144,7 @@ mod blues {
         blues_music.map(|p| p.to_western())
     }
 
-    fn melody() -> Music {
+    pub fn melody() -> Music {
         let oc = Octave::OneLined;
         let blues_melody = (ro(oc, Dur::QUARTER) | ms(oc, Dur::QUARTER))
             + (mt(oc, Dur::HALF) | fi(oc, Dur::HALF) | fo(oc, Dur::HALF));

@@ -36,3 +36,8 @@ once_cell = { version = "1.19", optional = true }
 [features]
 play-midi = ["midir", "ctrlc", "once_cell"]
 default = ["play-midi"]
+
+
+[dev-dependencies]
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive"] }

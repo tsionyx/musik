@@ -1,6 +1,7 @@
 use musik::{AbsPitch, Dur, Music};
 
 // twice:: (a->a) -> (a->a)
+#[cfg(test)]
 fn twice<T>(f: impl Fn(T) -> T) -> impl Fn(T) -> T {
     move |x| f(f(x))
 }
@@ -17,6 +18,7 @@ fn twice_test() {
     assert_eq!(twice(f)(1), 6 * 6 + 5);
 }
 
+#[cfg(test)]
 pub(super) fn compose<T, U, V, F, G>(f: F, g: G) -> impl Fn(T) -> V
 where
     F: Fn(T) -> U,
@@ -34,6 +36,8 @@ fn compose_test() {
     assert_eq!(size_of_duplicated(vec![1, 2, 3, 4]), 8);
 }
 
+#[cfg(test)]
+#[allow(unused)]
 fn twice_using_compose<T>(f: impl Fn(T) -> T + Clone) -> impl Fn(T) -> T {
     compose(f.clone(), f)
 }
@@ -47,6 +51,7 @@ fn twice_using_compose_test() {
     assert_eq!(twice(f)(1), 6 * 6 + 5);
 }
 
+#[cfg(test)]
 fn twice_boxed<T>(f: impl Fn(T) -> T + 'static) -> Box<dyn Fn(T) -> T> {
     Box::new(move |x| f(f(x)))
 }
@@ -65,6 +70,7 @@ fn double_twice() {
 }
 
 // thrice:: (a->a) -> (a->a)
+#[cfg(test)]
 fn thrice<T>(f: impl Fn(T) -> T + 'static) -> Box<dyn Fn(T) -> T> {
     power(f, 3)
 }
@@ -97,6 +103,7 @@ fn three_floors_power() {
     assert_eq!(thrice(thrice)(Box::new(twice_boxed))(f)(0_u32), 134_217_728); // applied 2^(3^3) == 2^27 times
 }
 
+#[cfg(test)]
 /// Exercise 5.2
 /// Generalize `twice` defined in the previous exercise by defining
 /// a function `power` that takes a function `f` and an integer `n`,
@@ -112,6 +119,7 @@ fn power_test() {
     assert_eq!(power(f, 5)(1), 11);
 }
 
+#[cfg(test)]
 mod fix_impl {
     //! <https://stackoverflow.com/a/42182841>
     pub type Lazy<'a, T> = Box<dyn FnOnce() -> T + 'a>;
@@ -160,49 +168,51 @@ mod fix_impl {
     }
 
     #[test]
-    fn test_factorial() {
+    fn test_factorial_fn() {
         assert_eq!(factorial()(6), 720);
     }
-}
 
-use fix_impl::{BoxFn, FixedPoint, Lazy};
+    struct Factorial;
 
-struct Factorial;
+    impl FixedPoint for Factorial {
+        type In = u64;
+        type Out = u64;
 
-impl FixedPoint for Factorial {
-    type In = u64;
-    type Out = u64;
-
-    fn step<'a>(rec: Lazy<'a, BoxFn<'a, Self::In, Self::Out>>) -> BoxFn<'a, Self::In, Self::Out> {
-        Box::new(move |n| if n == 0 { 1 } else { n * rec()(n - 1) })
+        fn step<'a>(
+            rec: Lazy<'a, BoxFn<'a, Self::In, Self::Out>>,
+        ) -> BoxFn<'a, Self::In, Self::Out> {
+            Box::new(move |n| if n == 0 { 1 } else { n * rec()(n - 1) })
+        }
     }
-}
 
-#[test]
-fn test_factorial() {
-    assert_eq!(Factorial::eval(6), 720);
-}
-
-struct Remainder;
-
-/// Exercise 5.3 Suppose we define a recursive function:
-/// remainder :: Integer -> Integer -> Integer
-/// remainder a b = if a < b then a
-///                 else remainder (a − b) b
-/// Rewrite this function using fix so that it is not recursive.
-impl FixedPoint for Remainder {
-    type In = (u64, u64);
-    type Out = u64;
-
-    fn step<'a>(rec: Lazy<'a, BoxFn<'a, Self::In, Self::Out>>) -> BoxFn<'a, Self::In, Self::Out> {
-        Box::new(move |(a, b)| if a < b { a } else { rec()((a - b, b)) })
+    #[test]
+    fn test_factorial() {
+        assert_eq!(Factorial::eval(6), 720);
     }
-}
 
-#[test]
-fn test_remainder() {
-    assert_eq!(Remainder::eval((5428, 100)), 28);
-    assert_eq!(Remainder::eval((100, 328)), 100);
+    struct Remainder;
+
+    /// Exercise 5.3 Suppose we define a recursive function:
+    /// remainder :: Integer -> Integer -> Integer
+    /// remainder a b = if a < b then a
+    ///                 else remainder (a − b) b
+    /// Rewrite this function using fix so that it is not recursive.
+    impl FixedPoint for Remainder {
+        type In = (u64, u64);
+        type Out = u64;
+
+        fn step<'a>(
+            rec: Lazy<'a, BoxFn<'a, Self::In, Self::Out>>,
+        ) -> BoxFn<'a, Self::In, Self::Out> {
+            Box::new(move |(a, b)| if a < b { a } else { rec()((a - b, b)) })
+        }
+    }
+
+    #[test]
+    fn test_remainder() {
+        assert_eq!(Remainder::eval((5428, 100)), 28);
+        assert_eq!(Remainder::eval((100, 328)), 100);
+    }
 }
 
 /// Exercise 5.4
@@ -220,13 +230,12 @@ fn ap_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Vec<(AbsPitch, AbsPitch)> {
         .collect()
 }
 
-// TODO: play me
 /// Finally, write a function to turn the result of `apPairs` into a `Music Pitch`
 /// value by playing each pair of pitches in parallel, and stringing them all
 /// together sequentially. Try varying the rhythm by, for example, using an
 /// eighth note when the first absolute pitch is odd, and a sixteenth note when
 /// it is even, or some other criterion.
-fn generate_music_with_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Music {
+pub fn generate_music_with_pairs(aps1: &[AbsPitch], aps2: &[AbsPitch]) -> Music {
     let pairs = ap_pairs(aps1, aps2);
 
     Music::line(
@@ -294,7 +303,7 @@ fn use_higher_order_fns() {
             Box::new(f2(v.into_iter(), |x| {
                 Box::new(move |y| x * y) as Box<dyn Fn(u32) -> u32>
             })),
-            5
+            5,
         )
         .collect::<Vec<_>>(),
         [5, 10, 15, 20]

@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 /// Exercise 8.1
 ///
 /// Gradually scale the volume of each event in the
