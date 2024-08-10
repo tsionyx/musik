@@ -41,6 +41,18 @@ pub enum Primitive<P> {
     Rest(Dur),
 }
 
+impl<P> From<(Dur, P)> for Primitive<P> {
+    fn from((dur, p): (Dur, P)) -> Self {
+        Self::Note(dur, p)
+    }
+}
+
+impl<P> From<(Dur, P)> for Music<P> {
+    fn from(value: (Dur, P)) -> Self {
+        Self::Prim(value.into())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 /// High-level representation of music.
 pub enum Music<P: 'static = Pitch> {

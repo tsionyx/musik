@@ -144,8 +144,9 @@ mod tests {
 
     use crate::{
         music::{Control, MusicAttr},
+        n, p,
         perf::DefaultPlayer,
-        Octave, Pitch, PitchClass, Volume,
+        Octave, Pitch, PitchClass, Temporal as _, Volume,
     };
 
     #[test]
@@ -158,6 +159,24 @@ mod tests {
         );
 
         let m: Music<(Pitch, Volume)> = m.into();
+        assert!(
+            matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch + Volume)")
+        );
+    }
+
+    #[test]
+    fn convert_player_to_volume_preserves_structure() {
+        let tonic = p!(C 4);
+        let scale: Vec<_> = tonic.major_scale().collect();
+        let m = Music::with_dur(scale, n!(_ / 4)).with_default_player::<DefaultPlayer>();
+        let m: Music<(Pitch, Volume)> = m.take(n!(_ / 2)).remove_zeros().into();
+
+        assert_eq!(
+            m,
+            (Music::from(n!(C 4 / 4)) + n!(D 4 / 4).into())
+                .with_default_player::<DefaultPlayer>()
+                .into()
+        );
         assert!(
             matches!(m, Music::Modify(Control::Player(ref pl), _) if pl.name() == "Default (Pitch + Volume)")
         );

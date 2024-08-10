@@ -76,6 +76,16 @@ impl<P> Music<P> {
         self.with(Control::Player(DynPlayer::from_player(player)))
     }
 
+    /// Specify which [player][super::perf::Player] should be used for performing.
+    ///
+    /// The player should implement [`Default`].
+    pub fn with_default_player<Pl>(self) -> Self
+    where
+        Pl: Player<P> + Default + 'static,
+    {
+        self.with_player(Pl::default())
+    }
+
     /// Specify the key signature for a piece,
     /// which could be useful while interpreting
     /// [phrase attributes][Self::with_phrase].
