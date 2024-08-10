@@ -9,8 +9,24 @@ It is mostly expired by [HSoM](https://www.euterpea.com/haskell-school-of-music/
 sudo apt install libasound2-dev   # also `qjackctl` and `qsynth` for handling audio streams
 ```
 
+## Examples
 
-# Useful Links
+You could listen to your code examples (or [included example](examples/hsom-exercises))
+by compiling with the `play-midi` feature (included by default).
+
+1. Run one of the external MIDI servers, e.g.:
+
+    - ```shell
+      timidity -iA -Os
+      ```
+
+    - ```shell
+      fluidsynth --audio-driver=alsa -o audio.alsa.device=pulse /usr/share/sounds/sf2/FluidR3_GM.sf2
+      ```
+
+2. Run your code, e.g. `cargo run --example hsom-exercises`.
+
+## Useful Links
 
 - On notes and everything else:
     - https://en.wikipedia.org/wiki/Music_theory
@@ -33,11 +49,11 @@ sudo apt install libasound2-dev   # also `qjackctl` and `qsynth` for handling au
     - https://crates.io/crates/rodio
     - https://crates.io/crates/fundsp (see the `combinator` module for signal processing arrows-style)
 
-
 ### Similar crates
 
 - https://crates.io/crates/rust-music-theory
 - https://crates.io/crates/rust-music
 - https://crates.io/crates/tune-cli
 - https://crates.io/crates/tonal
-- search crates.io: https://crates.io/search?q=WORD where WORD: {music, sound, melody, chord, harmony, note, pitch, octave} 
+- search crates.io: https://crates.io/search?q=WORD where WORD: {music, sound, melody, chord, harmony, note, pitch,
+  octave}.
