@@ -339,6 +339,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(trivial_casts)]
     fn pitch_class_to_abs() {
         fn foo(pc: Option<PitchClass>) -> i8 {
             pc.map(|pc| Pitch::new(pc, Octave::OneLined).abs().get_u8() as i8)

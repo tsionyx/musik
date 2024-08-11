@@ -1,3 +1,4 @@
+#![allow(trivial_casts)]
 #[cfg(test)]
 use ux2::u4;
 

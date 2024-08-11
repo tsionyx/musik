@@ -34,14 +34,14 @@ fn multiply_diff_and_sum() {
 fn type_me() {
     use musik::PitchClass;
 
-    let _: Vec<PitchClass> = vec![PitchClass::A, PitchClass::B, PitchClass::C];
+    let _unused: Vec<PitchClass> = vec![PitchClass::A, PitchClass::B, PitchClass::C];
     // let _type_mismatch_in_homogenous_Vec = vec![PitchClass::D, 42];
     let _: (i8, PitchClass) = (-42, PitchClass::Ef);
-    let _: Vec<(char, u8)> = vec![('a', 3), ('b', 5)];
+    let _unused: Vec<(char, u8)> = vec![('a', 3), ('b', 5)];
     // let _arithmetic_ops_not_applicable_to_chars: char = simple('a', 'b', 'c');
     #[allow(clippy::type_complexity)]
-    let _: (u8, Box<dyn Fn(u8, u8, u8) -> u8>) = (simple(1_u8, 2_u8, 3_u8), Box::new(simple));
-    let _: Vec<&str> = vec!["I", "love", "Euterpea"];
+    let _unused: (u8, Box<dyn Fn(u8, u8, u8) -> u8>) = (simple(1_u8, 2_u8, 3_u8), Box::new(simple));
+    let _unused: Vec<&str> = vec!["I", "love", "Euterpea"];
 }
 
 pub mod harmonic {

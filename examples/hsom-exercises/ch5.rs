@@ -293,6 +293,7 @@ fn lambda_as_two_sections() {
 /// in the evaluation below so that it is valid:
 /// f1 (f2 (*) [1, 2, 3, 4]) 5 -> [5, 10, 15, 20]
 #[test]
+#[allow(trivial_casts)]
 fn use_higher_order_fns() {
     let v = vec![1_u32, 2, 3, 4];
 

@@ -34,6 +34,7 @@ const fn scale_volume() {
 /// be lengthened, and ones on the upbeat need to be delayed and shortened.
 /// Whether an event falls on a downbeat or upbeat can be determined from
 /// the `start_time` and `duration` of the context.)
+#[cfg(test)]
 mod jazz_man {
     use num_rational::Ratio;
 
@@ -105,7 +106,6 @@ mod jazz_man {
         }
     }
 
-    #[cfg(test)]
     mod tests {
         use ux2::u7;
 

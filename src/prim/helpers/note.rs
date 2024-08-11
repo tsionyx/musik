@@ -123,25 +123,25 @@ mod tests {
 
     #[test]
     fn all_durations() {
-        let n = n!(_/ 1);
+        let n = n!(_ / 1);
         assert_eq!(n, Dur::WHOLE);
 
-        let n = n!(_/ 2);
+        let n = n!(_ / 2);
         assert_eq!(n, Dur::HALF);
 
-        let n = n!(_/ 4);
+        let n = n!(_ / 4);
         assert_eq!(n, Dur::QUARTER);
 
-        let n = n!(_/ 8);
+        let n = n!(_ / 8);
         assert_eq!(n, Dur::EIGHTH);
 
-        let n = n!(_/ 16);
+        let n = n!(_ / 16);
         assert_eq!(n, Dur::SIXTEENTH);
 
-        let n = n!(_/ 32);
+        let n = n!(_ / 32);
         assert_eq!(n, Dur::THIRTY_SECOND);
 
-        let n = n!(_/ 64);
+        let n = n!(_ / 64);
         assert_eq!(n, Dur::SIXTY_FOURTH);
     }
 
