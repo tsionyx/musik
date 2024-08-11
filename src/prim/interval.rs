@@ -1,7 +1,4 @@
-use std::{
-    convert::TryFrom,
-    ops::{Add, AddAssign, Neg},
-};
+use std::ops::{Add, AddAssign, Neg};
 
 use enum_iterator::Sequence;
 use enum_map::Enum;
