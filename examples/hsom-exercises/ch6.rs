@@ -40,7 +40,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().retrograde().retrograde(), m);
+        let m2 = m.clone().retrograde().retrograde();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 
     #[test]
@@ -63,7 +65,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().invert().invert(), m);
+        let m2 = m.clone().invert().invert();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 
     #[test]
@@ -81,7 +85,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().invert_retro().retro_invert(), m);
+        let m2 = m.clone().invert_retro().retro_invert();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 }
 
@@ -342,12 +348,8 @@ pub fn funk_groove() -> Music {
 /// percussion sounds, playing through each of them one at a time.
 pub fn sequence_all_percussions() -> Music {
     let dur = Dur::QUARTER;
-    Music::line(
-        enum_iterator::all::<PercussionSound>()
-            .map(|s| s.note(dur))
-            .collect(),
-    )
-    .with_instrument(InstrumentName::Percussion)
+    Music::lazy_line(enum_iterator::all::<PercussionSound>().map(move |s| s.note(dur)))
+        .with_instrument(InstrumentName::Percussion)
 }
 
 // TODO: Exercise 6.8
@@ -384,7 +386,7 @@ pub fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
 /// Using mMap, define a function that
 /// scales the volume of each note in `m` by the factor `s`.
 fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume)> {
-    m.map(|(p, v)| {
+    m.map(move |(p, v)| {
         let new = (Ratio::from_integer(u8::from(v.get_inner())) * s).to_integer();
         (p, Volume::from(new))
     })
@@ -393,21 +395,11 @@ fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume
 #[allow(dead_code)]
 /// Exercise 6.10
 /// Redefine `revM` from Section 6.6 using `mFold`.
-fn rev<P>(m: Music<P>) -> Music<P> {
-    m.fold(
-        Music::Prim,
-        |m1, m2| m2 + m1,
-        |m1, m2| {
-            let d1 = m1.duration();
-            let d2 = m2.duration();
-            if d1 > d2 {
-                m1 | (Music::rest(d1 - d2) + m2)
-            } else {
-                (Music::rest(d2 - d1) + m1) | m2
-            }
-        },
-        |c, m| m.with(c),
-    )
+fn rev<P>(m: Music<P>) -> Music<P>
+where
+    P: Clone,
+{
+    m.reverse()
 }
 
 /// Exercise 6.11
@@ -428,6 +420,7 @@ pub mod inside_out {
         m.fold(
             Music::Prim,
             |m1, m2| m1 | m2,
+            (Music::rest(Dur::ZERO), |acc, m| acc | m),
             |m1, m2| m1 + m2,
             |c, m| m.with(c),
         )
@@ -716,9 +709,6 @@ pub mod shepard_scale {
                 .map(|(instrument, seed)| {
                     Music::line(
                         iter::successors(Some(*seed), |x| Some(pseudo_random_gen(*x)))
-                            // TODO: make it infinite by changing
-                            //  Music::Sequential to wrap an Iterator<Item=Music>
-                            //  Without that `.take(638)` leads to stack overflow
                             .take(100)
                             .map(|x| LineConfig::from_number(x, delta).scale())
                             .collect(),

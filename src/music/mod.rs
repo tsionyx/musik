@@ -20,7 +20,10 @@ mod transform;
 use ordered_float::OrderedFloat;
 use ux2::u4;
 
-use crate::prim::{duration::Dur, pitch::Pitch, volume::Volume};
+use crate::{
+    prim::{duration::Dur, pitch::Pitch, volume::Volume},
+    utils::LazyList,
+};
 
 pub use self::{
     combinators::MapToOther,
@@ -53,19 +56,21 @@ impl<P> From<(Dur, P)> for Music<P> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd)]
 /// High-level representation of music.
 pub enum Music<P: 'static = Pitch> {
     /// Single atomic building block of music,
     /// usually a [note][Primitive::Note] or a [rest][Primitive::Rest].
     Prim(Primitive<P>),
 
-    // TODO: made iterator-based version of Sequential
-    //  to allow playing infinite music
     /// Sequentially composed two pieces.
     /// Could be combined to create arbitrarily
     /// long series resembling a complex linked list.
     Sequential(Box<Self>, Box<Self>),
+
+    /// Lazy iterator of the [`Music`] values allows
+    /// for possibly infinite stream of music.
+    Lazy(LazyList<Self>),
 
     /// The polyphonic composition of two parts
     /// which should be played simultaneously.
@@ -88,7 +93,7 @@ impl<P> From<Primitive<P>> for Music<P> {
 impl Music {
     /// Assign [`Volume`] to every note of [`Music`].
     pub fn with_volume(self, vol: Volume) -> Music<(Pitch, Volume)> {
-        self.map(|p| (p, vol))
+        self.map(move |p| (p, vol))
     }
 }
 

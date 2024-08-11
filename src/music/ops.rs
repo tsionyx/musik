@@ -79,7 +79,7 @@ impl<P> Add<Music<P>> for Dur {
     }
 }
 
-impl<P> Neg for Music<P> {
+impl<P: Clone> Neg for Music<P> {
     type Output = Self;
 
     /// Play the [`Music`] backwards.

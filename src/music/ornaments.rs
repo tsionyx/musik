@@ -71,7 +71,7 @@ impl Music {
                 ))
             }
             Self::Prim(Primitive::Rest(_)) => Err("Cannot construct trill from the Rest".into()),
-            Self::Sequential(_, _) | Self::Parallel(_, _) => {
+            Self::Sequential(_, _) | Self::Parallel(_, _) | Self::Lazy(_) => {
                 Err("Cannot construct trill from the complex".into())
             }
             Self::Modify(Control::Tempo(r), m) => {
