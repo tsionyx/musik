@@ -33,7 +33,7 @@ pub struct Performance {
 
 impl Performance {
     /// Create a [`Performance`] from a number of [`Event`]s.
-    pub fn with_events(events: Vec<Event>) -> Self {
+    pub const fn with_events(events: Vec<Event>) -> Self {
         Self { repr: events }
     }
 

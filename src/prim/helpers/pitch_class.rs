@@ -119,7 +119,7 @@ pub mod accidentals {
                 #[doc="`] to create a [`PitchClass::"]
                 #[doc = stringify!($to)]
                 #[doc="`] from it."]
-                pub fn $from() -> PitchClass {
+                pub const fn $from() -> PitchClass {
                     PitchClass::$to
                 }
             )+

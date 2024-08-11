@@ -146,6 +146,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cognitive_complexity)]
     fn all_durations_notes() {
         let n = n!(A 4 / 1);
         assert_eq!(n.0, Dur::WHOLE);
