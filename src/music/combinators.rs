@@ -77,10 +77,11 @@ impl<P> Music<P> {
 
 /// Workaround for the lack of specialization.
 /// Useful to convert generic types
-/// with one generic argument to the other one.
+/// with one generic argument to another one.
 ///
 /// Default `Into` (`From`) trait cannot be blanket impl
 /// due to conflicting `impl<T, U> From<X<T>> for X<U> {}`
 pub trait MapToOther<T> {
+    /// Fallible convert into the target type.
     fn into_other(self) -> Option<T>;
 }

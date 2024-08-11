@@ -23,6 +23,7 @@ use ux2::u4;
 use crate::prim::{duration::Dur, pitch::Pitch, volume::Volume};
 
 pub use self::{
+    combinators::MapToOther,
     constructors::{rests, A440},
     control::Control,
     iter_like::Temporal,
