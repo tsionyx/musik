@@ -421,9 +421,7 @@ mod tests {
     fn assert_is_close_freq(f1: f64, f2: f64) {
         assert!(
             (f1 - f2).abs() < 0.001,
-            "The {} and {} are definitely not the same frequencies",
-            f1,
-            f2
+            "The {f1} and {f2} are definitely not the same frequencies"
         );
     }
 

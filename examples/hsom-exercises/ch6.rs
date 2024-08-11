@@ -657,6 +657,7 @@ pub mod shepard_scale {
             let fade_out_range: Vec<_> = (25..=40).collect();
             let delay_range = [Dur::EIGHTH, Dur::QUARTER];
 
+            #[allow(clippy::items_after_statements)]
             const fn choose_value<T>(xs: &[T], seed: u16) -> &T {
                 let index = seed as usize % xs.len();
                 &xs[index]

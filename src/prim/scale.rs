@@ -154,10 +154,11 @@ impl AbsPitch {
         let positive_shift = degrees.rem_euclid(DIATONIC_SIZE);
         let whole_octaves = (degrees - positive_shift) / DIATONIC_SIZE;
 
+        let positive_shift = usize::try_from(positive_shift).expect("Shift is negative");
         let interval = scale
             .into_iter()
             .cycle()
-            .nth(closest_index + positive_shift as usize)
+            .nth(closest_index + positive_shift)
             .expect("Cycled non-empty scale has infinite items")
             .0;
         let shift = (interval + oct_size_i)

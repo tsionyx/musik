@@ -6,6 +6,7 @@ type M = Music;
 type P = Pitch;
 
 /// Excerpt from Chick Corea’s Children’s Songs No. 6
+#[allow(clippy::too_many_lines, clippy::similar_names)]
 pub fn child_song_6() -> Music {
     let oc3 = Octave::Small;
     let oc4 = Octave::OneLined;

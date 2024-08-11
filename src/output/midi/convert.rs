@@ -95,7 +95,7 @@ impl Performance {
     ) -> Result<AbsTimeTrack<'_>, String> {
         let (channel, program) = user_patch
             .lookup(instrument)
-            .ok_or_else(|| format!("Not found instrument {:?}", instrument))?;
+            .ok_or_else(|| format!("Not found instrument {instrument:?}"))?;
 
         let tempo = 1_000_000 / BEATS_PER_SECOND;
         let set_tempo = TrackEventKind::Meta(MetaMessage::Tempo(tempo.into()));

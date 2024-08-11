@@ -191,6 +191,7 @@ where
         self.inner.play_note(note, ctx)
     }
 
+    #[allow(clippy::too_many_lines, clippy::manual_let_else)]
     fn interpret_phrases(
         &self,
         music: &Music<(Pitch, Vec<A>)>,

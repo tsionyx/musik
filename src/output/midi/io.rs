@@ -15,7 +15,7 @@ fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
 
     info!(
         "Available ports: {:?}",
-        Vec::from_iter(ports.iter().map(|p| out.port_name(p)))
+        ports.iter().map(|p| out.port_name(p)).collect::<Vec<_>>()
     );
 
     if ports.len() == 1 {
