@@ -1,3 +1,4 @@
+//! Playable exercises from the 'Haskell School of Music' book
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
@@ -139,7 +140,7 @@ enum Chapter {
 #[derive(Debug, Copy, Clone, Args)]
 struct ChArgs<T>
 where
-    T: clap::Subcommand,
+    T: Subcommand,
 {
     #[command(subcommand)]
     sample: T,
