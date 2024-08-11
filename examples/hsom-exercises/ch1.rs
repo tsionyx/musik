@@ -1,5 +1,11 @@
 #[cfg(test)]
-use super::simple;
+pub(super) fn simple<A, B, C, D, E>(x: A, y: B, z: C) -> E
+where
+    A: std::ops::Mul<D, Output = E>,
+    B: std::ops::Add<C, Output = D>,
+{
+    x * (y + z)
+}
 
 /// Exercise 1.1 Write out all of the steps in the calculation of the value of
 /// simple (simple 2 3 4) 5 6
@@ -28,17 +34,17 @@ fn multiply_diff_and_sum() {
 fn type_me() {
     use musik::PitchClass;
 
-    let _: Vec<PitchClass> = vec![PitchClass::A, PitchClass::B, PitchClass::C];
+    let _unused: Vec<PitchClass> = vec![PitchClass::A, PitchClass::B, PitchClass::C];
     // let _type_mismatch_in_homogenous_Vec = vec![PitchClass::D, 42];
     let _: (i8, PitchClass) = (-42, PitchClass::Ef);
-    let _: Vec<(char, u8)> = vec![('a', 3), ('b', 5)];
+    let _unused: Vec<(char, u8)> = vec![('a', 3), ('b', 5)];
     // let _arithmetic_ops_not_applicable_to_chars: char = simple('a', 'b', 'c');
     #[allow(clippy::type_complexity)]
-    let _: (u8, Box<dyn Fn(u8, u8, u8) -> u8>) = (simple(1_u8, 2_u8, 3_u8), Box::new(simple));
-    let _: Vec<&str> = vec!["I", "love", "Euterpea"];
+    let _unused: (u8, Box<dyn Fn(u8, u8, u8) -> u8>) = (simple(1_u8, 2_u8, 3_u8), Box::new(simple));
+    let _unused: Vec<&str> = vec!["I", "love", "Euterpea"];
 }
 
-mod harmonic {
+pub mod harmonic {
     //! Exercise 1.4 Modify the definitions of hNote and hList so that they each
     //! take an extra argument that specifies the interval of harmonization (rather
     //! than being fixed at -3). Rewrite the definition of mel to take these changes
@@ -55,7 +61,7 @@ mod harmonic {
         })
     }
 
-    fn mel(pitches: [Pitch; 3]) -> Music {
-        harmonic_list(Dur::QN, &pitches, Interval::from(-3))
+    pub fn mel(pitches: [Pitch; 3]) -> Music {
+        harmonic_list(Dur::QUARTER, &pitches, Interval::from(-3))
     }
 }

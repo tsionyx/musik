@@ -1,10 +1,15 @@
+#![allow(trivial_casts)]
+#[cfg(test)]
+use ux2::u4;
+
 #[cfg(test)]
 use musik::Octave;
 use musik::{music::Primitive, Dur, Interval, Music, Pitch};
 
 #[cfg(test)]
-use super::simple;
+use super::ch1::simple;
 
+#[cfg(test)]
 /// Exercise 3.1.1
 /// Transposes each pitch by the amount specified.
 fn f1(pitches: &[Pitch], delta: Interval) -> Vec<Pitch> {
@@ -13,15 +18,20 @@ fn f1(pitches: &[Pitch], delta: Interval) -> Vec<Pitch> {
 
 #[test]
 fn test_trans_map() {
-    let oc3 = Octave::from(3);
+    let oc3 = Octave::try_from(u4::new(3)).unwrap();
     let pitches = vec![Pitch::C(oc3), Pitch::Fs(oc3), Pitch::A(oc3)];
     let shifted = f1(&pitches, Interval::from(4));
     assert_eq!(
         &shifted,
-        &[Pitch::E(oc3), Pitch::As(oc3), Pitch::Cs(Octave::from(4))]
+        &[
+            Pitch::E(oc3),
+            Pitch::As(oc3),
+            Pitch::Cs(Octave::try_from(u4::new(4)).unwrap())
+        ]
     );
 }
 
+#[cfg(test)]
 /// Exercise 3.1.2
 /// Turns a list of durations into a list of rests, each having the corresponding duration.
 fn f2(durations: &[Dur]) -> Vec<Music> {
@@ -30,14 +40,14 @@ fn f2(durations: &[Dur]) -> Vec<Music> {
 
 #[test]
 fn test_durations_map() {
-    let durations = vec![Dur::QN, Dur::WN, Dur::DHN];
+    let durations = vec![Dur::QUARTER, Dur::WHOLE, Dur::DOTTED_HALF];
     let rests = f2(&durations);
     assert_eq!(
         &rests,
         &[
-            Music::Prim(Primitive::Rest(Dur::QN)),
-            Music::Prim(Primitive::Rest(Dur::WN)),
-            Music::Prim(Primitive::Rest(Dur::DHN)),
+            Music::Prim(Primitive::Rest(Dur::QUARTER)),
+            Music::Prim(Primitive::Rest(Dur::WHOLE)),
+            Music::Prim(Primitive::Rest(Dur::DOTTED_HALF)),
         ]
     );
 }
@@ -46,7 +56,7 @@ fn test_durations_map() {
 /// Given a list of `Music` values (that are assumed to be single notes),
 /// for each such note, halves its duration and places
 /// a rest of that same duration after it.
-fn staccato(musics: Vec<Music>) -> Vec<Music> {
+pub fn staccato<P>(musics: Vec<Music<P>>) -> Vec<Music<P>> {
     musics
         .into_iter()
         .map(|music| {
@@ -62,33 +72,34 @@ fn staccato(musics: Vec<Music>) -> Vec<Music> {
 
 #[test]
 fn test_staccato() {
-    let oc4 = Octave::from(4);
+    let oc4 = Octave::try_from(u4::new(4)).unwrap();
     // [c 4 qn, d 4 en, e 4 hn ]
     let music = vec![
-        Music::C(oc4, Dur::QN),
-        Music::D(oc4, Dur::EN),
-        Music::E(oc4, Dur::HN),
+        Music::C(oc4, Dur::QUARTER),
+        Music::D(oc4, Dur::EIGHTH),
+        Music::E(oc4, Dur::HALF),
     ];
     let staccated = staccato(music);
     assert_eq!(
         &staccated,
         &[
             Music::Sequential(
-                Box::new(Music::C(oc4, Dur::EN)),
-                Box::new(Music::rest(Dur::EN)),
+                Box::new(Music::C(oc4, Dur::EIGHTH)),
+                Box::new(Music::rest(Dur::EIGHTH)),
             ),
             Music::Sequential(
-                Box::new(Music::D(oc4, Dur::SN)),
-                Box::new(Music::rest(Dur::SN)),
+                Box::new(Music::D(oc4, Dur::SIXTEENTH)),
+                Box::new(Music::rest(Dur::SIXTEENTH)),
             ),
             Music::Sequential(
-                Box::new(Music::E(oc4, Dur::QN)),
-                Box::new(Music::rest(Dur::QN)),
+                Box::new(Music::E(oc4, Dur::QUARTER)),
+                Box::new(Music::rest(Dur::QUARTER)),
             ),
         ]
     );
 }
 
+#[cfg(test)]
 fn flip<A, B, C, F>(f: F) -> impl Fn(B, A) -> C
 where
     F: Fn(A, B) -> C,
@@ -106,6 +117,7 @@ fn test_flip() {
     assert_eq!(flip(flip(f))(5, -100), -195);
 }
 
+#[cfg(test)]
 fn partially_applied<T, U, V, F>(f: F, xs: Vec<T>) -> impl Iterator<Item = Box<dyn FnOnce(U) -> V>>
 where
     F: FnOnce(T, U) -> V + Copy + 'static,
@@ -115,6 +127,7 @@ where
         .map(move |x| Box::new(move |y: U| f(x, y)) as Box<dyn FnOnce(U) -> V>)
 }
 
+#[cfg(test)]
 /// Exercise 3.3
 /// What is the type of ys in:
 /// xs = [1, 2, 3] :: [Integer ]
@@ -131,6 +144,7 @@ fn partially_applied_test() {
     }
 }
 
+#[cfg(test)]
 fn apply_each<F, T, U>(fs: Vec<Box<F>>, x: T) -> impl Iterator<Item = U>
 where
     F: Fn(T) -> U + ?Sized,
@@ -150,6 +164,7 @@ fn apply_each_test() {
     assert_eq!(apply_each(fs, 5).collect::<Vec<_>>(), vec![14, 8]);
 }
 
+#[cfg(test)]
 fn apply_all<F, T>(fs: Vec<Box<F>>, v: T) -> T
 where
     F: Fn(T) -> T + ?Sized,
@@ -176,6 +191,7 @@ fn apply_all_test() {
     assert_eq!(apply_all(fs, 5), 17);
 }
 
+#[cfg(test)]
 /// Sum two lists together.
 /// The complexity of this is the size of the first list.
 fn sum_vec<T>(v1: Vec<T>, v2: Vec<T>) -> Vec<T> {
@@ -193,6 +209,7 @@ fn test_sum() {
     );
 }
 
+#[cfg(test)]
 mod append {
     //! Exercise 3.6
     //! Recall the discussion about the efficiency of (++) and concat in Chapter 3.
@@ -300,6 +317,7 @@ mod append {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.7 Rewrite the definition of length non-recursively
 fn len<T>(xs: &[T]) -> usize {
     xs.iter().fold(0, |acc, _| acc + 1)
@@ -311,6 +329,7 @@ fn test_length() {
     assert_eq!(len(x), 4);
 }
 
+#[cfg(test)]
 mod map_examples {
     //! Exercise 3.8
 
@@ -370,6 +389,7 @@ mod map_examples {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.9
 /// Combines a list of durations with a list of notes
 /// lacking a duration, to create a list of complete notes.
@@ -386,32 +406,35 @@ fn fuse<P>(
 
 #[test]
 fn test_fuse() {
+    let oc = Octave::try_from(u4::new(4)).unwrap();
+
     let constructors = vec![
-        Box::new(|d| Music::C(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
-        Box::new(|d| Music::D(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
-        Box::new(move |d| Music::E(Octave::from(4), d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::C(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::D(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
+        Box::new(move |d| Music::E(oc, d)) as Box<dyn Fn(Dur) -> Music<Pitch>>,
     ];
 
-    let oc = Octave::from(4);
     assert_eq!(
-        fuse(&[Dur::QN, Dur::HN, Dur::SN], constructors).unwrap(),
+        fuse(&[Dur::QUARTER, Dur::HALF, Dur::SIXTEENTH], constructors).unwrap(),
         vec![
-            Music::C(oc, Dur::QN),
-            Music::D(oc, Dur::HN),
-            Music::E(oc, Dur::SN),
+            Music::C(oc, Dur::QUARTER),
+            Music::D(oc, Dur::HALF),
+            Music::E(oc, Dur::SIXTEENTH),
         ]
     );
 }
 
+#[cfg(test)]
 mod max_min_pitches {
     //! Exercise 3.10
+
+    #[cfg(test)]
+    use ux2::u7;
 
     use musik::AbsPitch;
 
     fn max_pitch(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         pitches[1..].iter().fold(pitches[0], |acc, p| {
             if acc.get_inner() > p.get_inner() {
@@ -423,9 +446,7 @@ mod max_min_pitches {
     }
 
     fn max_pitch_rec(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         fn max_pitch_inner(h: AbsPitch, t: &[AbsPitch]) -> AbsPitch {
             if t.is_empty() {
@@ -459,19 +480,16 @@ mod max_min_pitches {
     #[test]
     fn test_max_pitch() {
         let pitches = vec![
-            AbsPitch::from(5),
-            AbsPitch::from(2),
-            AbsPitch::from(-1),
-            AbsPitch::from(6),
+            AbsPitch::from(u7::new(5)),
+            AbsPitch::from(u7::new(2)),
+            AbsPitch::from(u7::new(6)),
         ];
-        assert_eq!(max_pitch(&pitches), AbsPitch::from(6));
-        assert_eq!(max_pitch_rec(&pitches), AbsPitch::from(6));
+        assert_eq!(max_pitch(&pitches), AbsPitch::from(u7::new(6)));
+        assert_eq!(max_pitch_rec(&pitches), AbsPitch::from(u7::new(6)));
     }
 
     fn min_pitch(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         pitches[1..].iter().fold(pitches[0], |acc, p| {
             if acc.get_inner() < p.get_inner() {
@@ -483,9 +501,7 @@ mod max_min_pitches {
     }
 
     fn min_pitch_rec(pitches: &[AbsPitch]) -> AbsPitch {
-        if pitches.is_empty() {
-            panic!("no pitches");
-        }
+        assert!(!pitches.is_empty(), "no pitches");
 
         fn min_pitch_inner(h: AbsPitch, t: &[AbsPitch]) -> AbsPitch {
             if t.is_empty() {
@@ -519,18 +535,18 @@ mod max_min_pitches {
     #[test]
     fn test_min_pitch() {
         let pitches = vec![
-            AbsPitch::from(5),
-            AbsPitch::from(-1),
-            AbsPitch::from(2),
-            AbsPitch::from(-2),
-            AbsPitch::from(6),
+            AbsPitch::from(u7::new(5)),
+            AbsPitch::from(u7::new(1)),
+            AbsPitch::from(u7::new(2)),
+            AbsPitch::from(u7::new(1)),
+            AbsPitch::from(u7::new(6)),
         ];
-        assert_eq!(min_pitch(&pitches), AbsPitch::from(-2));
-        assert_eq!(min_pitch_rec(&pitches), AbsPitch::from(-2));
+        assert_eq!(min_pitch(&pitches), AbsPitch::from(u7::new(1)));
+        assert_eq!(min_pitch_rec(&pitches), AbsPitch::from(u7::new(1)));
     }
 }
 
-mod chromatic {
+pub mod chromatic {
     //! Exercise 3.11
     //! Define a function chrom :: Pitch → Pitch → Music Pitch
     //! such that chrom p1 p2 is a chromatic scale of quarter-notes whose first pitch
@@ -543,9 +559,9 @@ mod chromatic {
 
     use super::*;
 
-    fn chrom(p1: Pitch, p2: Pitch) -> Music {
+    pub fn chrom(p1: Pitch, p2: Pitch) -> Music {
         let interval = p2.abs() - p1.abs();
-        let current_note = Music::note(Dur::QN, p1);
+        let current_note = Music::note(Dur::QUARTER, p1);
 
         current_note
             + match interval.cmp(&Interval::zero()) {
@@ -557,8 +573,8 @@ mod chromatic {
 
     #[test]
     fn test_chrom_rec_ascending() {
-        let oc = Octave::from(4);
-        let d = Dur::QN;
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let d = Dur::QUARTER;
         let res = chrom(Pitch::C(oc), Pitch::F(oc));
 
         assert_eq!(
@@ -573,9 +589,9 @@ mod chromatic {
 
     #[test]
     fn test_chrom_rec_descending() {
-        let o4 = Octave::from(4);
-        let o3 = Octave::from(3);
-        let d = Dur::QN;
+        let o4 = Octave::try_from(u4::new(4)).unwrap();
+        let o3 = Octave::try_from(u4::new(3)).unwrap();
+        let d = Dur::QUARTER;
         let res = chrom(Pitch::C(o4), Pitch::A(o3));
 
         assert_eq!(
@@ -587,6 +603,7 @@ mod chromatic {
     }
 }
 
+#[cfg(test)]
 /// Exercise 3.12 Abstractly, a scale can be described by the intervals between
 /// successive notes. For example, the 7-note major scale can be defined as the
 /// sequence of 6 intervals [2, 2, 1, 2, 2, 2], and the 12-note chromatic scale by the
@@ -608,8 +625,8 @@ fn mk_scale(p: Pitch, dur: Dur, ints: &[Interval]) -> Music {
 
 #[test]
 fn test_mk_scale_at_7_major() {
-    let oc = Octave::from(4);
-    let d = Dur::QN;
+    let oc = Octave::try_from(u4::new(4)).unwrap();
+    let d = Dur::QUARTER;
     let tone = Interval::tone();
     let semi_tone = Interval::semi_tone();
     let res = mk_scale(Pitch::C(oc), d, &[tone, tone, semi_tone, tone, tone, tone]);
@@ -626,6 +643,7 @@ fn test_mk_scale_at_7_major() {
     );
 }
 
+#[cfg(test)]
 mod major_scale {
     //! Exercise 3.13
     //! Define an enumerated data type that captures each of the
@@ -669,9 +687,9 @@ mod major_scale {
 
     #[test]
     fn ionian_c() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Ionian.gen_scale(Pitch::C(oc), d);
 
         assert_eq!(
@@ -689,9 +707,9 @@ mod major_scale {
 
     #[test]
     fn dorian_d() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Dorian.gen_scale(Pitch::D(oc), d);
 
         assert_eq!(
@@ -709,9 +727,9 @@ mod major_scale {
 
     #[test]
     fn phrygian_e() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Phrygian.gen_scale(Pitch::E(oc), d);
 
         assert_eq!(
@@ -729,9 +747,9 @@ mod major_scale {
 
     #[test]
     fn lydian_f() {
-        let oc = Octave::from(4);
-        let oc5 = Octave::from(5);
-        let d = Dur::QN;
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let oc5 = Octave::try_from(u4::new(5)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Lydian.gen_scale(Pitch::F(oc), d);
 
         assert_eq!(
@@ -749,9 +767,9 @@ mod major_scale {
 
     #[test]
     fn mixolydian_g() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
-        let d = Dur::QN;
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Mixolydian.gen_scale(Pitch::G(oc3), d);
 
         assert_eq!(
@@ -769,9 +787,9 @@ mod major_scale {
 
     #[test]
     fn aeolian_a() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
-        let d = Dur::QN;
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Aeolian.gen_scale(Pitch::A(oc3), d);
 
         assert_eq!(
@@ -789,9 +807,9 @@ mod major_scale {
 
     #[test]
     fn locrian_b() {
-        let oc3 = Octave::from(3);
-        let oc = Octave::from(4);
-        let d = Dur::QN;
+        let oc3 = Octave::try_from(u4::new(3)).unwrap();
+        let oc = Octave::try_from(u4::new(4)).unwrap();
+        let d = Dur::QUARTER;
         let res = ScaleMode::Locrian.gen_scale(Pitch::B(oc3), d);
 
         assert_eq!(
@@ -808,7 +826,7 @@ mod major_scale {
     }
 }
 
-mod brother_john {
+pub mod brother_john {
     //! Exercise 3.14
     //! Write the melody of “Frère Jacques” (or, “Are You Sleeping”) in Euterpea.
     //! Try to make it as succinct as possible. Then, using functions already defined,
@@ -817,36 +835,36 @@ mod brother_john {
     //! Use a different instrument to realize each voice.
     use std::iter;
 
-    use musik::{instruments::StandardMidiInstrument, Dur, Music, Octave, Pitch};
+    use musik::{midi::Instrument, Dur, Music, Octave, Pitch};
 
     fn frere_jacques_one_voice() -> Music {
-        let oc4 = Octave::ONE_LINED;
-        let oc5 = Octave::TWO_LINED;
+        let oc4 = Octave::OneLined;
+        let oc5 = Octave::TwoLined;
         let frere_jacques = vec![
-            (Pitch::F(oc4), Dur::QN),
-            (Pitch::G(oc4), Dur::QN),
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::QN),
+            (Pitch::F(oc4), Dur::QUARTER),
+            (Pitch::G(oc4), Dur::QUARTER),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::QUARTER),
         ];
         let dormez_vous = vec![
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::Bf(oc4), Dur::QN),
-            (Pitch::C(oc5), Dur::HN),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::Bf(oc4), Dur::QUARTER),
+            (Pitch::C(oc5), Dur::HALF),
         ];
 
         let sonnez_les_matines = vec![
-            (Pitch::C(oc5), Dur::EN),
-            (Pitch::D(oc5), Dur::EN),
-            (Pitch::C(oc5), Dur::EN),
-            (Pitch::Bf(oc4), Dur::EN),
-            (Pitch::A(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::QN),
+            (Pitch::C(oc5), Dur::EIGHTH),
+            (Pitch::D(oc5), Dur::EIGHTH),
+            (Pitch::C(oc5), Dur::EIGHTH),
+            (Pitch::Bf(oc4), Dur::EIGHTH),
+            (Pitch::A(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::QUARTER),
         ];
 
         let din_dan_don = vec![
-            (Pitch::F(oc4), Dur::QN),
-            (Pitch::C(oc4), Dur::QN),
-            (Pitch::F(oc4), Dur::HN),
+            (Pitch::F(oc4), Dur::QUARTER),
+            (Pitch::C(oc4), Dur::QUARTER),
+            (Pitch::F(oc4), Dur::HALF),
         ];
 
         let measures = vec![frere_jacques, dormez_vous, sonnez_les_matines, din_dan_don];
@@ -871,7 +889,7 @@ mod brother_john {
         musics.fold(Music::rest(Dur::ZERO), |melody, m| melody | m)
     }
 
-    fn make_round(one_voice: Music, instruments: Vec<StandardMidiInstrument>, delay: Dur) -> Music {
+    fn make_round(one_voice: &Music, instruments: Vec<Instrument>, delay: Dur) -> Music {
         let voices = instruments.into_iter().enumerate().map(|(i, instrument)| {
             let init_rest = iter::repeat(Music::rest(delay)).take(i);
             let voice = init_rest.chain(iter::once(one_voice.clone().with_instrument(instrument)));
@@ -881,20 +899,21 @@ mod brother_john {
     }
 
     /// `https://en.wikipedia.org/wiki/Fr%C3%A8re_Jacques`
-    fn frere_jacques_four_part_round() -> Music {
+    pub fn frere_jacques_four_part_round() -> Music {
         make_round(
-            frere_jacques_one_voice(),
+            &frere_jacques_one_voice(),
             vec![
-                StandardMidiInstrument::AcousticGrandPiano,
-                StandardMidiInstrument::Contrabass,
-                StandardMidiInstrument::ElectricGuitarClean,
-                StandardMidiInstrument::Accordion,
+                Instrument::AcousticGrandPiano,
+                Instrument::Contrabass,
+                Instrument::ElectricGuitarClean,
+                Instrument::Accordion,
             ],
-            Dur::BN,
+            Dur::BREVIS,
         )
     }
 }
 
+#[cfg(test)]
 mod freddie_the_frog {
     //! Exercise 3.15
     //! Freddie the Frog wants to communicate privately with his girlfriend Francine

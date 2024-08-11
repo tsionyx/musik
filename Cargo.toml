@@ -12,18 +12,103 @@ repository = "https://github.com/tsionyx/musik"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-rational = { version = "0.4", default_features = false, features = ["std"] }
+num-rational = { version = "0.4", default-features = false, features = ["std"] }
 num-integer = "0.1"
 num-traits = "0.2"
-enum-map ="2.6"
+enum-map = "2.6"
 enum-iterator = "1.4"
 ordered-float = "4.2"
 itertools = "0.12"
+dyn-clone = "1.0"
+intertrait = "0.2"
+linkme = "0.2"
+ux2 = { version = "0.8", default-features = false, features = ["8"] }
+log = "0.4"
 
 # MIDI stuff
-midly = { version = "0.5", default_features = false, features = ["std"] }
-midir = "0.9"
+midly = { version = "0.5", default-features = false, features = ["std"] }
+midir = { version = "0.9", optional = true }
 
 # graceful shutdown
-ctrlc = "3.4"
-once_cell = "1.19"
+ctrlc = { version = "3.4", optional = true }
+once_cell = { version = "1.19", optional = true }
+
+[features]
+play-midi = ["midir", "ctrlc", "once_cell"]
+default = ["play-midi"]
+
+
+[dev-dependencies]
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive"] }
+
+[lints.rust]
+# do not warn on older Rust versions
+unknown_lints = "allow"
+
+# The following list was generated with the command
+#   $ rustc -W help | grep ' allow ' | awk '{print $1}' | tr - _ | sort | xargs -I{} echo '{} = "warn"' | xclip -sel clip
+absolute_paths_not_starting_with_crate = "warn"
+# deprecated in 1.81
+#box_pointers = "warn"
+deprecated_in_future = "warn"
+deprecated_safe = "warn"
+elided_lifetimes_in_paths = "warn"
+explicit_outlives_requirements = "warn"
+ffi_unwind_calls = "warn"
+fuzzy_provenance_casts = "warn"
+impl_trait_overcaptures = "warn"
+keyword_idents_2018 = "warn"
+keyword_idents_2024 = "warn"
+let_underscore_drop = "warn"
+lossy_provenance_casts = "warn"
+macro_use_extern_crate = "warn"
+meta_variable_misuse = "warn"
+missing_abi = "warn"
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+missing_unsafe_on_extern = "warn"
+multiple_supertrait_upcastable = "warn"
+must_not_suspend = "warn"
+non_ascii_idents = "warn"
+non_exhaustive_omitted_patterns = "warn"
+non_local_definitions = "warn"
+redundant_lifetimes = "warn"
+rust_2021_incompatible_closure_captures = "warn"
+rust_2021_incompatible_or_patterns = "warn"
+rust_2021_prefixes_incompatible_syntax = "warn"
+rust_2021_prelude_collisions = "warn"
+rust_2024_incompatible_pat = "warn"
+single_use_lifetimes = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unit_bindings = "warn"
+unnameable_types = "warn"
+# conflicts with the `clippy::redundant_pub_crate`
+unreachable_pub = "allow"
+# NO UNSAFE
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "warn"
+unstable_features = "warn"
+# TODO: "warn" after fixing false-positive detecting
+#  no usage of [dev-dependencies] that are used in examples
+unused_crate_dependencies = "allow"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
+unused_macro_rules = "warn"
+unused_qualifications = "warn"
+unused_results = "warn"
+variant_size_differences = "warn"
+
+[lints.clippy]
+mem_forget = "deny"
+# suppress some pedantic warnings
+must_use_candidate = "allow"
+return_self_not_must_use = "allow"
+missing_panics_doc = "allow"
+missing_errors_doc = "allow"
+module_name_repetitions = "allow"
+# TODO: remove when not 1.67
+#uninlined_format_args = "allow"

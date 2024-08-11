@@ -3,8 +3,6 @@ use std::cmp::Ordering;
 use enum_iterator::Sequence;
 use enum_map::Enum;
 
-use musik::{Dur, Music};
-
 /// Exercise 7.1
 /// Prove that the instance of `Music` in the class `Eq`
 /// satisfies the laws of its class.
@@ -12,26 +10,24 @@ use musik::{Dur, Music};
 /// in the class `Ord` satisfies the laws of its class.
 #[cfg(test)]
 mod eq_ord_music {
-    use super::*;
+    use musik::{Dur, Music, Octave};
 
-    use musik::Octave;
-
-    const OC3: Octave = Octave::SMALL;
-    const OC4: Octave = Octave::ONE_LINED;
+    const OC3: Octave = Octave::Small;
+    const OC4: Octave = Octave::OneLined;
 
     #[test]
     fn primitive_notes_same_pitch() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::C(OC4, Dur::QN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::C(OC4, Dur::QUARTER);
 
         assert_eq!(m1, m2);
 
-        let m_smaller_dur = Music::C(OC4, Dur::EN);
+        let m_smaller_dur = Music::C(OC4, Dur::EIGHTH);
         assert_ne!(m1, m_smaller_dur);
         assert!(m1 > m_smaller_dur);
         assert!(m_smaller_dur < m1);
 
-        let m_lower_octave = Music::C(OC3, Dur::QN);
+        let m_lower_octave = Music::C(OC3, Dur::QUARTER);
         assert_ne!(m1, m_lower_octave);
         assert!(m1 > m_lower_octave);
         assert!(m_lower_octave < m1);
@@ -39,14 +35,14 @@ mod eq_ord_music {
 
     #[test]
     fn primitive_notes_diff_by_dur_then_by_pitch() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::D(OC4, Dur::QN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::D(OC4, Dur::QUARTER);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m_smaller_dur = Music::D(OC4, Dur::EN);
+        let m_smaller_dur = Music::D(OC4, Dur::EIGHTH);
         assert_ne!(m1, m_smaller_dur);
         assert!(m1 > m_smaller_dur);
         assert!(m_smaller_dur < m1);
@@ -54,14 +50,14 @@ mod eq_ord_music {
 
     #[test]
     fn primitive_notes_smaller_than_rest() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m2 = Music::rest(Dur::WN);
+        let m2 = Music::rest(Dur::WHOLE);
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
@@ -69,14 +65,14 @@ mod eq_ord_music {
 
     #[test]
     fn rests_are_sorted_by_dur() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
 
-        let m2 = Music::rest(Dur::WN);
+        let m2 = Music::rest(Dur::WHOLE);
         assert_ne!(m1, m2);
         assert!(m1 < m2);
         assert!(m2 > m1);
@@ -84,8 +80,8 @@ mod eq_ord_music {
 
     #[test]
     fn primitives_are_lower_than_complex() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         let m3 = m1.clone() + m2.clone();
         assert_ne!(m1, m3);
@@ -113,9 +109,9 @@ mod eq_ord_music {
 
     #[test]
     fn sequential_are_ordered_lexicographically() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
-        let m3 = Music::rest(Dur::WN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
+        let m3 = Music::rest(Dur::WHOLE);
 
         let m4 = m1.clone() + m2;
         let m5 = m1 + m3;
@@ -126,9 +122,9 @@ mod eq_ord_music {
 
     #[test]
     fn parallel_are_ordered_lexicographically() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
-        let m3 = Music::rest(Dur::WN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
+        let m3 = Music::rest(Dur::WHOLE);
 
         let m4 = m1.clone() | m2;
         let m5 = m1 | m3;
@@ -139,8 +135,8 @@ mod eq_ord_music {
 
     #[test]
     fn sequential_always_smaller_parallel() {
-        let m1 = Music::C(OC4, Dur::QN);
-        let m2 = Music::rest(Dur::SN);
+        let m1 = Music::C(OC4, Dur::QUARTER);
+        let m2 = Music::rest(Dur::SIXTEENTH);
 
         let m3 = m1.clone() + m2.clone();
         let m4 = m1 | m2;
@@ -162,14 +158,10 @@ enum Color {
 /// type in the classes `Eq`, `Ord`, and `Enum`.
 impl PartialEq for Color {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Red, Self::Red) => true,
-            (Self::Red, _) => false,
-            (Self::Green, Self::Green) => true,
-            (Self::Green, _) => false,
-            (Self::Blue, Self::Blue) => true,
-            (Self::Blue, _) => false,
-        }
+        matches!(
+            (self, other),
+            (Self::Red, Self::Red) | (Self::Green, Self::Green) | (Self::Blue, Self::Blue)
+        )
     }
 }
 
@@ -244,28 +236,13 @@ impl Sequence for Color {
     }
 }
 
+#[allow(dead_code)]
 /// Exercise 7.3
 /// Define a type class called `Temporal` whose members are types
 /// that can be interpreted as having a temporal duration.
-trait Temporal {
-    fn duration_t(&self) -> Dur;
-    fn take_t(self, dur: Dur) -> Self;
-    fn drop_t(self, dur: Dur) -> Self;
-}
-
-impl<P> Temporal for Music<P> {
-    fn duration_t(&self) -> Dur {
-        self.duration()
-    }
-
-    fn take_t(self, dur: Dur) -> Self {
-        self.take(dur)
-    }
-
-    fn drop_t(self, dur: Dur) -> Self {
-        self.drop(dur)
-    }
-}
+///
+/// Already implemented in the library.
+const fn foo() {}
 
 /// Exercise 7.4
 /// Functions are not members of the `Eq` class, because,
@@ -280,7 +257,7 @@ mod tests {
 
     use musik::{Interval, Octave, Pitch, PitchClass};
 
-    use crate::compose;
+    use crate::ch5::compose;
 
     use super::*;
 
@@ -362,9 +339,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(trivial_casts)]
     fn pitch_class_to_abs() {
         fn foo(pc: Option<PitchClass>) -> i8 {
-            pc.map(|pc| Pitch::new(pc, Octave::ONE_LINED).abs().get_inner())
+            pc.map(|pc| Pitch::new(pc, Octave::OneLined).abs().get_u8() as i8)
                 .unwrap_or(i8::MIN)
         }
 
@@ -374,7 +352,7 @@ mod tests {
             }
 
             let c = c.unwrap();
-            Interval::from(c).get_inner() + 49
+            Interval::from(c).get_inner() + 61
         };
 
         assert_ne!(
@@ -384,7 +362,7 @@ mod tests {
             (Box::new(foo) as Box<dyn Fn(Option<PitchClass>) -> i8>).into(),
         );
 
-        // fix the bar function bu subtracting 1 to make it equal again
+        // fix the bar function by subtracting 1 to make it equal again
         assert_eq!(
             EqFn {
                 inner: Box::new(compose(bar, |x| x - 1)),

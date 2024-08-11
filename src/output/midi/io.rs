@@ -1,12 +1,22 @@
-use std::io::{ErrorKind, Write};
+use std::{
+    fmt,
+    io::{ErrorKind, Write},
+};
 
+use log::info;
 use midir::{MidiOutput, MidiOutputConnection, MidiOutputPort};
 
-pub(super) fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
+fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     let ports = out.ports();
     if ports.is_empty() {
+        info!("Not found any MIDI ports");
         return None;
     }
+
+    info!(
+        "Available ports: {:?}",
+        ports.iter().map(|p| out.port_name(p)).collect::<Vec<_>>()
+    );
 
     if ports.len() == 1 {
         ports.into_iter().next()
@@ -25,21 +35,23 @@ pub(super) fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
 
 type AnyError = Box<dyn std::error::Error>;
 
-pub fn get_default_connection() -> Result<Connection, AnyError> {
-    let out = MidiOutput::new("musik library MIDI player")?;
-    let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
-
-    println!("Choosing {:?}", out.port_name(&port));
-    let conn = out.connect(&port, "playing Music")?;
-    Ok(Connection {
-        inner: conn,
-        buf: Vec::new(),
-    })
-}
-
 pub struct Connection {
     buf: Vec<u8>,
     inner: MidiOutputConnection,
+}
+
+impl Connection {
+    pub fn get_default() -> Result<Self, AnyError> {
+        let out = MidiOutput::new("musik library MIDI player")?;
+        let port = get_default_port(&out).ok_or("Not found any MIDI output device")?;
+
+        info!("Choosing {:?} for playing", out.port_name(&port));
+        let conn = out.connect(&port, "playing Music")?;
+        Ok(Self {
+            inner: conn,
+            buf: Vec::new(),
+        })
+    }
 }
 
 impl Write for Connection {
@@ -55,5 +67,13 @@ impl Write for Connection {
             .map_err(|err| std::io::Error::new(ErrorKind::InvalidData, err))?;
         self.buf.clear();
         Ok(())
+    }
+}
+
+impl fmt::Debug for Connection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(std::any::type_name::<Self>())
+            .field("buf", &self.buf)
+            .finish_non_exhaustive()
     }
 }

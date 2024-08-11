@@ -1,13 +1,17 @@
 #[cfg(test)]
+use ux2::{u4, u7};
+
+#[cfg(test)]
 use musik::{AbsPitch, Interval};
 use musik::{Dur, Music, Octave, Pitch};
 
-fn t251() -> Music {
-    let oc4 = Octave::from(4);
-    let oc5 = Octave::from(5);
-    let d_minor = Music::D(oc4, Dur::WN) | Music::F(oc4, Dur::WN) | Music::A(oc4, Dur::WN);
-    let g_major = Music::G(oc4, Dur::WN) | Music::B(oc4, Dur::WN) | Music::D(oc5, Dur::WN);
-    let c_major = Music::C(oc4, Dur::BN) | Music::E(oc4, Dur::BN) | Music::G(oc4, Dur::BN);
+pub fn t251() -> Music {
+    let oc4 = Octave::OneLined;
+    let oc5 = Octave::TwoLined;
+    let d_minor = Music::D(oc4, Dur::WHOLE) | Music::F(oc4, Dur::WHOLE) | Music::A(oc4, Dur::WHOLE);
+    let g_major = Music::G(oc4, Dur::WHOLE) | Music::B(oc4, Dur::WHOLE) | Music::D(oc5, Dur::WHOLE);
+    let c_major =
+        Music::C(oc4, Dur::BREVIS) | Music::E(oc4, Dur::BREVIS) | Music::G(oc4, Dur::BREVIS);
 
     d_minor + g_major + c_major
 }
@@ -18,7 +22,7 @@ fn t251() -> Music {
 /// (i.e. the first degree of the major scale on which the progression is being constructed)
 /// where the duration of the first two chords is each `duration`,
 /// and the duration of the last chord is `2 ∗ duration`.
-fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
+pub fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
     let double_duration = duration.double();
     let whole_major_scale: Vec<_> = pitch.major_scale().collect();
     let second = whole_major_scale[1];
@@ -50,16 +54,17 @@ fn two_five_one(pitch: Pitch, duration: Dur) -> Music {
 
 #[test]
 fn test_t251() {
-    assert_eq!(t251(), two_five_one(Pitch::C(Octave::from(4)), Dur::WN));
+    let oc = Octave::try_from(u4::new(4)).unwrap();
+    assert_eq!(t251(), two_five_one(Pitch::C(oc), Dur::WHOLE));
 }
 
-mod blues {
+pub mod blues {
     //! Exercise 2.2
     //! Pentatonic blues scale consists of five notes
     //! and, in the key of C, approximately corresponds
     //! to the notes C, Ef, F, G, and Bf.
     use super::{Dur, Music, Octave, Pitch};
-    use musik::{music::Primitive, PitchClass};
+    use musik::PitchClass;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum BluesPitchClass {
@@ -136,27 +141,13 @@ mod blues {
     }
 
     fn blues_into_western(blues_music: Music<BluesPitch>) -> Music {
-        match blues_music {
-            Music::Prim(Primitive::Note(duration, pitch)) => {
-                Music::note(duration, pitch.to_western())
-            }
-            Music::Prim(Primitive::Rest(duration)) => Music::rest(duration),
-            Music::Sequential(m1, m2) => Music::Sequential(
-                Box::new(blues_into_western(*m1)),
-                Box::new(blues_into_western(*m2)),
-            ),
-            Music::Parallel(m1, m2) => Music::Parallel(
-                Box::new(blues_into_western(*m1)),
-                Box::new(blues_into_western(*m2)),
-            ),
-            Music::Modify(control, m) => Music::Modify(control, Box::new(blues_into_western(*m))),
-        }
+        blues_music.map(BluesPitch::to_western)
     }
 
-    fn melody() -> Music {
-        let oc = Octave::from(4);
-        let blues_melody = (ro(oc, Dur::QN) | ms(oc, Dur::QN))
-            + (mt(oc, Dur::HN) | fi(oc, Dur::HN) | fo(oc, Dur::HN));
+    pub fn melody() -> Music {
+        let oc = Octave::OneLined;
+        let blues_melody = (ro(oc, Dur::QUARTER) | ms(oc, Dur::QUARTER))
+            + (mt(oc, Dur::HALF) | fi(oc, Dur::HALF) | fo(oc, Dur::HALF));
         blues_into_western(blues_melody)
     }
 }
@@ -165,8 +156,8 @@ mod blues {
 /// equivalences, pitch (abspitch p) = p.
 #[test]
 fn from_abs_roundtrip() {
-    for i in -2..8 * 12 {
-        let abs_pitch = AbsPitch::from(i);
+    for p in 0..=127 {
+        let abs_pitch = AbsPitch::from(u7::new(p));
         assert_eq!(Pitch::from(abs_pitch).abs(), abs_pitch);
     }
 }
@@ -187,7 +178,8 @@ fn enharmonic_roundtrip_with_abs_conversion() {
         Pitch::As,
         Pitch::B,
     ] {
-        let pitch = pitch_constructor(Octave::from(3));
+        let oc = Octave::try_from(u4::new(3)).unwrap();
+        let pitch = pitch_constructor(oc);
         assert_eq!(Pitch::from(pitch.abs()), pitch);
     }
 }
@@ -209,7 +201,8 @@ fn trans_is_sum() {
         Pitch::As,
         Pitch::B,
     ] {
-        let pitch = pitch_constructor(Octave::from(3));
+        let oc = Octave::try_from(u4::new(3)).unwrap();
+        let pitch = pitch_constructor(oc);
         for i in 0..12 {
             let int1 = Interval::from(i);
             for j in 0..12 {
