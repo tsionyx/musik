@@ -543,14 +543,14 @@ fn arpeggio_chord(mut events: Vec<Event>, up: bool) -> Box<dyn Iterator<Item = E
         events.sort_by_key(|e| std::cmp::Reverse(e.pitch));
     }
 
-    let size = events.len() as u32;
+    let size = u32::try_from(events.len()).expect("len is not low enough");
     match size {
         3 | 5 | 6 | 7 if d.numer() % size == 0 => {
             if d.numer() % size == 0 {
                 // could split into equal intervals
                 let short_dur = d / size;
                 Box::new(events.into_iter().enumerate().map(move |(i, e)| Event {
-                    start_time: s + short_dur * (i as u32),
+                    start_time: s + short_dur * u32::try_from(i).expect("i is not low enough"),
                     duration: short_dur,
                     ..e
                 }))
@@ -566,14 +566,15 @@ fn arpeggio_chord(mut events: Vec<Event>, up: bool) -> Box<dyn Iterator<Item = E
                 let equal_dur_notes = size - 1;
                 Box::new(events.into_iter().enumerate().map(move |(i, e)| {
                     // the last is longer
-                    let duration = if i as u32 == equal_dur_notes {
+                    let i = u32::try_from(i).expect("i is not low enough");
+                    let duration = if i == equal_dur_notes {
                         d - (short_dur * equal_dur_notes)
                     } else {
                         short_dur
                     };
 
                     Event {
-                        start_time: s + short_dur * (i as u32),
+                        start_time: s + short_dur * i,
                         duration,
                         ..e
                     }
@@ -583,7 +584,7 @@ fn arpeggio_chord(mut events: Vec<Event>, up: bool) -> Box<dyn Iterator<Item = E
         4 | 8 => {
             let short_dur = d / size;
             Box::new(events.into_iter().enumerate().map(move |(i, e)| Event {
-                start_time: s + short_dur * (i as u32),
+                start_time: s + short_dur * u32::try_from(i).expect("i is not low enough"),
                 duration: short_dur,
                 ..e
             }))

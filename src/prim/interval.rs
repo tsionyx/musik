@@ -58,7 +58,7 @@ pub enum Octave {
     /// Frequency range: 261.626 Hz - 493.883 Hz
     ///
     /// The lowest pitch (C4) is also called
-    /// ['Middle C'](https://en.wikipedia.org/wiki/C_(musical_note)#Middle_C).
+    /// [Middle C](https://en.wikipedia.org/wiki/C_(musical_note)#Middle_C).
     OneLined = 4,
 
     /// Frequency range: 523.251 Hz - 987.767 Hz

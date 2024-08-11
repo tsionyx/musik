@@ -38,10 +38,10 @@ macro_rules! pc {
 }
 
 /// Introduce some constant aliases that allows to define
-/// [PitchClass][crate::PitchClass]
+/// [`PitchClass`][crate::PitchClass]
 /// in a more standard way, e.g.:
-/// - Cb for [crate::PitchClass::Cf];
-/// - Bbb for [crate::PitchClass::Bff];
+/// - Cb for [`crate::PitchClass::Cf`];
+/// - Bbb for [`crate::PitchClass::Bff`];
 ///
 ///  TODO: create sharp aliases the similar way.
 ///    This is challenging since the '#' symbol

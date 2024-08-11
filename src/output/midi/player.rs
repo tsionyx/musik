@@ -75,7 +75,7 @@ impl MidiPlayer {
     /// Create a [MIDI player][Self] by choosing
     /// the most appropriate MIDI device.
     ///
-    /// To choose the device manually, use the [Self::with_port].
+    /// To choose the device manually, use the [`Self::with_port`].
     pub fn make_default() -> Result<Self, AnyError> {
         let conn = Connection::get_default()?;
         Ok(Self {
@@ -91,7 +91,7 @@ impl MidiPlayer {
     /// Create a [MIDI player][Self] with [`Config`] by choosing
     /// the most appropriate MIDI device.
     ///
-    /// To choose the device manually, use the [Self::with_port].
+    /// To choose the device manually, use the [`Self::with_port`].
     pub fn with_config(config: Config) -> Result<Self, AnyError> {
         let conn = Connection::get_default()?;
         Ok(Self {
@@ -206,7 +206,7 @@ impl MidiPlayer {
                     channel,
                     message: MidiMessage::NoteOff { key, vel },
                 };
-                self.play_event(msg)?
+                self.play_event(msg)?;
             }
         }
         Ok(())

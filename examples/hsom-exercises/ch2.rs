@@ -141,7 +141,7 @@ pub mod blues {
     }
 
     fn blues_into_western(blues_music: Music<BluesPitch>) -> Music {
-        blues_music.map(|p| p.to_western())
+        blues_music.map(BluesPitch::to_western)
     }
 
     pub fn melody() -> Music {
