@@ -219,11 +219,11 @@ where
             (perf, dur)
         };
 
-        let t0 = match perf.repr.first().map(|e| e.start_time) {
-            Some(t) => t,
-            None => {
-                return (perf, dur);
-            }
+        let e = perf.iter().next().cloned();
+        let t0 = if let Some(e) = e {
+            e.start_time
+        } else {
+            return (perf, dur);
         };
 
         let inflate = |event: Event, coef: Ratio<u32>, sign: bool| {
@@ -302,7 +302,6 @@ where
                 PhraseAttribute::Orn(Ornament::Trill(opts)) => {
                     // exercise 8.2.1
                     let events = perf
-                        .into_events()
                         .into_iter()
                         .flat_map(|e| trill(e, *opts, key))
                         .collect();
@@ -311,7 +310,6 @@ where
                 PhraseAttribute::Orn(Ornament::Mordent) => {
                     // exercise 8.2.2
                     let events = perf
-                        .into_events()
                         .into_iter()
                         .flat_map(|e| mordent(e, true, false, key))
                         .collect();
@@ -320,7 +318,6 @@ where
                 PhraseAttribute::Orn(Ornament::InvMordent) => {
                     // exercise 8.2.3
                     let events = perf
-                        .into_events()
                         .into_iter()
                         .flat_map(|e| mordent(e, false, false, key))
                         .collect();
@@ -329,7 +326,6 @@ where
                 PhraseAttribute::Orn(Ornament::DoubleMordent) => {
                     // exercise 8.2.4
                     let events = perf
-                        .into_events()
                         .into_iter()
                         .flat_map(|e| mordent(e, true, true, key))
                         .collect();
@@ -369,7 +365,7 @@ where
             }),
             PhraseAttribute::Art(Articulation::Slurred(x)) => {
                 // the same as Legato, but do not extend the duration of the last note(s)
-                let last_start_time = perf.repr.iter().map(|e| e.start_time).max();
+                let last_start_time = perf.iter().map(|e| e.start_time).max();
                 if let Some(last_start_time) = last_start_time {
                     perf.map(|event| {
                         if event.start_time < last_start_time {
@@ -388,7 +384,7 @@ where
             PhraseAttribute::Art(Articulation::Pedal) => {
                 // exercise 8.2.1
                 // all the notes will sustain until the end of the phrase
-                let end_of_the_phrase = perf.repr.iter().map(|e| e.start_time + e.duration).max();
+                let end_of_the_phrase = perf.iter().map(|e| e.start_time + e.duration).max();
                 if let Some(last_event_end) = end_of_the_phrase {
                     perf.map(|event| {
                         if let Some(lengthened_duration) =
@@ -408,10 +404,10 @@ where
                 }
             }
             PhraseAttribute::Orn(Ornament::ArpeggioUp) => {
-                Performance::with_events(arpeggio(perf.into_events(), true))
+                Performance::with_events(arpeggio(perf.into_iter(), true))
             }
             PhraseAttribute::Orn(Ornament::ArpeggioDown) => {
-                Performance::with_events(arpeggio(perf.into_events(), false))
+                Performance::with_events(arpeggio(perf.into_iter(), false))
             }
             PhraseAttribute::Art(_) | PhraseAttribute::Orn(_) => perf,
         }
@@ -423,7 +419,7 @@ impl Performance {
     where
         F: FnMut(Event) -> Event,
     {
-        Self::with_events(self.repr.into_iter().map(f).collect())
+        Self::with_events(self.into_iter().map(f).collect())
     }
 }
 
@@ -519,8 +515,8 @@ fn mordent(event: Event, upper: bool, double: bool, key: KeySig) -> impl Iterato
     alternate_pitch(event, aux_pitch, dur_seq)
 }
 
-fn arpeggio(events: Vec<Event>, up: bool) -> Vec<Event> {
-    let chord_groups = events.into_iter().group_by(|e| (e.start_time, e.duration));
+fn arpeggio(events: impl Iterator<Item = Event>, up: bool) -> Vec<Event> {
+    let chord_groups = events.group_by(|e| (e.start_time, e.duration));
     chord_groups
         .into_iter()
         .flat_map(|(_, chord)| arpeggio_chord(chord.collect(), up))

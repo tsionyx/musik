@@ -129,7 +129,7 @@ mod jazz_man {
             let perf = m.with_player(SwingPlayer::default()).perform();
 
             assert_eq!(
-                perf.into_events(),
+                perf.into_iter().collect::<Vec<Event>>(),
                 [
                     Event {
                         start_time: Ratio::from_integer(0),

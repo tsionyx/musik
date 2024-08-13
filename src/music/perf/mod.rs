@@ -37,15 +37,18 @@ impl Performance {
         Self { repr: events }
     }
 
-    #[allow(clippy::missing_const_for_fn)] // for 1.63
-    /// Convert the [`Performance`] into a number of [`Event`]s.
-    pub fn into_events(self) -> Vec<Event> {
-        self.repr
-    }
-
     /// Iterate over the [`Event`]s of the [`Performance`].
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Event> {
         self.repr.iter()
+    }
+}
+
+impl IntoIterator for Performance {
+    type Item = Event;
+    type IntoIter = <Vec<Event> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.repr.into_iter()
     }
 }
 
@@ -112,8 +115,7 @@ impl<P: 'static> Music<P> {
                 let (p2, d2) = m2.perf(ctx);
                 (
                     Performance::with_events(
-                        p1.repr
-                            .into_iter()
+                        p1.into_iter()
                             // use simple `.merge()` for perfectly commutative `Self::Parallel`
                             .merge_by(p2.repr, |x, y| x.start_time < y.start_time)
                             .collect(),

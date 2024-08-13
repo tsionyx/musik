@@ -1,6 +1,7 @@
 //! <https://en.wikipedia.org/wiki/General_MIDI>
 
 #![cfg_attr(not(feature = "play-midi"), allow(dead_code))]
+
 use std::{borrow::Cow, collections::HashMap, iter, time::Duration};
 
 use itertools::Itertools as _;
@@ -79,8 +80,7 @@ impl Performance {
     }
 
     fn split_by_instruments(self) -> HashMap<InstrumentName, Self> {
-        self.into_events()
-            .into_iter()
+        self.into_iter()
             .map(|e| (e.instrument.clone(), e))
             .into_group_map()
             .into_iter()
