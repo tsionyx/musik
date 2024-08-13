@@ -126,8 +126,6 @@ impl<P: Clone> Music<P> {
     ///
     /// Also could be used in the form `Music * n`.
     pub fn times(&self, n: usize) -> Self {
-        std::iter::repeat(self.clone())
-            .take(n)
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
+        Self::lazy_line(std::iter::repeat(self.clone()).take(n))
     }
 }

@@ -196,7 +196,7 @@ fn retro_pitches(m: Music) -> Option<Music> {
 
 #[cfg(test)]
 mod tests {
-    use musik::{Dur, Octave};
+    use musik::{n, Dur, Octave};
 
     use super::*;
 
@@ -223,10 +223,22 @@ mod tests {
     fn strip_zeros() {
         let oc4 = Octave::OneLined;
         let m = M::C(oc4, Dur::EIGHTH) + M::D(oc4, Dur::EIGHTH).times(16);
+        assert_ne!(
+            m.clone().skip(Dur::HALF).take(Dur::HALF).remove_zeros(),
+            M::D(oc4, Dur::EIGHTH).times(4)
+        ); // Lazy != Lazy
+
         assert_eq!(
-            m.skip(Dur::HALF).take(Dur::HALF).remove_zeros(),
-            M::D(oc4, Dur::EIGHTH).times(4).remove_zeros()
-        );
+            Vec::from(m.clone().skip(Dur::HALF).take(Dur::HALF).remove_zeros()),
+            Vec::from(M::D(oc4, Dur::EIGHTH).times(4))
+        ); // but individual notes match
+
+        assert_eq!(
+            Vec::from(m.skip(Dur::HALF).take(Dur::HALF).remove_zeros()),
+            (0..4)
+                .map(|_| M::Prim(n!(D 4 / 8).into()))
+                .collect::<Vec<_>>()
+        ); // but individual notes match
     }
 }
 
