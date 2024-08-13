@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Volume};
+use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Temporal as _, Volume};
 
 mod ch1;
 mod ch2;
@@ -94,7 +94,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
 
-    let perf = m.perform();
+    // TODO: make the whole flow lazy:
+    //  - fix `Music::perform` to produce truly lazy stream of events;
+    //    Then replace `Music::take` with `Performance::with_events(perf.iter().take(500_000))`
+    //    (for the shepard scale it is roughly identical to `let m = m.take(Dur::from(10_000));`).
+    //    It should almost immediately start to play (select output MIDI device, etc).
+    //  - introduce lazy `midly::Smf` , then check that it starts real sound almost instantly.
+    //    (Now it takes ~30s to generate performance and then `Smf`).
+    let perf = m.take(Dur::from(10_000)).perform();
     if cli.mode.play {
         perf.clone().play()?;
     }

@@ -721,8 +721,7 @@ pub mod shepard_scale {
                 .map(|(instrument, seed)| {
                     Music::lazy_line(
                         iter::successors(Some(*seed), |x| Some(pseudo_random_gen(*x)))
-                            .map(move |x| LineConfig::from_number(x, delta).scale())
-                            .take(100),
+                            .map(move |x| LineConfig::from_number(x, delta).scale()),
                     )
                     .with_instrument(*instrument)
                 })
