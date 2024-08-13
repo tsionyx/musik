@@ -84,10 +84,7 @@ where
 }
 
 impl<P: 'static> Music<P> {
-    fn perf<'s, 'ctx>(&'s self, mut ctx: Context<'ctx, P>) -> (Performance, Duration)
-    where
-        's: 'ctx,
-    {
+    fn perf(&self, ctx: Context<'_, P>) -> (Performance, Duration) {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
@@ -99,21 +96,27 @@ impl<P: 'static> Music<P> {
             ),
             Self::Sequential(m1, m2) => {
                 let (mut p1, d1) = m1.perf(ctx.clone());
-                ctx.start_time += d1;
+                let ctx = Context {
+                    start_time: ctx.start_time + d1,
+                    ..ctx
+                };
                 let (p2, d2) = m2.perf(ctx);
                 p1.repr.extend(p2.repr);
                 (p1, d1 + d2)
             }
             Self::Lazy(it) => {
                 let mut total_perf = Performance::with_events(iter::empty());
+                let mut prev_d = None;
 
+                let mut ctx = ctx;
                 for m in it.clone() {
+                    ctx.start_time += prev_d.unwrap_or_default();
                     let (p, d) = m.perf(ctx.clone());
-                    ctx.start_time += d;
+                    prev_d = Some(d);
                     total_perf.repr.extend(p.repr);
                 }
 
-                (total_perf, ctx.start_time)
+                (total_perf, ctx.start_time + prev_d.unwrap_or_default())
             }
             Self::Parallel(m1, m2) => {
                 let (p1, d1) = m1.perf(ctx.clone());
@@ -128,15 +131,24 @@ impl<P: 'static> Music<P> {
                 )
             }
             Self::Modify(Control::Tempo(t), m) => {
-                ctx.whole_note /= convert_ratio(*t);
+                let ctx = Context {
+                    whole_note: ctx.whole_note / convert_ratio(*t),
+                    ..ctx
+                };
                 m.perf(ctx)
             }
             Self::Modify(Control::Transpose(p), m) => {
-                ctx.transpose_interval += *p;
+                let ctx = Context {
+                    transpose_interval: ctx.transpose_interval + *p,
+                    ..ctx
+                };
                 m.perf(ctx)
             }
             Self::Modify(Control::Instrument(i), m) => {
-                ctx.instrument = i.clone();
+                let ctx = Context {
+                    instrument: i.clone(),
+                    ..ctx
+                };
                 m.perf(ctx)
             }
             Self::Modify(Control::Phrase(phrases), m) => {
@@ -144,11 +156,14 @@ impl<P: 'static> Music<P> {
             }
             Self::Modify(Control::Player(p), m) => {
                 info!("Overwriting player during `perform`: {}", p.name());
-                ctx.player = Cow::Borrowed(p);
+                let ctx = Context {
+                    player: Cow::Borrowed(p),
+                    ..ctx
+                };
                 m.perf(ctx)
             }
             Self::Modify(Control::KeySig(ks), m) => {
-                ctx.key = *ks;
+                let ctx = Context { key: *ks, ..ctx };
                 m.perf(ctx)
             }
         }
