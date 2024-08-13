@@ -1,6 +1,6 @@
 //! Defines abstract [`Performance`] which
 //! is a time-ordered sequence of musical [`Event`]s.
-use std::{borrow::Cow, ops::Deref};
+use std::{borrow::Cow, iter, ops::Deref};
 
 use itertools::Itertools as _;
 use log::info;
@@ -12,6 +12,7 @@ use crate::{
     midi::Instrument,
     music::{AttrNote, MusicAttr},
     prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
+    utils::{CloneableIterator, LazyList},
 };
 
 use super::{control::Control, Music, Primitive};
@@ -28,27 +29,32 @@ mod player;
 /// [`Performance`] is a time-ordered sequence
 /// of musical [`events`][Event].
 pub struct Performance {
-    repr: Vec<Event>,
+    repr: LazyList<Event>,
 }
 
 impl Performance {
     /// Create a [`Performance`] from a number of [`Event`]s.
-    pub const fn with_events(events: Vec<Event>) -> Self {
-        Self { repr: events }
+    pub fn with_events<I>(events: I) -> Self
+    where
+        I: CloneableIterator<Item = Event> + 'static,
+    {
+        Self {
+            repr: LazyList(Box::new(events)),
+        }
     }
 
     /// Iterate over the [`Event`]s of the [`Performance`].
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &Event> {
-        self.repr.iter()
+    pub fn iter(&self) -> LazyList<Event> {
+        self.repr.clone()
     }
 }
 
-impl IntoIterator for Performance {
+impl IntoIterator for &Performance {
     type Item = Event;
-    type IntoIter = <Vec<Event> as IntoIterator>::IntoIter;
+    type IntoIter = LazyList<Event>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.repr.into_iter()
+        self.iter()
     }
 }
 
@@ -88,7 +94,7 @@ impl<P: 'static> Music<P> {
                 (ctx.player.clone().play_note((*d, p), ctx), dur)
             }
             Self::Prim(Primitive::Rest(d)) => (
-                Performance::with_events(vec![]),
+                Performance::with_events(iter::empty()),
                 d.into_ratio() * ctx.whole_note,
             ),
             Self::Sequential(m1, m2) => {
@@ -99,8 +105,7 @@ impl<P: 'static> Music<P> {
                 (p1, d1 + d2)
             }
             Self::Lazy(it) => {
-                // TODO: lazy performance
-                let mut total_perf = Performance::with_events(vec![]);
+                let mut total_perf = Performance::with_events(iter::empty());
 
                 for m in it.clone() {
                     let (p, d) = m.perf(ctx.clone());
@@ -115,10 +120,9 @@ impl<P: 'static> Music<P> {
                 let (p2, d2) = m2.perf(ctx);
                 (
                     Performance::with_events(
-                        p1.into_iter()
+                        p1.iter()
                             // use simple `.merge()` for perfectly commutative `Self::Parallel`
-                            .merge_by(p2.repr, |x, y| x.start_time < y.start_time)
-                            .collect(),
+                            .merge_by(p2.iter(), |x, y| x.start_time < y.start_time),
                     ),
                     d1.max(d2),
                 )
@@ -373,7 +377,7 @@ mod tests {
         // will last exactly 4'33"
         let m: Music = Music::lazy_line([Dur::from(136), Dur::HALF].into_iter().map(Music::rest));
 
-        let perf = m.perform();
-        assert!(perf.repr.is_empty());
+        let mut perf = m.perform();
+        assert!(perf.repr.next().is_none());
     }
 }

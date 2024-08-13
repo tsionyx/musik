@@ -55,6 +55,19 @@ impl<T> Iterator for LazyList<T> {
     }
 }
 
+impl<T> LazyList<T> {
+    pub(crate) fn extend<I>(&mut self, iter: I)
+    where
+        T: 'static,
+        I: IntoIterator<Item = T>,
+        I::IntoIter: Clone + 'static,
+    {
+        let mut content: Box<dyn CloneableIterator<Item = T>> = Box::new(std::iter::empty());
+        std::mem::swap(&mut self.0, &mut content);
+        self.0 = Box::new(content.chain(iter));
+    }
+}
+
 /// Clone-able [Iterator] which can be used in dyn context.
 pub trait CloneableIterator: Iterator + DynClone {}
 

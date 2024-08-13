@@ -80,11 +80,11 @@ impl Performance {
     }
 
     fn split_by_instruments(self) -> HashMap<InstrumentName, Self> {
-        self.into_iter()
+        self.iter()
             .map(|e| (e.instrument.clone(), e))
             .into_group_map()
             .into_iter()
-            .map(|(k, v)| (k, Self::with_events(v)))
+            .map(|(k, v)| (k, Self::with_events(v.into_iter())))
             .collect()
     }
 
@@ -129,7 +129,7 @@ pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
 impl Event {
-    fn as_midi(&self, channel: Channel) -> Pair<TimedMessage<'_>> {
+    fn as_midi(&self, channel: Channel) -> Pair<TimedMessage<'static>> {
         let ticks_per_second = u32::from(u16::from(DEFAULT_TIME_DIV)) * BEATS_PER_SECOND;
 
         let start = (self.start_time * ticks_per_second).to_integer();

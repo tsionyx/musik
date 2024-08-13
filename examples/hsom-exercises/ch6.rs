@@ -719,11 +719,10 @@ pub mod shepard_scale {
             lines
                 .iter()
                 .map(|(instrument, seed)| {
-                    Music::line(
+                    Music::lazy_line(
                         iter::successors(Some(*seed), |x| Some(pseudo_random_gen(*x)))
-                            .take(100)
-                            .map(|x| LineConfig::from_number(x, delta).scale())
-                            .collect(),
+                            .map(move |x| LineConfig::from_number(x, delta).scale())
+                            .take(100),
                     )
                     .with_instrument(*instrument)
                 })
