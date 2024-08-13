@@ -5,7 +5,7 @@ use std::{
 
 use num_rational::Ratio;
 
-pub type DurT = u8;
+pub type DurT = u32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// [Duration][Dur] is the length of time a pitch, or tone, is sounded.

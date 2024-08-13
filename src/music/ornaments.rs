@@ -56,7 +56,10 @@ impl Music {
 
                         Box::new(
                             iter::repeat(single)
-                                .take(usize::from(n))
+                                .take(
+                                    usize::try_from(n)
+                                        .expect("The system should be at least 32-bit"),
+                                )
                                 .chain((!last_dur.is_zero()).then_some(Dur::from(last_dur))),
                         )
                     }
