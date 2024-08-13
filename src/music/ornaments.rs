@@ -115,9 +115,9 @@ mod tests {
                     Pitch::D(oc4),
                     Pitch::C(oc4),
                     Pitch::D(oc4),
-                    Pitch::C(oc4)
+                    Pitch::C(oc4),
                 ],
-                Dur::DOTTED_EIGHTH
+                Dur::DOTTED_EIGHTH,
             ) + Music::D(oc4, Dur::SIXTEENTH)
         );
     }
