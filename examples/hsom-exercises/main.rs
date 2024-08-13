@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Temporal as _, Volume};
+use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Performance, Pitch, Volume};
 
 mod ch1;
 mod ch2;
@@ -94,16 +94,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
 
-    // TODO: make the whole flow lazy:
-    //  - fix `Music::perform` to produce truly lazy stream of events;
-    //    Then replace `Music::take` with `Performance::with_events(perf.iter().take(500_000))`
-    //    (for the shepard scale it is roughly identical to `let m = m.take(Dur::from(10_000));`).
-    //    It should almost immediately start to play (select output MIDI device, etc).
-    //  - introduce lazy `midly::Smf` , then check that it starts real sound almost instantly.
-    //    (Now it takes ~30s to generate performance and then `Smf`).
-    let perf = m.take(Dur::from(10_000)).perform();
+    let perf = m.perform();
     if cli.mode.play {
-        perf.clone().play()?;
+        // TODO: make the whole flow lazy:
+        //  - introduce lazy `midly::Smf`, then check that it starts real sound almost instantly without any `take`.
+        //  - not it is:
+        //    - good on `perf.iter().take(1604)` and less;
+        //    - fails on `Event::as_midi` on `perf.iter().take(1605)` (while calculating `self.start_time * ticks_per_second`);
+        //    - fails (earlier) on `split_by_instruments` on `perf.iter().take(1802)` (while calculating ` ctx.start_time = ctx.start_time + d`);
+        let perf = Performance::with_events(perf.iter().take(1604));
+        perf.play()?;
     }
 
     if let Some(path) = cli.mode.save_into {

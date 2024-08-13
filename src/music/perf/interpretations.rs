@@ -17,7 +17,7 @@ use crate::{
         scale::KeySig,
         volume::Volume,
     },
-    utils::CloneableIterator,
+    utils::{CloneableIterator, Measure},
 };
 
 use super::{player::Player, Context, Duration, Event, Performance, TimePoint};
@@ -70,8 +70,9 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
 }
 
 fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<P>) -> Event {
+    let start_time = ctx.start_time();
     let Context {
-        start_time,
+        start_time: _ignore,
         player: _ignore_player,
         instrument,
         whole_note,
@@ -195,7 +196,7 @@ where
         music: &Music<(Pitch, Vec<A>)>,
         attrs: &[PhraseAttribute],
         mut ctx: Context<(Pitch, Vec<A>)>,
-    ) -> (Performance, Duration) {
+    ) -> (Performance, Measure<Duration>) {
         let key = ctx.key;
 
         let last_volume_phrase = attrs.iter().fold(None, |found, pa| match pa {
@@ -225,9 +226,14 @@ where
         };
 
         let inflate = move |event: Event, coef: Ratio<u32>, sign: bool| {
-            let r = coef / dur;
-            let dt = event.start_time - t0;
-            let coef_event = dt * r;
+            let coef_event = match dur {
+                Measure::Finite(dur) => {
+                    let r = coef / dur;
+                    let dt = event.start_time - t0;
+                    dt * r
+                }
+                Measure::Infinite => Ratio::from_integer(0),
+            };
             let shift = if sign {
                 Ratio::one() + coef_event
             } else {
@@ -244,7 +250,11 @@ where
         };
 
         let stretch = move |event: Event, coef: Ratio<u32>, sign: bool| {
-            let r = coef / dur;
+            let r = match dur {
+                Measure::Finite(dur) => coef / dur,
+                Measure::Infinite => Ratio::from_integer(0),
+            };
+
             let dt = event.start_time - t0;
             let time_coef_event = dt * r;
             let dur_coef_event = (Ratio::from(2) * dt + event.duration) * r;
@@ -289,12 +299,12 @@ where
                 }
                 PhraseAttribute::Tmp(Tempo::Ritardando(x)) => {
                     let perf = perf.map(move |e| stretch(e, x, true));
-                    let dur = (Ratio::one() + x) * dur;
+                    let dur = dur * (Ratio::one() + x);
                     (perf, dur)
                 }
                 PhraseAttribute::Tmp(Tempo::Accelerando(x)) => {
                     let perf = perf.map(move |e| stretch(e, x, false));
-                    let dur = Ratio::one().checked_sub(&x).unwrap_or_default() * dur;
+                    let dur = dur * Ratio::one().checked_sub(&x).unwrap_or_default();
                     (perf, dur)
                 }
                 PhraseAttribute::Orn(Ornament::Trill(opts)) => {

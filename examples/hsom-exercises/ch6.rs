@@ -614,9 +614,16 @@ mod intervals {
 pub mod shepard_scale {
     use std::iter;
 
-    use musik::{midi::Instrument, AbsPitch, Dur, Interval, Music, Octave, Pitch, Volume};
+    use musik::{
+        midi::Instrument, utils::CloneableIterator, AbsPitch, Dur, Interval, Music, Octave, Pitch,
+        Volume,
+    };
 
-    fn interval_line(start: Pitch, dur: Dur, delta: Interval) -> impl Iterator<Item = Music> {
+    fn interval_line(
+        start: Pitch,
+        dur: Dur,
+        delta: Interval,
+    ) -> impl CloneableIterator<Item = Music> + Clone {
         iter::successors(Some(start), move |prev| Some(prev.trans(delta)))
             .map(move |p| Music::note(dur, p))
     }
@@ -679,18 +686,19 @@ pub mod shepard_scale {
             }
         }
 
-        fn scale(&self) -> Music<(Pitch, Volume)> {
+        fn scale(self) -> Music<(Pitch, Volume)> {
             let max_volume = u8::from(Volume::loudest().get_inner());
             let min_volume = u8::from(Volume::softest().get_inner());
 
             let fade_out_parts = (max_volume / self.fade_out_volume_step).min(self.size);
 
             let mut volume = min_volume;
-            Music::line(
+            Music::lazy_line(
                 interval_line(self.start, self.dur, self.delta)
                     .take(self.size as usize)
-                    .zip(0..)
-                    .map(|(step, i)| {
+                    .enumerate()
+                    .map(move |(i, step)| {
+                        let i = u8::try_from(i).expect("Limited by self.size");
                         if i < self.size - fade_out_parts {
                             volume = (volume + self.fade_in_volume_step).min(max_volume);
                         } else {
@@ -699,8 +707,7 @@ pub mod shepard_scale {
 
                         Music::with_volume(step, Volume::from(volume))
                     })
-                    .chain(Some(Music::rest(self.trailing_delay)))
-                    .collect(),
+                    .chain(Some(Music::rest(self.trailing_delay))),
             )
         }
     }

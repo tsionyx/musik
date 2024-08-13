@@ -3,7 +3,7 @@
 use std::{iter, ops::Deref};
 
 use itertools::Itertools as _;
-use log::info;
+use log::{debug, info};
 use num_rational::Ratio;
 use ordered_float::OrderedFloat;
 
@@ -12,7 +12,7 @@ use crate::{
     midi::Instrument,
     music::{AttrNote, MusicAttr},
     prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
-    utils::{CloneableIterator, LazyList},
+    utils::{CloneableIterator, LazyList, Measure},
 };
 
 use super::{control::Control, Music, Primitive};
@@ -47,6 +47,17 @@ impl Performance {
     pub fn iter(&self) -> LazyList<Event> {
         self.repr.clone()
     }
+
+    /// Checks whether the given performance is infinite
+    /// by calling [`Iterator::size_hint`].
+    pub fn is_probably_infinite(&self) -> bool {
+        is_probably_infinite(&self.repr)
+    }
+}
+
+fn is_probably_infinite<T>(it: &impl Iterator<Item = T>) -> bool {
+    let (_lower, upper) = it.size_hint();
+    upper.is_none()
 }
 
 impl IntoIterator for &Performance {
@@ -79,13 +90,15 @@ where
     }
 
     fn perform_with_context(self, ctx: Context<AttrNote>) -> Performance {
-        MusicAttr::from(self).perf(ctx).0
+        let (perf, dur) = MusicAttr::from(self).perf(ctx);
+        info!("Produced a performance of {:?} seconds long", dur);
+        perf
     }
 }
 
 impl<P: 'static> Music<P> {
     #[allow(clippy::too_many_lines)]
-    fn perf(&self, ctx: Context<P>) -> (Performance, Duration) {
+    fn perf(&self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
         let ctx = Context {
             depth: ctx.depth + 1,
             ..ctx
@@ -93,39 +106,62 @@ impl<P: 'static> Music<P> {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
-                (ctx.player.clone().play_note((*d, p), ctx), dur)
+                (ctx.player.clone().play_note((*d, p), ctx), dur.into())
             }
             Self::Prim(Primitive::Rest(d)) => (
                 Performance::with_events(iter::empty()),
-                d.into_ratio() * ctx.whole_note,
+                (d.into_ratio() * ctx.whole_note).into(),
             ),
             Self::Sequential(m1, m2) => {
                 let (mut p1, d1) = m1.perf(ctx.clone());
-                let ctx = Context {
-                    start_time: ctx.start_time + d1,
-                    ..ctx
-                };
-                let (p2, d2) = m2.perf(ctx);
-                p1.repr.extend(p2.repr);
-                (p1, d1 + d2)
+                debug!("The duration of sum's LHS: {d1:?}");
+                if let Measure::Finite(d) = d1 {
+                    let ctx = Context {
+                        start_time: ctx.start_time + d,
+                        ..ctx
+                    };
+                    let (p2, d2) = m2.perf(ctx);
+                    debug!("The duration of sum's RHS: {d2:?}");
+                    p1.repr.extend(p2.repr);
+                    (p1, d1 + d2)
+                } else {
+                    info!("Skipping the performing of RHS of the Music::Sequential, because LHS is infinite");
+                    (p1, d1)
+                }
             }
             Self::Lazy(it) => {
-                let mut total_perf = Performance::with_events(iter::empty());
-                let mut prev_d = None;
+                let is_infinite = is_probably_infinite(it);
 
-                let mut ctx = ctx;
-                for m in it.clone() {
-                    ctx.start_time += prev_d.unwrap_or_default();
-                    let (p, d) = m.perf(ctx.clone());
-                    prev_d = Some(d);
-                    total_perf.repr.extend(p.repr);
+                let events_with_max_dur = it.clone().enumerate()
+                    .scan(ctx, |ctx, (i, m)| {
+                        if ctx.start_time == Measure::Infinite {
+                            info!("Ignoring the performance of the rest of Music::Lazy, because the last item is infinite");
+                            return None;
+                        }
+                        let (p, d) = m.perf(ctx.clone());
+                        debug!("The duration of Lazy item #{i}: {d:?}");
+                        debug!("Ctx start time #{i}: {:?}. Depth={}", ctx.start_time, ctx.depth);
+                        ctx.start_time = ctx.start_time + d;
+                        Some(p.repr.zip(iter::repeat(ctx.start_time)))
+                    }).flatten();
+
+                if is_infinite {
+                    debug!("The Music::Lazy has infinite items");
+                    let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+                    (perf, Measure::Infinite)
+                } else {
+                    debug!("The Music::Lazy has finite items: {:?}", it.size_hint());
+                    // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
+                    let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
+                    let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+                    (perf, d.unwrap_or_default())
                 }
-
-                (total_perf, ctx.start_time + prev_d.unwrap_or_default())
             }
             Self::Parallel(m1, m2) => {
                 let (p1, d1) = m1.perf(ctx.clone());
+                debug!("The duration of parallel's LHS: {d1:?}");
                 let (p2, d2) = m2.perf(ctx);
+                debug!("The duration of parallel's RHS: {d2:?}");
                 (
                     Performance::with_events(
                         p1.iter()
@@ -218,7 +254,7 @@ pub type Duration = Ratio<u32>;
 /// The state of the [`Performance`] that changes
 /// as we go through the interpretation.
 pub struct Context<P: 'static> {
-    start_time: TimePoint,
+    start_time: Measure<TimePoint>,
     player: DynPlayer<P>,
     instrument: InstrumentName,
     whole_note: Duration,
@@ -283,7 +319,7 @@ impl<P: 'static> Context<P> {
     /// for the [`Music`] value itself by using [`Music::with_player`].
     pub fn with_player(player: DynPlayer<P>) -> Self {
         Self {
-            start_time: TimePoint::from_integer(0),
+            start_time: Measure::default(),
             player,
             instrument: Instrument::AcousticGrandPiano.into(),
             whole_note: metro(120, Dur::QUARTER),
@@ -355,8 +391,11 @@ impl<P: 'static> Context<P> {
 
     /// Current start time of the [`Context`] in seconds since
     /// the start of the whole performance.
-    pub const fn start_time(&self) -> TimePoint {
-        self.start_time
+    pub fn start_time(&self) -> TimePoint {
+        match self.start_time {
+            Measure::Finite(x) => x,
+            Measure::Infinite => TimePoint::from_integer(u32::MAX),
+        }
     }
 
     /// Current [`Player`] of the [`Context`].
@@ -393,7 +432,11 @@ impl<P: 'static> Context<P> {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
+
+    use crate::{n, Octave, Pitch};
 
     #[test]
     fn john_cage() {
@@ -403,5 +446,105 @@ mod tests {
 
         let mut perf = m.perform();
         assert!(perf.repr.next().is_none());
+    }
+
+    #[test]
+    fn line_and_lazy_line_performed_the_same() {
+        let it = once(n!(C 4 / 4))
+            .chain(once(n!(G 5 / 8)))
+            .chain(once(n!(B 3 / 8)));
+
+        let m_lazy = Music::lazy_line(it.cycle().take(8).map(|n| Music::Prim(n.into())));
+
+        let v = vec![
+            n!(C 4 / 4),
+            n!(G 5 / 8),
+            n!(B 3 / 8),
+            n!(C 4 / 4),
+            n!(G 5 / 8),
+            n!(B 3 / 8),
+            n!(C 4 / 4),
+            n!(G 5 / 8),
+        ];
+        let m_eager = Music::line(v.into_iter().map(|n| Music::Prim(n.into())).collect());
+
+        let perf_lazy: Vec<Event> = m_lazy.perform().iter().collect();
+        let perf_eager: Vec<Event> = m_eager.perform().iter().collect();
+        assert_eq!(perf_lazy, perf_eager);
+    }
+
+    #[test]
+    fn concat_lazy() {
+        let _ = env_logger::try_init();
+
+        let m_lazy = {
+            let a_it = once(n!(C 4 / 8));
+            let b_it = once(n!(C 5 / 8));
+
+            let m_a = Music::lazy_line(a_it.map(|n| Music::Prim(n.into())));
+            let m_b = Music::lazy_line(b_it.map(|n| Music::Prim(n.into())));
+            m_a + m_b
+        };
+
+        let m_eager = Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::OneLined)))
+            + Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::TwoLined)));
+
+        let perf_lazy: Vec<Event> = m_lazy.perform().iter().collect();
+        dbg!(&perf_lazy);
+        let perf_eager: Vec<Event> = m_eager.perform().iter().collect();
+        dbg!(&perf_eager);
+        assert_eq!(perf_lazy, perf_eager);
+    }
+
+    #[test]
+    #[allow(clippy::cognitive_complexity)]
+    fn complex_music_with_lazy_line_performed_the_same_as_eager() {
+        let _ = env_logger::try_init();
+
+        let m_lazy = {
+            let a_it = once(n!(F 3 / 8))
+                .chain(once(n!(Gs 3 / 8)))
+                .chain(once(n!(C 4 / 8)))
+                .chain(once(n!(C 3 / 8)));
+
+            let b_it = once(n!(C 4 / 4))
+                .chain(once(n!(G 5 / 8)))
+                .chain(once(n!(B 3 / 8)));
+
+            let m_a = Music::lazy_line(a_it.map(|n| Music::Prim(n.into())));
+            let m_b = Music::lazy_line(b_it.cycle().take(8).map(|n| Music::Prim(n.into())));
+
+            (m_a.clone().with_instrument(Instrument::Contrabass) + m_b.clone())
+                | (m_a + m_b.with_instrument(Instrument::ElectricGuitarClean))
+        };
+
+        let m_eager = {
+            let a_vec = vec![n!(F 3 / 8), n!(Gs 3 / 8), n!(C 4 / 8), n!(C 3 / 8)];
+            let b_vec = vec![
+                n!(C 4 / 4),
+                n!(G 5 / 8),
+                n!(B 3 / 8),
+                n!(C 4 / 4),
+                n!(G 5 / 8),
+                n!(B 3 / 8),
+                n!(C 4 / 4),
+                n!(G 5 / 8),
+            ];
+
+            let m_a = Music::line(a_vec.into_iter().map(|n| Music::Prim(n.into())).collect());
+            let m_b = Music::line(b_vec.into_iter().map(|n| Music::Prim(n.into())).collect());
+
+            (m_a.clone().with_instrument(Instrument::Contrabass) + m_b.clone())
+                | (m_a + m_b.with_instrument(Instrument::ElectricGuitarClean))
+        };
+
+        // m_lazy.clone().perform().save_to_file("lazy.mid").unwrap();
+        // m_eager.clone().perform().save_to_file("eager.mid").unwrap();
+
+        let perf_lazy: Vec<Event> = m_lazy.perform().iter().collect();
+        dbg!(&perf_lazy);
+        let perf_eager: Vec<Event> = m_eager.perform().iter().collect();
+        dbg!(&perf_eager);
+        assert_eq!(perf_lazy, perf_eager);
     }
 }
