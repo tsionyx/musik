@@ -11,7 +11,10 @@ use std::iter;
 use num_rational::Ratio;
 use num_traits::{CheckedSub as _, Zero as _};
 
-use crate::prim::{duration::Dur, interval::Interval};
+use crate::prim::{
+    duration::{Dur, DurT},
+    interval::Interval,
+};
 
 use super::{control::Control, phrase::TrillOptions, Music, Primitive, Temporal as _};
 
@@ -20,7 +23,11 @@ impl Music {
     /// by shortens the latter.
     ///
     /// See more: <https://en.wikipedia.org/wiki/Grace_note>
-    pub fn grace_note(&self, offset: Interval, grace_fraction: Ratio<u8>) -> Result<Self, String> {
+    pub fn grace_note(
+        &self,
+        offset: Interval,
+        grace_fraction: Ratio<DurT>,
+    ) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
             Ok(Self::note(*d * grace_fraction, p.trans(offset))
                 + Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
@@ -41,8 +48,8 @@ impl Music {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur_seq: Box<dyn Iterator<Item = Dur>> = match opts.into() {
                     TrillOptions::Duration(single) => {
-                        let n: u8 = (d.into_ratio() / single.into_ratio()).to_integer();
-                        let last_dur: Ratio<u8> = d
+                        let n: DurT = (d.into_ratio() / single.into_ratio()).to_integer();
+                        let last_dur = d
                             .into_ratio()
                             .checked_sub(&(Ratio::from(n) * single.into_ratio()))
                             .expect("Parts total duration should not be bigger than the whole");
@@ -54,7 +61,7 @@ impl Music {
                         )
                     }
                     TrillOptions::Count(n) => {
-                        let single = *d / n;
+                        let single = *d / DurT::from(n);
                         Box::new(iter::repeat(single).take(usize::from(n)))
                     }
                 };
@@ -77,7 +84,7 @@ impl Music {
             Self::Modify(Control::Tempo(r), m) => {
                 let single = match opts.into() {
                     TrillOptions::Duration(single) => single,
-                    TrillOptions::Count(n) => m.duration() / n,
+                    TrillOptions::Count(n) => m.duration() / DurT::from(n),
                 };
                 m.trill(interval, single * *r).map(|m| m.with_tempo(*r))
             }

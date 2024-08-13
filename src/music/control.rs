@@ -2,7 +2,7 @@ use num_rational::Ratio;
 
 use crate::{
     instruments::InstrumentName,
-    prim::{interval::Interval, scale::KeySig},
+    prim::{duration::DurT, interval::Interval, scale::KeySig},
 };
 
 use super::{
@@ -16,7 +16,7 @@ use super::{
 /// A set of modifiers to change the [`Music`]'s performance.
 pub enum Control<P: 'static> {
     /// Scale the tempo.
-    Tempo(Ratio<u8>),
+    Tempo(Ratio<DurT>),
 
     /// Transpose all pitches while performing.
     Transpose(Interval),
@@ -48,7 +48,7 @@ impl<P> Music<P> {
     /// Annotate the [`Music`] to change its tempo while performing:
     /// - accelerate if `tempo` > 1;
     /// - decelerate, otherwise.
-    pub fn with_tempo(self, tempo: impl Into<Ratio<u8>>) -> Self {
+    pub fn with_tempo(self, tempo: impl Into<Ratio<DurT>>) -> Self {
         self.with(Control::Tempo(tempo.into()))
     }
 

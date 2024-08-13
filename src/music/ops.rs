@@ -2,7 +2,10 @@ use std::ops::{Add, BitAnd, BitOr, Div, Mul, Neg, Not, Rem, Shl, Shr};
 
 use num_rational::Ratio;
 
-use crate::prim::{duration::Dur, interval::Interval};
+use crate::prim::{
+    duration::{Dur, DurT},
+    interval::Interval,
+};
 
 use super::{Control, Music, Temporal as _};
 
@@ -98,13 +101,13 @@ impl Not for Music {
     }
 }
 
-impl<P> Rem<Ratio<u8>> for Music<P> {
+impl<P> Rem<Ratio<DurT>> for Music<P> {
     type Output = Self;
 
     /// Annotate the [`Music`] to change its tempo:
     /// - accelerate if `tempo` > 1;
     /// - decelerate, otherwise.
-    fn rem(self, tempo: Ratio<u8>) -> Self::Output {
+    fn rem(self, tempo: Ratio<DurT>) -> Self::Output {
         self.with_tempo(tempo)
     }
 }
