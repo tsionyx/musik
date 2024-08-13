@@ -174,6 +174,7 @@ impl PartialOrd for Color {
 }
 
 impl Ord for Color {
+    #[allow(clippy::match_same_arms)]
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Red, Self::Red) => Ordering::Equal,

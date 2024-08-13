@@ -271,7 +271,7 @@ pub fn stars_and_stripes() -> Music {
 mod ornamentations {
     use super::*;
 
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::needless_pass_by_value)]
     fn mordent(music: Music, upper: bool) -> Result<Music, String> {
         if let Music::Prim(Primitive::Note(d, p)) = music {
             let other = if upper {
@@ -290,7 +290,7 @@ mod ornamentations {
         }
     }
 
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::needless_pass_by_value)]
     fn turn(music: Music, upper: bool) -> Result<Music, String> {
         if let Music::Prim(Primitive::Note(d, p)) = music {
             let other = if upper {

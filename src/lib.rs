@@ -1,10 +1,9 @@
 //! Musical theory and audio signals concepts expressed in Rust
 
-// `use super::*` in tests
-#![cfg_attr(test, allow(clippy::wildcard_imports))]
+// `use super::* and Enum::*` in tests
+#![cfg_attr(test, allow(clippy::wildcard_imports, clippy::enum_glob_use))]
 // using `expect` is almost always better, but `unwrap` still allowed in tests
 #![cfg_attr(not(test), warn(clippy::unwrap_used))]
-// #![warn(clippy::expect_used)]
 
 mod instruments;
 pub mod music;

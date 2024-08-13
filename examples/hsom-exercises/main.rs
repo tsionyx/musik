@@ -1,3 +1,5 @@
+#![allow(clippy::wildcard_imports, clippy::enum_glob_use)]
+
 //! Playable exercises from the 'Haskell School of Music' book
 use std::path::PathBuf;
 
