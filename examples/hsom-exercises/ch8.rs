@@ -57,7 +57,7 @@ mod jazz_man {
         fn play_note(
             &self,
             (dur, (note_pitch, attrs)): (Dur, &AttrNote),
-            ctx: Context<'_, AttrNote>,
+            ctx: Context<AttrNote>,
         ) -> Performance {
             let start_time = ctx.start_time();
             let instrument = ctx.instrument().clone();

@@ -1,6 +1,6 @@
 //! Defines abstract [`Performance`] which
 //! is a time-ordered sequence of musical [`Event`]s.
-use std::{borrow::Cow, iter, ops::Deref};
+use std::{iter, ops::Deref};
 
 use itertools::Itertools as _;
 use log::info;
@@ -66,7 +66,7 @@ pub trait Performable<P> {
     fn perform(self) -> Performance;
 
     /// Create a [`Performance`] using the custom [`Context`].
-    fn perform_with_context(self, ctx: Context<'_, P>) -> Performance;
+    fn perform_with_context(self, ctx: Context<P>) -> Performance;
 }
 
 impl<P> Performable<AttrNote> for Music<P>
@@ -78,13 +78,13 @@ where
         self.perform_with_context(def_ctx)
     }
 
-    fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
+    fn perform_with_context(self, ctx: Context<AttrNote>) -> Performance {
         MusicAttr::from(self).perf(ctx).0
     }
 }
 
 impl<P: 'static> Music<P> {
-    fn perf(&self, ctx: Context<'_, P>) -> (Performance, Duration) {
+    fn perf(&self, ctx: Context<P>) -> (Performance, Duration) {
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
@@ -157,7 +157,7 @@ impl<P: 'static> Music<P> {
             Self::Modify(Control::Player(p), m) => {
                 info!("Overwriting player during `perform`: {}", p.name());
                 let ctx = Context {
-                    player: Cow::Borrowed(p),
+                    player: p.clone(),
                     ..ctx
                 };
                 m.perf(ctx)
@@ -212,9 +212,9 @@ pub type Duration = Ratio<u32>;
 #[derive(Debug)]
 /// The state of the [`Performance`] that changes
 /// as we go through the interpretation.
-pub struct Context<'p, P: 'static> {
+pub struct Context<P: 'static> {
     start_time: TimePoint,
-    player: Cow<'p, DynPlayer<P>>,
+    player: DynPlayer<P>,
     instrument: InstrumentName,
     whole_note: Duration,
     transpose_interval: Interval,
@@ -222,7 +222,7 @@ pub struct Context<'p, P: 'static> {
     key: KeySig,
 }
 
-impl<P: 'static> Clone for Context<'_, P> {
+impl<P: 'static> Clone for Context<P> {
     fn clone(&self) -> Self {
         let Self {
             start_time,
@@ -265,7 +265,7 @@ pub fn metro(setting: u32, note_dur: Dur) -> Duration {
     Ratio::from_integer(60) / (Ratio::from_integer(setting) * note_dur.into_ratio())
 }
 
-impl<'p, P: 'static> Context<'p, P> {
+impl<P: 'static> Context<P> {
     /// Defines the default [`Context`] with the given [`Player`].
     ///
     /// All the other fields could be changed using
@@ -273,7 +273,7 @@ impl<'p, P: 'static> Context<'p, P> {
     ///
     /// The [player][Player] could be changed during performance
     /// for the [`Music`] value itself by using [`Music::with_player`].
-    pub fn with_player(player: Cow<'p, DynPlayer<P>>) -> Self {
+    pub fn with_player(player: DynPlayer<P>) -> Self {
         Self {
             start_time: TimePoint::from_integer(0),
             player,
@@ -290,7 +290,7 @@ impl<'p, P: 'static> Context<'p, P> {
     where
         Pl: Player<P> + Default + 'static,
     {
-        Self::with_player(Cow::Owned(DynPlayer::from_player(Pl::default())))
+        Self::with_player(DynPlayer::from_player(Pl::default()))
     }
 
     /// Changes the default tempo for the performance.
