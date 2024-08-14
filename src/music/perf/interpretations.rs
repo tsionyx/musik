@@ -17,6 +17,7 @@ use crate::{
         scale::KeySig,
         volume::Volume,
     },
+    utils::CloneableIterator,
 };
 
 use super::{player::Player, Context, Duration, Event, Performance, TimePoint};
@@ -426,7 +427,7 @@ fn trill(
     assert!(trill_pitch > main_pitch);
 
     let d = event.duration;
-    let dur_seq: Box<dyn Iterator<Item = Duration>> = match opts {
+    let dur_seq: Box<dyn CloneableIterator<Item = Duration>> = match opts {
         TrillOptions::Duration(single) => {
             let n = (d / single).to_integer();
             let last_dur = d
@@ -445,7 +446,7 @@ fn trill(
         }
     };
 
-    alternate_pitch(event, trill_pitch, dur_seq.collect::<Vec<_>>().into_iter())
+    alternate_pitch(event, trill_pitch, dur_seq)
 }
 
 fn alternate_pitch(
@@ -497,7 +498,7 @@ fn mordent(
 
     let d = event.duration;
     let mordent = d / 8;
-    let dur_seq: Box<dyn Iterator<Item = Duration>> = if double {
+    let dur_seq: Box<dyn CloneableIterator<Item = Duration>> = if double {
         Box::new(
             iter::repeat(mordent)
                 .take(4)
@@ -510,7 +511,7 @@ fn mordent(
                 .chain(Some(d * Ratio::new(3, 4))),
         )
     };
-    alternate_pitch(event, aux_pitch, dur_seq.collect::<Vec<_>>().into_iter())
+    alternate_pitch(event, aux_pitch, dur_seq)
 }
 
 fn arpeggio(events: impl Iterator<Item = Event>, up: bool) -> Vec<Event> {
