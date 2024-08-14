@@ -1,5 +1,7 @@
 use std::ops::{Add, Mul};
 
+use num_traits::{CheckedAdd, CheckedMul};
+
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 /// Wraps the numeric category in terms of measure
 /// which can be finite or infinite.
@@ -23,42 +25,60 @@ impl<T: Default> Default for Measure<T> {
 
 impl<T> Add<T> for Measure<T>
 where
-    T: Add<Output = T>,
+    T: CheckedAdd<Output = T>,
 {
     type Output = Self;
 
     fn add(self, rhs: T) -> Self::Output {
         if let Self::Finite(x) = self {
-            Self::Finite(x + rhs)
+            if let Some(sum) = x.checked_add(&rhs) {
+                return Self::Finite(sum);
+            }
+        }
+        Self::Infinite
+    }
+}
+
+impl<T> Add for Measure<T>
+where
+    T: CheckedAdd<Output = T>,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if let Self::Finite(y) = rhs {
+            self + y
         } else {
             Self::Infinite
         }
     }
 }
 
-impl<T> Add for Measure<T>
-where
-    T: Add<Output = T>,
-{
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Self::Finite(x), Self::Finite(y)) => Self::Finite(x + y),
-            _ => Self::Infinite,
-        }
-    }
-}
-
 impl<T> Mul<T> for Measure<T>
 where
-    T: Mul<Output = T>,
+    T: CheckedMul<Output = T>,
 {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self::Output {
         if let Self::Finite(x) = self {
-            Self::Finite(x * rhs)
+            if let Some(mul) = x.checked_mul(&rhs) {
+                return Self::Finite(mul);
+            }
+        }
+        Self::Infinite
+    }
+}
+
+impl<T> Mul for Measure<T>
+where
+    T: CheckedMul<Output = T>,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        if let Self::Finite(y) = rhs {
+            self * y
         } else {
             Self::Infinite
         }

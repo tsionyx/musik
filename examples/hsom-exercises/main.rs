@@ -101,7 +101,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         //  - not it is:
         //    - good on `perf.iter().take(1604)` and less;
         //    - fails on `Event::as_midi` on `perf.iter().take(1605)` (while calculating `self.start_time * ticks_per_second`);
-        //    - fails (earlier) on `split_by_instruments` on `perf.iter().take(1802)` (while calculating ` ctx.start_time = ctx.start_time + d`);
         let perf = Performance::with_events(perf.iter().take(1604));
         perf.play()?;
     }
