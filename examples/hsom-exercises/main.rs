@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Performance, Pitch, Volume};
+use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Volume};
 
 mod ch1;
 mod ch2;
@@ -96,13 +96,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let perf = m.perform();
     if cli.mode.play {
-        // TODO: make the whole flow lazy:
-        //  - introduce lazy `midly::Smf`, then check that it starts real sound almost instantly without any `take`.
-        //  - not it is:
+        // TODO: make the whole flow lazy (test on `ch6 shepard-desc`):
+        //  - introduce lazy `midly::Smf`, then check that it starts real sound almost instantly without any `take`;
+        //  - not it behaves like (after fixing every overflow):
         //    - good on `perf.iter().take(1604)` and less;
-        //    - fails on `Event::as_midi` on `perf.iter().take(1605)` (while calculating `self.start_time * ticks_per_second`);
-        let perf = Performance::with_events(perf.iter().take(1604));
-        perf.play()?;
+        //    - fails on `Event::as_midi` on `perf.iter().take(1605)` (while calculating `self.start_time * ticks_per_second` (FIXED));
+        //    - suspicious pauses (probably by overflows produced): listen for ~60s to detect.
+        //    - to restore the previous (no pause behaviour):
+        //      - change `LineConfig::scale` to return `Music::Line`;
+        //      - `let perf = Performance::with_events(perf.iter().take(10_000));`
+        perf.clone().play()?;
     }
 
     if let Some(path) = cli.mode.save_into {

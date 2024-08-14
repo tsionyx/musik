@@ -9,6 +9,7 @@ use midly::{
     num::u15, Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent,
     TrackEventKind,
 };
+use num_traits::{CheckedAdd, CheckedMul};
 
 use crate::{
     instruments::InstrumentName,
@@ -108,8 +109,9 @@ impl Performance {
             .iter()
             .flat_map(|e| {
                 // TODO: sort the NoteOff more effective for the infinite `Performance`
-                let (on, off) = e.as_midi(channel);
-                iter::once(on).chain(iter::once(off))
+                e.as_midi(channel)
+                    .into_iter()
+                    .flat_map(|(on, off)| iter::once(on).chain(iter::once(off)))
             })
             .sorted_by_key(|(t, _)| *t);
         Ok(iter::once((0, set_tempo))
@@ -129,35 +131,34 @@ pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
 impl Event {
-    fn as_midi(&self, channel: Channel) -> Pair<TimedMessage<'static>> {
+    fn as_midi(&self, channel: Channel) -> Option<Pair<TimedMessage<'static>>> {
         let ticks_per_second = u32::from(u16::from(DEFAULT_TIME_DIV)) * BEATS_PER_SECOND;
 
-        let start = (self.start_time * ticks_per_second).to_integer();
-        let end = ((self.start_time + self.duration) * ticks_per_second).to_integer();
+        let start = (self.start_time.checked_mul(&ticks_per_second.into())?).to_integer();
+        let end = self
+            .start_time
+            .checked_add(&self.duration)?
+            .checked_mul(&ticks_per_second.into())?
+            .to_integer();
         let key = u8::from(self.pitch.get_inner());
         let vel = self.volume.clamp(Volume::softest(), Volume::loudest());
-        (
-            (
-                start,
-                TrackEventKind::Midi {
-                    channel,
-                    message: MidiMessage::NoteOn {
-                        key: key.into(),
-                        vel: u8::from(vel.0).into(),
-                    },
-                },
-            ),
-            (
-                end,
-                TrackEventKind::Midi {
-                    channel,
-                    message: MidiMessage::NoteOff {
-                        key: key.into(),
-                        vel: u8::from(vel.0).into(),
-                    },
-                },
-            ),
-        )
+
+        let event_on = TrackEventKind::Midi {
+            channel,
+            message: MidiMessage::NoteOn {
+                key: key.into(),
+                vel: u8::from(vel.0).into(),
+            },
+        };
+
+        let event_off = TrackEventKind::Midi {
+            channel,
+            message: MidiMessage::NoteOff {
+                key: key.into(),
+                vel: u8::from(vel.0).into(),
+            },
+        };
+        Some(((start, event_on), (end, event_off)))
     }
 }
 
