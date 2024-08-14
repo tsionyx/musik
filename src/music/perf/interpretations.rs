@@ -78,6 +78,7 @@ fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<P>) -> Event {
         transpose_interval,
         volume,
         key: _ignore_key,
+        depth: _ignore_depth,
     } = ctx;
     Event {
         start_time,

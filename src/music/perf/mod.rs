@@ -84,7 +84,12 @@ where
 }
 
 impl<P: 'static> Music<P> {
+    #[allow(clippy::too_many_lines)]
     fn perf(&self, ctx: Context<P>) -> (Performance, Duration) {
+        let ctx = Context {
+            depth: ctx.depth + 1,
+            ..ctx
+        };
         match self {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur = d.into_ratio() * ctx.whole_note;
@@ -220,6 +225,7 @@ pub struct Context<P: 'static> {
     transpose_interval: Interval,
     volume: Volume,
     key: KeySig,
+    depth: usize,
 }
 
 impl<P: 'static> Clone for Context<P> {
@@ -232,6 +238,7 @@ impl<P: 'static> Clone for Context<P> {
             transpose_interval,
             volume,
             key,
+            depth,
         } = self;
         Self {
             start_time: *start_time,
@@ -241,6 +248,7 @@ impl<P: 'static> Clone for Context<P> {
             transpose_interval: *transpose_interval,
             volume: *volume,
             key: *key,
+            depth: *depth,
         }
     }
 }
@@ -282,6 +290,7 @@ impl<P: 'static> Context<P> {
             transpose_interval: Interval::default(),
             volume: Volume::loudest(),
             key: KeySig::default(),
+            depth: 0,
         }
     }
 
