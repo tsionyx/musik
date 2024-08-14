@@ -117,18 +117,21 @@ mod tests {
         let oc4 = Octave::OneLined;
         let m = Music::C(oc4, Dur::WHOLE);
 
+        let mut expected = Vec::from(Music::with_dur(
+            vec![
+                Pitch::C(oc4),
+                Pitch::D(oc4),
+                Pitch::C(oc4),
+                Pitch::D(oc4),
+                Pitch::C(oc4),
+            ],
+            Dur::DOTTED_EIGHTH,
+        ));
+        expected.push(Music::D(oc4, Dur::SIXTEENTH));
+
         assert_eq!(
             m.trill(Interval::tone(), Dur::EIGHTH.dotted()).unwrap(),
-            Music::with_dur(
-                vec![
-                    Pitch::C(oc4),
-                    Pitch::D(oc4),
-                    Pitch::C(oc4),
-                    Pitch::D(oc4),
-                    Pitch::C(oc4),
-                ],
-                Dur::DOTTED_EIGHTH,
-            ) + Music::D(oc4, Dur::SIXTEENTH)
+            Music::line(expected)
         );
     }
 

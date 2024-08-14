@@ -13,7 +13,7 @@ impl<P> Music<P> {
     pub fn line(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
+            .rfold(Self::rest(Dur::ZERO), |acc, m| m + acc)
     }
 
     /// Lazy linear succession of musical parts (could be infinite).
@@ -33,7 +33,7 @@ impl<P> Music<P> {
     pub fn chord(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc | m)
+            .rfold(Self::rest(Dur::ZERO), |acc, m| m | acc)
     }
 
     /// Strip away the [`Dur::ZERO`] occurrences that could appear
