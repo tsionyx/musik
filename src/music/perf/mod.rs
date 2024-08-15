@@ -112,7 +112,7 @@ impl<P: 'static> Music<P> {
                 (d.into_ratio() * ctx.whole_note).into(),
             ),
             Self::Sequential(m1, m2) => Self::perf_seq_pair(m1, m2, ctx),
-            Self::Lazy(it) => Self::perf_seq(it, ctx),
+            Self::Lazy(it) => Self::perf_seq(Box::clone(it), ctx),
             Self::Parallel(m1, m2) => Self::perf_par(m1, m2, ctx),
             Self::Modify(ctrl, m) => m.perf_control(ctrl, ctx),
         }
@@ -138,14 +138,14 @@ impl<P: 'static> Music<P> {
         }
     }
 
-    #[allow(clippy::borrowed_box)]
     fn perf_seq(
-        it: &Box<dyn CloneableIterator<Item = Self>>,
+        it: Box<dyn CloneableIterator<Item = Self>>,
         ctx: Context<P>,
     ) -> (Performance, Measure<Duration>) {
-        let is_infinite = is_probably_infinite(it);
+        let is_infinite = is_probably_infinite(&it);
+        let size_hint = it.size_hint();
 
-        let events_with_max_dur = it.clone().enumerate()
+        let events_with_max_dur = it.enumerate()
             .scan((ctx, Measure::default()), |(ctx, total_dur), (i, m)| {
                 if ctx.start_time == Measure::Infinite {
                     info!("Ignoring the performance of the rest of Music::Lazy, because the last item is infinite");
@@ -164,7 +164,7 @@ impl<P: 'static> Music<P> {
             let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));
             (perf, Measure::Infinite)
         } else {
-            debug!("The Music::Lazy has finite items: {:?}", it.size_hint());
+            debug!("The Music::Lazy has finite items: {:?}", size_hint);
             // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
             let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
             let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));
