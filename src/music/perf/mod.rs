@@ -146,7 +146,7 @@ impl<P: 'static> Music<P> {
         let is_infinite = is_probably_infinite(it);
 
         let events_with_max_dur = it.clone().enumerate()
-            .scan(ctx, |ctx, (i, m)| {
+            .scan((ctx, Measure::default()), |(ctx, total_dur), (i, m)| {
                 if ctx.start_time == Measure::Infinite {
                     info!("Ignoring the performance of the rest of Music::Lazy, because the last item is infinite");
                     return None;
@@ -155,18 +155,19 @@ impl<P: 'static> Music<P> {
                 debug!("The duration of Lazy item #{i}: {d:?}");
                 debug!("Ctx start time #{i}: {:?}. Depth={}", ctx.start_time, ctx.depth);
                 ctx.start_time = ctx.start_time + d;
-                Some(p.repr.zip(iter::repeat(ctx.start_time)))
-            }).flatten();
+                *total_dur = *total_dur + d;
+                Some((p.repr, *total_dur))
+            });
 
         if is_infinite {
             debug!("The Music::Lazy has infinite items");
-            let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+            let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));
             (perf, Measure::Infinite)
         } else {
             debug!("The Music::Lazy has finite items: {:?}", it.size_hint());
             // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
             let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
-            let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+            let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));
             (perf, d.unwrap_or_default())
         }
     }
@@ -497,6 +498,36 @@ mod tests {
 
         let m_eager = Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::OneLined)))
             + Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::TwoLined)));
+
+        let perf_lazy: Vec<Event> = m_lazy.perform().iter().collect();
+        dbg!(&perf_lazy);
+        let perf_eager: Vec<Event> = m_eager.perform().iter().collect();
+        dbg!(&perf_eager);
+        assert_eq!(perf_lazy, perf_eager);
+    }
+
+    #[test]
+    fn lazy_of_lazy() {
+        let _ = env_logger::try_init();
+
+        let m_lazy = {
+            let a_it = once(n!(C 4 / 8));
+            let b_it = once(n!(C 5 / 8));
+
+            let m = Music::lazy_line(
+                a_it.chain(b_it)
+                    .map(|n| Music::Prim(n.into()))
+                    .chain(once(Music::rest(Dur::QUARTER))),
+            );
+            Music::lazy_line(iter::repeat(m).take(3))
+        };
+
+        let m_eager = {
+            let m = Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::OneLined)))
+                + Music::Prim(Primitive::Note(Dur::EIGHTH, Pitch::C(Octave::TwoLined)))
+                + Music::Prim(Primitive::Rest(Dur::QUARTER));
+            Music::line(vec![m.clone(), m.clone(), m])
+        };
 
         let perf_lazy: Vec<Event> = m_lazy.perform().iter().collect();
         dbg!(&perf_lazy);
