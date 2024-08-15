@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt};
+use std::{cmp::Ordering, fmt, ops::Deref};
 
 use dyn_clone::{clone_trait_object, DynClone};
 
@@ -24,6 +24,14 @@ impl<T> PartialOrd for LazyList<T> {
     fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
         // TODO: define rules for partial cmp
         None
+    }
+}
+
+impl<T> Deref for LazyList<T> {
+    type Target = Box<dyn CloneableIterator<Item = T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

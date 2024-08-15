@@ -693,22 +693,21 @@ pub mod shepard_scale {
             let fade_out_parts = (max_volume / self.fade_out_volume_step).min(self.size);
 
             let mut volume = min_volume;
-            Music::lazy_line(
-                interval_line(self.start, self.dur, self.delta)
-                    .take(self.size as usize)
-                    .enumerate()
-                    .map(move |(i, step)| {
-                        let i = u8::try_from(i).expect("Limited by self.size");
-                        if i < self.size - fade_out_parts {
-                            volume = (volume + self.fade_in_volume_step).min(max_volume);
-                        } else {
-                            volume = volume.saturating_sub(self.fade_out_volume_step);
-                        }
+            let it = interval_line(self.start, self.dur, self.delta)
+                .take(self.size as usize)
+                .enumerate()
+                .map(move |(i, step)| {
+                    let i = u8::try_from(i).expect("Limited by self.size");
+                    if i < self.size - fade_out_parts {
+                        volume = (volume + self.fade_in_volume_step).min(max_volume);
+                    } else {
+                        volume = volume.saturating_sub(self.fade_out_volume_step);
+                    }
 
-                        Music::with_volume(step, Volume::from(volume))
-                    })
-                    .chain(Some(Music::rest(self.trailing_delay))),
-            )
+                    Music::with_volume(step, Volume::from(volume))
+                })
+                .chain(Some(Music::rest(self.trailing_delay)));
+            Music::lazy_line(it)
         }
     }
 

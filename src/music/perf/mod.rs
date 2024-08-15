@@ -97,7 +97,6 @@ where
 }
 
 impl<P: 'static> Music<P> {
-    #[allow(clippy::too_many_lines)]
     fn perf(&self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
         let ctx = Context {
             depth: ctx.depth + 1,
@@ -112,102 +111,112 @@ impl<P: 'static> Music<P> {
                 Performance::with_events(iter::empty()),
                 (d.into_ratio() * ctx.whole_note).into(),
             ),
-            Self::Sequential(m1, m2) => {
-                let (mut p1, d1) = m1.perf(ctx.clone());
-                debug!("The duration of sum's LHS: {d1:?}");
-                if let Measure::Finite(d) = d1 {
-                    let ctx = Context {
-                        start_time: ctx.start_time + d,
-                        ..ctx
-                    };
-                    let (p2, d2) = m2.perf(ctx);
-                    debug!("The duration of sum's RHS: {d2:?}");
-                    p1.repr.extend(p2.repr);
-                    (p1, d1 + d2)
-                } else {
-                    info!("Skipping the performing of RHS of the Music::Sequential, because LHS is infinite");
-                    (p1, d1)
-                }
-            }
-            Self::Lazy(it) => {
-                let is_infinite = is_probably_infinite(it);
+            Self::Sequential(m1, m2) => Self::perf_seq_pair(m1, m2, ctx),
+            Self::Lazy(it) => Self::perf_seq(it, ctx),
+            Self::Parallel(m1, m2) => Self::perf_par(m1, m2, ctx),
+            Self::Modify(ctrl, m) => m.perf_control(ctrl, ctx),
+        }
+    }
 
-                let events_with_max_dur = it.clone().enumerate()
-                    .scan(ctx, |ctx, (i, m)| {
-                        if ctx.start_time == Measure::Infinite {
-                            info!("Ignoring the performance of the rest of Music::Lazy, because the last item is infinite");
-                            return None;
-                        }
-                        let (p, d) = m.perf(ctx.clone());
-                        debug!("The duration of Lazy item #{i}: {d:?}");
-                        debug!("Ctx start time #{i}: {:?}. Depth={}", ctx.start_time, ctx.depth);
-                        ctx.start_time = ctx.start_time + d;
-                        Some(p.repr.zip(iter::repeat(ctx.start_time)))
-                    }).flatten();
+    fn perf_seq_pair(m1: &Self, m2: &Self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
+        let (mut p1, d1) = m1.perf(ctx.clone());
+        debug!("The duration of sum's LHS: {d1:?}");
+        if let Measure::Finite(d) = d1 {
+            let ctx = Context {
+                start_time: ctx.start_time + d,
+                ..ctx
+            };
+            let (p2, d2) = m2.perf(ctx);
+            debug!("The duration of sum's RHS: {d2:?}");
+            p1.repr.extend(p2.repr);
+            (p1, d1 + d2)
+        } else {
+            info!(
+                "Skipping the performing of RHS of the Music::Sequential, because LHS is infinite"
+            );
+            (p1, d1)
+        }
+    }
 
-                if is_infinite {
-                    debug!("The Music::Lazy has infinite items");
-                    let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
-                    (perf, Measure::Infinite)
-                } else {
-                    debug!("The Music::Lazy has finite items: {:?}", it.size_hint());
-                    // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
-                    let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
-                    let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
-                    (perf, d.unwrap_or_default())
+    #[allow(clippy::borrowed_box)]
+    fn perf_seq(
+        it: &Box<dyn CloneableIterator<Item = Self>>,
+        ctx: Context<P>,
+    ) -> (Performance, Measure<Duration>) {
+        let is_infinite = is_probably_infinite(it);
+
+        let events_with_max_dur = it.clone().enumerate()
+            .scan(ctx, |ctx, (i, m)| {
+                if ctx.start_time == Measure::Infinite {
+                    info!("Ignoring the performance of the rest of Music::Lazy, because the last item is infinite");
+                    return None;
                 }
+                let (p, d) = m.perf(ctx.clone());
+                debug!("The duration of Lazy item #{i}: {d:?}");
+                debug!("Ctx start time #{i}: {:?}. Depth={}", ctx.start_time, ctx.depth);
+                ctx.start_time = ctx.start_time + d;
+                Some(p.repr.zip(iter::repeat(ctx.start_time)))
+            }).flatten();
+
+        if is_infinite {
+            debug!("The Music::Lazy has infinite items");
+            let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+            (perf, Measure::Infinite)
+        } else {
+            debug!("The Music::Lazy has finite items: {:?}", it.size_hint());
+            // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
+            let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
+            let perf = Performance::with_events(events_with_max_dur.map(|(e, _)| e));
+            (perf, d.unwrap_or_default())
+        }
+    }
+
+    fn perf_par(m1: &Self, m2: &Self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
+        let (p1, d1) = m1.perf(ctx.clone());
+        debug!("The duration of parallel's LHS: {d1:?}");
+        let (p2, d2) = m2.perf(ctx);
+        debug!("The duration of parallel's RHS: {d2:?}");
+        (
+            Performance::with_events(
+                p1.iter()
+                    // use simple `.merge()` for perfectly commutative `Self::Parallel`
+                    .merge_by(p2.iter(), |x, y| x.start_time < y.start_time),
+            ),
+            d1.max(d2),
+        )
+    }
+
+    fn perf_control(
+        &self,
+        control: &Control<P>,
+        ctx: Context<P>,
+    ) -> (Performance, Measure<Duration>) {
+        let ctx = match control {
+            Control::Tempo(t) => Context {
+                whole_note: ctx.whole_note / convert_ratio(*t),
+                ..ctx
+            },
+            Control::Transpose(p) => Context {
+                transpose_interval: ctx.transpose_interval + *p,
+                ..ctx
+            },
+            Control::Instrument(i) => Context {
+                instrument: i.clone(),
+                ..ctx
+            },
+            Control::Phrase(phrases) => {
+                return ctx.player.clone().interpret_phrases(self, phrases, ctx);
             }
-            Self::Parallel(m1, m2) => {
-                let (p1, d1) = m1.perf(ctx.clone());
-                debug!("The duration of parallel's LHS: {d1:?}");
-                let (p2, d2) = m2.perf(ctx);
-                debug!("The duration of parallel's RHS: {d2:?}");
-                (
-                    Performance::with_events(
-                        p1.iter()
-                            // use simple `.merge()` for perfectly commutative `Self::Parallel`
-                            .merge_by(p2.iter(), |x, y| x.start_time < y.start_time),
-                    ),
-                    d1.max(d2),
-                )
-            }
-            Self::Modify(Control::Tempo(t), m) => {
-                let ctx = Context {
-                    whole_note: ctx.whole_note / convert_ratio(*t),
-                    ..ctx
-                };
-                m.perf(ctx)
-            }
-            Self::Modify(Control::Transpose(p), m) => {
-                let ctx = Context {
-                    transpose_interval: ctx.transpose_interval + *p,
-                    ..ctx
-                };
-                m.perf(ctx)
-            }
-            Self::Modify(Control::Instrument(i), m) => {
-                let ctx = Context {
-                    instrument: i.clone(),
-                    ..ctx
-                };
-                m.perf(ctx)
-            }
-            Self::Modify(Control::Phrase(phrases), m) => {
-                ctx.player.clone().interpret_phrases(m, phrases, ctx)
-            }
-            Self::Modify(Control::Player(p), m) => {
+            Control::Player(p) => {
                 info!("Overwriting player during `perform`: {}", p.name());
-                let ctx = Context {
+                Context {
                     player: p.clone(),
                     ..ctx
-                };
-                m.perf(ctx)
+                }
             }
-            Self::Modify(Control::KeySig(ks), m) => {
-                let ctx = Context { key: *ks, ..ctx };
-                m.perf(ctx)
-            }
-        }
+            Control::KeySig(ks) => Context { key: *ks, ..ctx },
+        };
+        self.perf(ctx)
     }
 }
 
