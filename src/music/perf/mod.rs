@@ -1,6 +1,6 @@
 //! Defines abstract [`Performance`] which
 //! is a time-ordered sequence of musical [`Event`]s.
-use std::{iter, ops::Deref};
+use std::{borrow::Cow, iter, ops::Deref};
 
 use itertools::Itertools as _;
 use log::{debug, info};
@@ -12,7 +12,7 @@ use crate::{
     midi::Instrument,
     music::{AttrNote, MusicAttr},
     prim::{duration::Dur, interval::Interval, pitch::AbsPitch, scale::KeySig, volume::Volume},
-    utils::{CloneableIterator, LazyList, Measure},
+    utils::{to_static, CloneableIterator, LazyList, Measure},
 };
 
 use super::{control::Control, Music, Primitive};
@@ -77,7 +77,7 @@ pub trait Performable<P> {
     fn perform(self) -> Performance;
 
     /// Create a [`Performance`] using the custom [`Context`].
-    fn perform_with_context(self, ctx: Context<P>) -> Performance;
+    fn perform_with_context(self, ctx: Context<'_, P>) -> Performance;
 }
 
 impl<P> Performable<AttrNote> for Music<P>
@@ -89,7 +89,7 @@ where
         self.perform_with_context(def_ctx)
     }
 
-    fn perform_with_context(self, ctx: Context<AttrNote>) -> Performance {
+    fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
         let (perf, dur) = MusicAttr::from(self).perf(ctx);
         info!("Produced a performance of {:?} seconds long", dur);
         perf
@@ -97,7 +97,7 @@ where
 }
 
 impl<P: 'static> Music<P> {
-    fn perf(&self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
+    fn perf(&self, ctx: Context<'_, P>) -> (Performance, Measure<Duration>) {
         let ctx = Context {
             depth: ctx.depth + 1,
             ..ctx
@@ -112,13 +112,20 @@ impl<P: 'static> Music<P> {
                 (d.into_ratio() * ctx.whole_note).into(),
             ),
             Self::Sequential(m1, m2) => Self::perf_seq_pair(m1, m2, ctx),
-            Self::Lazy(it) => Self::perf_seq(Box::clone(it), ctx),
+            Self::Lazy(it) => {
+                let ctx = ctx.into_static();
+                Self::perf_seq(Box::clone(it), ctx)
+            }
             Self::Parallel(m1, m2) => Self::perf_par(m1, m2, ctx),
             Self::Modify(ctrl, m) => m.perf_control(ctrl, ctx),
         }
     }
 
-    fn perf_seq_pair(m1: &Self, m2: &Self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
+    fn perf_seq_pair(
+        m1: &Self,
+        m2: &Self,
+        ctx: Context<'_, P>,
+    ) -> (Performance, Measure<Duration>) {
         let (mut p1, d1) = m1.perf(ctx.clone());
         debug!("The duration of sum's LHS: {d1:?}");
         if let Measure::Finite(d) = d1 {
@@ -140,7 +147,7 @@ impl<P: 'static> Music<P> {
 
     fn perf_seq(
         it: Box<dyn CloneableIterator<Item = Self>>,
-        ctx: Context<P>,
+        ctx: Context<'static, P>,
     ) -> (Performance, Measure<Duration>) {
         let is_infinite = is_probably_infinite(&it);
         let size_hint = it.size_hint();
@@ -172,7 +179,7 @@ impl<P: 'static> Music<P> {
         }
     }
 
-    fn perf_par(m1: &Self, m2: &Self, ctx: Context<P>) -> (Performance, Measure<Duration>) {
+    fn perf_par(m1: &Self, m2: &Self, ctx: Context<'_, P>) -> (Performance, Measure<Duration>) {
         let (p1, d1) = m1.perf(ctx.clone());
         debug!("The duration of parallel's LHS: {d1:?}");
         let (p2, d2) = m2.perf(ctx);
@@ -190,7 +197,7 @@ impl<P: 'static> Music<P> {
     fn perf_control(
         &self,
         control: &Control<P>,
-        ctx: Context<P>,
+        ctx: Context<'_, P>,
     ) -> (Performance, Measure<Duration>) {
         let ctx = match control {
             Control::Tempo(t) => Context {
@@ -211,7 +218,7 @@ impl<P: 'static> Music<P> {
             Control::Player(p) => {
                 info!("Overwriting player during `perform`: {}", p.name());
                 Context {
-                    player: p.clone(),
+                    player: Cow::Borrowed(p),
                     ..ctx
                 }
             }
@@ -263,9 +270,9 @@ pub type Duration = Ratio<u32>;
 #[derive(Debug)]
 /// The state of the [`Performance`] that changes
 /// as we go through the interpretation.
-pub struct Context<P: 'static> {
+pub struct Context<'p, P: 'static> {
     start_time: Measure<TimePoint>,
-    player: DynPlayer<P>,
+    player: Cow<'p, DynPlayer<P>>,
     instrument: InstrumentName,
     whole_note: Duration,
     transpose_interval: Interval,
@@ -274,7 +281,12 @@ pub struct Context<P: 'static> {
     depth: usize,
 }
 
-impl<P: 'static> Clone for Context<P> {
+// Manual `impl Clone` to overcome the lack of strict deriving mechanism
+// (current derive suggests `impl<P: Clone> impl Clone`).
+// See more:
+//  - <https://github.com/rust-lang/rust/issues/26925>;
+//  - <https://smallcultfollowing.com/babysteps//blog/2022/04/12/implied-bounds-and-perfect-derive/>;
+impl<P: 'static> Clone for Context<'_, P> {
     fn clone(&self) -> Self {
         let Self {
             start_time,
@@ -299,6 +311,32 @@ impl<P: 'static> Clone for Context<P> {
     }
 }
 
+impl<P: 'static> Context<'_, P> {
+    fn into_static(self) -> Context<'static, P> {
+        let Self {
+            start_time,
+            player,
+            instrument,
+            whole_note,
+            transpose_interval,
+            volume,
+            key,
+            depth,
+        } = self;
+        let player = to_static(player);
+        Context {
+            start_time,
+            player,
+            instrument,
+            whole_note,
+            transpose_interval,
+            volume,
+            key,
+            depth,
+        }
+    }
+}
+
 /// Defines a tempo of X beats per minute
 /// using the size of a single beat for reference
 /// (common value for a beat is [quarter note][Dur::QUARTER]).
@@ -319,7 +357,7 @@ pub fn metro(setting: u32, note_dur: Dur) -> Duration {
     Ratio::from_integer(60) / (Ratio::from_integer(setting) * note_dur.into_ratio())
 }
 
-impl<P: 'static> Context<P> {
+impl<'p, P: 'static> Context<'p, P> {
     /// Defines the default [`Context`] with the given [`Player`].
     ///
     /// All the other fields could be changed using
@@ -327,7 +365,7 @@ impl<P: 'static> Context<P> {
     ///
     /// The [player][Player] could be changed during performance
     /// for the [`Music`] value itself by using [`Music::with_player`].
-    pub fn with_player(player: DynPlayer<P>) -> Self {
+    pub fn with_player(player: Cow<'p, DynPlayer<P>>) -> Self {
         Self {
             start_time: Measure::default(),
             player,
@@ -345,7 +383,7 @@ impl<P: 'static> Context<P> {
     where
         Pl: Player<P> + Default + 'static,
     {
-        Self::with_player(DynPlayer::from_player(Pl::default()))
+        Self::with_player(Cow::Owned(DynPlayer::from_player(Pl::default())))
     }
 
     /// Changes the default tempo for the performance.

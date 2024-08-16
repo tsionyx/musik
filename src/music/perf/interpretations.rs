@@ -25,7 +25,12 @@ use super::{player::Player, Context, Duration, Event, Performance, TimePoint};
 /// Annotate [`Event`] with attributes.
 pub trait EventAnnotator<P, A> {
     /// Transform the event according to attribute and [`Context`].
-    fn modify_event_with_attr(&self, event: Event, attr: &A, ctx: &Context<(P, Vec<A>)>) -> Event;
+    fn modify_event_with_attr(
+        &self,
+        event: Event,
+        attr: &A,
+        ctx: &Context<'_, (P, Vec<A>)>,
+    ) -> Event;
 }
 
 #[derive(Debug, Default, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -38,7 +43,7 @@ impl Player<Pitch> for DefaultPlayer {
         "Default (Pitch)"
     }
 
-    fn play_note(&self, (dur, note_pitch): (Dur, &Pitch), ctx: Context<Pitch>) -> Performance {
+    fn play_note(&self, (dur, note_pitch): (Dur, &Pitch), ctx: Context<'_, Pitch>) -> Performance {
         let event = default_event_from_note((dur, *note_pitch), ctx);
         Performance::with_events(iter::once(event))
     }
@@ -57,7 +62,7 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
     fn play_note(
         &self,
         (dur, &(note_pitch, volume)): (Dur, &(Pitch, Volume)),
-        ctx: Context<(Pitch, Volume)>,
+        ctx: Context<'_, (Pitch, Volume)>,
     ) -> Performance {
         let event = default_event_from_note((dur, note_pitch), ctx);
         let event = Event { volume, ..event };
@@ -69,7 +74,7 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
     }
 }
 
-fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<P>) -> Event {
+fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<'_, P>) -> Event {
     let start_time = ctx.start_time();
     let Context {
         start_time: _ignore,
@@ -128,7 +133,7 @@ where
     fn play_note(
         &self,
         (dur, (note_pitch, attrs)): (Dur, &(Pitch, Vec<A>)),
-        ctx: Context<(Pitch, Vec<A>)>,
+        ctx: Context<'_, (Pitch, Vec<A>)>,
     ) -> Performance {
         let init = default_event_from_note((dur, *note_pitch), ctx.clone());
         let event = attrs.iter().fold(init, |acc, attr| {
@@ -147,7 +152,7 @@ impl<P> EventAnnotator<P, NoteAttribute> for DefaultPlayer {
         &self,
         event: Event,
         attr: &NoteAttribute,
-        _: &Context<(P, Vec<NoteAttribute>)>,
+        _: &Context<'_, (P, Vec<NoteAttribute>)>,
     ) -> Event {
         match attr {
             NoteAttribute::Volume(vol) => Event {
@@ -185,7 +190,7 @@ where
     fn play_note(
         &self,
         note: (Dur, &(Pitch, Vec<A>)),
-        ctx: Context<(Pitch, Vec<A>)>,
+        ctx: Context<'_, (Pitch, Vec<A>)>,
     ) -> Performance {
         self.inner.play_note(note, ctx)
     }
@@ -195,7 +200,7 @@ where
         &self,
         music: &Music<(Pitch, Vec<A>)>,
         attrs: &[PhraseAttribute],
-        mut ctx: Context<(Pitch, Vec<A>)>,
+        mut ctx: Context<'_, (Pitch, Vec<A>)>,
     ) -> (Performance, Measure<Duration>) {
         let key = ctx.key;
 

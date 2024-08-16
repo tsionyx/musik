@@ -27,7 +27,7 @@ pub trait Player<P>: DynClone + CastFrom {
     fn name(&self) -> &'static str;
 
     /// Play individual notes.
-    fn play_note(&self, note: (Dur, &P), ctx: Context<P>) -> Performance;
+    fn play_note(&self, note: (Dur, &P), ctx: Context<'_, P>) -> Performance;
 
     /// Playing [`Music`] phrases
     /// taking into account [`PhraseAttribute`]-s and [`Context`].
@@ -35,7 +35,7 @@ pub trait Player<P>: DynClone + CastFrom {
         &self,
         music: &Music<P>,
         attrs: &[PhraseAttribute],
-        ctx: Context<P>,
+        ctx: Context<'_, P>,
     ) -> (Performance, Measure<Duration>) {
         let (perf, dur) = music.perf(ctx);
         let perf = attrs
