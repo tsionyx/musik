@@ -8,4 +8,4 @@ pub use self::{
     measure::Measure,
 };
 
-pub(crate) use self::r#ref::to_static;
+pub(crate) use self::{iter::append_with_last, r#ref::to_static};

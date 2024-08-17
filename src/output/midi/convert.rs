@@ -15,6 +15,7 @@ use crate::{
     instruments::InstrumentName,
     music::perf::{Event, Performance},
     prim::volume::Volume,
+    utils::append_with_last,
 };
 
 use super::{Channel, UserPatchMap};
@@ -44,15 +45,18 @@ impl Performance {
     /// explicitly assign MIDI channels to instruments.
     pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, String> {
         let split = self.split_by_instruments();
-        let instruments: Vec<_> = split.keys().cloned().collect();
         let user_patch = user_patch.and_then(|user_patch| {
+            let instruments = split.keys();
             user_patch
-                .contains_all(&instruments)
+                .contains_all(instruments)
                 .then_some(Cow::Borrowed(user_patch))
         });
 
         let user_patch = user_patch.map_or_else(
-            || UserPatchMap::with_instruments(instruments).map(Cow::Owned),
+            || {
+                let instruments = split.keys().cloned().collect();
+                UserPatchMap::with_instruments(instruments).map(Cow::Owned)
+            },
             Ok,
         )?;
 
@@ -107,12 +111,9 @@ impl Performance {
 
         let messages = self
             .iter()
-            .flat_map(|e| {
-                // TODO: sort the NoteOff more effective for the infinite `Performance`
-                e.as_midi(channel)
-                    .into_iter()
-                    .flat_map(|(on, off)| iter::once(on).chain(iter::once(off)))
-            })
+            .filter_map(|e| e.as_midi(channel))
+            // TODO: sort the NoteOff more effective for the infinite `Performance`
+            .flat_map(|(on, off)| iter::once(on).chain(iter::once(off)))
             .sorted_by_key(|(t, _)| *t);
         Ok(iter::once((0, set_tempo))
             .chain(iter::once((0, setup_instrument)))
@@ -126,7 +127,7 @@ const DEFAULT_TIME_DIV: u15 = u15::new(96);
 // beat is a quarter note
 const BEATS_PER_SECOND: u32 = 2;
 
-type TimedMessage<'a, T = u32> = (T, TrackEventKind<'a>);
+pub(super) type TimedMessage<'a, T = u32> = (T, TrackEventKind<'a>);
 pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
@@ -162,42 +163,40 @@ impl Event {
     }
 }
 
-fn to_absolute(track: Track<'_>, drop_track_end: bool) -> AbsTimeTrack<'_> {
+fn to_absolute(
+    track: Track<'_>,
+    drop_track_end: bool,
+) -> impl Iterator<Item = TimedMessage<'_>> + '_ {
     track
         .into_iter()
-        .filter(|t| !(drop_track_end && t.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack)))
+        .filter(move |t| {
+            !(drop_track_end && t.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack))
+        })
         .scan(0, |acc, t| {
             let abs_time = u32::from(t.delta) + *acc;
             *acc = abs_time;
             Some((abs_time, t.kind))
         })
-        .collect()
 }
 
 /// Join all tracks into a single track with absolute time:
 /// - convert to absolute time  (remove `TrackEnd`)
 /// - merge (<https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge>)
 /// - add `TrackEnd`
-pub fn merge_tracks(mut tracks: Vec<Track<'_>>) -> AbsTimeTrack<'_> {
-    if tracks.is_empty() {
-        return AbsTimeTrack::new();
-    }
-    let first = tracks.remove(0);
-    let first = to_absolute(first, true);
-
-    let mut single = tracks
-        .into_iter()
+pub fn merge_tracks<'t>(
+    tracks: impl Iterator<Item = Track<'t>>,
+) -> impl Iterator<Item = TimedMessage<'t>> {
+    let init: Box<dyn Iterator<Item = (u32, TrackEventKind<'t>)>> = Box::new(iter::empty());
+    let single = tracks
         .map(|t| to_absolute(t, true))
-        .fold(first, |acc, track| {
-            acc.into_iter()
-                .merge_by(track, |(t1, _), (t2, _)| t1 < t2)
-                .collect()
+        .fold(init, |acc, track| {
+            let acc = acc.merge_by(track, |(t1, _), (t2, _)| t1 < t2);
+            Box::new(acc)
         });
 
-    if let Some((last, _)) = single.last() {
-        single.push((*last, TrackEventKind::Meta(MetaMessage::EndOfTrack)));
-    }
-    single
+    append_with_last(single, |(last, _)| {
+        Some((last, TrackEventKind::Meta(MetaMessage::EndOfTrack)))
+    })
 }
 
 pub(super) fn tick_size(timing: Timing) -> Duration {

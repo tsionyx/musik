@@ -39,9 +39,9 @@ impl Performance {
 
         let mut player = MidiPlayer::make_default()?;
         let midly::Smf { header, tracks } = self.into_midi(None)?;
-        let single_track = merge_tracks(tracks);
+        let single_track = merge_tracks(tracks.into_iter());
 
-        info!("Playing MIDI with {} events", single_track.len());
+        info!("Playing MIDI with {:?} events", single_track.size_hint());
         player.play(single_track, header.timing)?;
         Ok(())
     }
@@ -113,7 +113,8 @@ impl UserPatchMap {
         ))
     }
 
-    fn contains_all(&self, instruments: &[InstrumentName]) -> bool {
-        instruments.iter().all(|i| self.lookup(i).is_some())
+    #[allow(single_use_lifetimes)] // false positive
+    fn contains_all<'i>(&self, mut instruments: impl Iterator<Item = &'i InstrumentName>) -> bool {
+        instruments.all(|i| self.lookup(i).is_some())
     }
 }
