@@ -735,3 +735,32 @@ pub mod shepard_scale {
         )
     }
 }
+
+#[cfg(test)]
+mod tests_perf {
+    use musik::Performable;
+
+    use super::*;
+
+    #[test]
+    fn performance_determinstic_for_complex() {
+        use musik::midi::Instrument::*;
+        let m = shepard_scale::music(
+            -Interval::semi_tone(),
+            &[
+                (AcousticGrandPiano, 2323),
+                (ElectricGuitarClean, 9940),
+                (Flute, 7899),
+                (Cello, 15000),
+            ],
+        );
+
+        let init_perf: Vec<_> = m.clone().perform().iter().take(10_000).collect();
+        assert_eq!(init_perf.len(), 10_000);
+
+        for _ in 0..10 {
+            let perf: Vec<_> = m.clone().perform().iter().take(10_000).collect();
+            assert_eq!(perf, init_perf);
+        }
+    }
+}
