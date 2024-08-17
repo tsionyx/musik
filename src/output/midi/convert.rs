@@ -2,7 +2,7 @@
 
 #![cfg_attr(not(feature = "play-midi"), allow(dead_code))]
 
-use std::{borrow::Cow, collections::HashMap, iter, time::Duration};
+use std::{borrow::Cow, collections::BTreeMap as Map, iter, time::Duration};
 
 use itertools::Itertools as _;
 use midly::{
@@ -80,7 +80,7 @@ impl Performance {
         })
     }
 
-    fn split_by_instruments(self) -> HashMap<InstrumentName, Self> {
+    fn split_by_instruments(self) -> Map<InstrumentName, Self> {
         self.iter()
             .map(|e| (e.instrument.clone(), e))
             .into_group_map()

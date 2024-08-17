@@ -1,5 +1,5 @@
 //! Saving MIDI files and playing via MIDI devices.
-use std::{collections::HashMap, path::Path};
+use std::{collections::BTreeMap as Map, path::Path};
 
 use enum_map::Enum;
 use log::info;
@@ -57,7 +57,7 @@ type ProgNum = u7;
 /// The [patch map][UserPatchMap]
 /// assigns MIDI channels to instruments.
 pub struct UserPatchMap {
-    repr: HashMap<InstrumentName, Channel>,
+    repr: Map<InstrumentName, Channel>,
 }
 
 impl UserPatchMap {
