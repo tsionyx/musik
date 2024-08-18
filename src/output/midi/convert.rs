@@ -6,7 +6,7 @@ use std::{borrow::Cow, collections::BTreeMap as Map, iter, time::Duration};
 
 use itertools::Itertools as _;
 use midly::{
-    num::u15, Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, Track, TrackEvent,
+    num::u15, Format, Fps, Header, MetaMessage, MidiMessage, Smf, Timing, TrackEvent,
     TrackEventKind,
 };
 use num_traits::{CheckedAdd, CheckedMul};
@@ -20,21 +20,17 @@ use crate::{
 
 use super::{Channel, UserPatchMap};
 
-pub(super) fn into_relative_time(track: AbsTimeTrack<'_>) -> Track<'static> {
-    track
-        .into_iter()
-        .scan(0, |acc, (t, kind)| {
-            let delta = t - *acc;
-            *acc = t;
-            Some(
-                TrackEvent {
-                    delta: delta.into(),
-                    kind,
-                }
-                .to_static(),
-            )
+pub(super) fn into_relative_time<'t>(
+    track: impl Iterator<Item = TimedMessage<'t, u32>>,
+) -> impl Iterator<Item = TrackEvent<'t>> {
+    track.scan(0, |acc, (t, kind)| {
+        let delta = t - *acc;
+        *acc = t;
+        Some(TrackEvent {
+            delta: delta.into(),
+            kind,
         })
-        .collect()
+    })
 }
 
 impl Performance {
@@ -67,9 +63,10 @@ impl Performance {
         };
 
         let tracks: Result<Vec<_>, String> = split
-            .iter()
-            .map(|(i, p)| {
-                let mut track = into_relative_time(p.as_midi_track(i, &user_patch)?);
+            .into_iter()
+            .map(move |(i, p)| {
+                let mut track: Vec<_> =
+                    into_relative_time(p.as_midi_track(&i, &user_patch)?).collect();
                 track.push(TrackEvent {
                     delta: 0.into(),
                     kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
@@ -97,7 +94,7 @@ impl Performance {
         &self,
         instrument: &InstrumentName,
         user_patch: &UserPatchMap,
-    ) -> Result<AbsTimeTrack<'_>, String> {
+    ) -> Result<impl Iterator<Item = TimedMessage<'static>>, String> {
         let (channel, program) = user_patch
             .lookup(instrument)
             .ok_or_else(|| format!("Not found instrument {instrument:?}"))?;
@@ -109,13 +106,12 @@ impl Performance {
             message: MidiMessage::ProgramChange { program },
         };
 
-        let pairs = self.iter().filter_map(|e| e.as_midi(channel));
+        let pairs = self.iter().filter_map(move |e| e.as_midi(channel));
 
         let sorted = merge_pairs_by(pairs, |e1, e2| e1.0 < e2.0);
         Ok(iter::once((0, set_tempo))
             .chain(iter::once((0, setup_instrument)))
-            .chain(sorted)
-            .collect())
+            .chain(sorted))
     }
 }
 
@@ -125,7 +121,6 @@ const DEFAULT_TIME_DIV: u15 = u15::new(96);
 const BEATS_PER_SECOND: u32 = 2;
 
 pub(super) type TimedMessage<'a, T = u32> = (T, TrackEventKind<'a>);
-pub(super) type AbsTimeTrack<'a, T = u32> = Vec<TimedMessage<'a, T>>;
 type Pair<T> = (T, T);
 
 impl Event {
@@ -160,12 +155,11 @@ impl Event {
     }
 }
 
-fn to_absolute(
-    track: Track<'_>,
+fn to_absolute<'t>(
+    track: impl Iterator<Item = TrackEvent<'t>> + 't,
     drop_track_end: bool,
-) -> impl Iterator<Item = TimedMessage<'_>> + '_ {
+) -> impl Iterator<Item = TimedMessage<'t>> + 't {
     track
-        .into_iter()
         .filter(move |t| {
             !(drop_track_end && t.kind == TrackEventKind::Meta(MetaMessage::EndOfTrack))
         })
@@ -180,9 +174,12 @@ fn to_absolute(
 /// - convert to absolute time  (remove `TrackEnd`)
 /// - merge (<https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge>)
 /// - add `TrackEnd`
-pub fn merge_tracks<'t>(
-    tracks: impl Iterator<Item = Track<'t>>,
-) -> impl Iterator<Item = TimedMessage<'t>> {
+pub fn merge_tracks<'t, Track>(
+    tracks: impl Iterator<Item = Track>,
+) -> impl Iterator<Item = TimedMessage<'t>>
+where
+    Track: Iterator<Item = TrackEvent<'t>> + 't,
+{
     let init: Box<dyn Iterator<Item = (u32, TrackEventKind<'t>)>> = Box::new(iter::empty());
     let single = tracks
         .map(|t| to_absolute(t, true))
