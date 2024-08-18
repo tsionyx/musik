@@ -18,7 +18,7 @@ use crate::{
     utils::{append_with_last, merge_pairs_by},
 };
 
-use super::{Channel, UserPatchMap};
+use super::{Channel, ProgNum, UserPatchMap};
 
 pub(super) fn into_relative_time<'t>(
     track: impl Iterator<Item = TimedMessage<'t, u32>>,
@@ -86,7 +86,12 @@ impl Performance {
 
         let stream = split.into_iter().map(move |(i, p)| {
             let user_patch = user_patch.as_ref().map_err(Error::clone)?;
-            let track = into_relative_time(p.as_midi_track(&i, user_patch)?);
+
+            let (channel, program) = user_patch
+                .lookup(&i)
+                .ok_or_else(|| Error::NotFoundInstrument(i.clone()))?;
+
+            let track = into_relative_time(p.as_midi_track(channel, program));
             let track = track.chain(iter::once(TrackEvent {
                 delta: 0.into(),
                 kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
@@ -110,26 +115,28 @@ impl Performance {
 
     fn as_midi_track(
         &self,
-        instrument: &InstrumentName,
-        user_patch: &UserPatchMap,
-    ) -> Result<impl Iterator<Item = TimedMessage<'static>>, Error> {
-        let (channel, program) = user_patch
-            .lookup(instrument)
-            .ok_or_else(|| Error::NotFoundInstrument(instrument.clone()))?;
+        channel: Channel,
+        program: ProgNum,
+    ) -> impl Iterator<Item = TimedMessage<'static>> {
+        let setup_channel = Self::setup_channel(channel, program);
 
+        let pairs = self.iter().filter_map(move |e| e.as_midi(channel));
+        let sorted = merge_pairs_by(pairs, |e1, e2| e1.0 < e2.0);
+
+        setup_channel.chain(sorted)
+    }
+
+    fn setup_channel(
+        channel: Channel,
+        program: ProgNum,
+    ) -> impl Iterator<Item = TimedMessage<'static>> {
         let tempo = 1_000_000 / BEATS_PER_SECOND;
         let set_tempo = TrackEventKind::Meta(MetaMessage::Tempo(tempo.into()));
         let setup_instrument = TrackEventKind::Midi {
             channel,
             message: MidiMessage::ProgramChange { program },
         };
-
-        let pairs = self.iter().filter_map(move |e| e.as_midi(channel));
-
-        let sorted = merge_pairs_by(pairs, |e1, e2| e1.0 < e2.0);
-        Ok(iter::once((0, set_tempo))
-            .chain(iter::once((0, setup_instrument)))
-            .chain(sorted))
+        iter::once((0, set_tempo)).chain(iter::once((0, setup_instrument)))
     }
 }
 
