@@ -2,7 +2,7 @@
 
 #![cfg_attr(not(feature = "play-midi"), allow(dead_code))]
 
-use std::{borrow::Cow, collections::BTreeMap as Map, iter, time::Duration};
+use std::{borrow::Cow, collections::BTreeMap as Map, fmt, iter, time::Duration};
 
 use itertools::Itertools as _;
 use midly::{
@@ -39,7 +39,7 @@ impl Performance {
     ///
     /// Optionally, the [patch map][UserPatchMap] could be provided to
     /// explicitly assign MIDI channels to instruments.
-    pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, String> {
+    pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, Error> {
         let split = self.split_by_instruments();
         let user_patch = user_patch.and_then(|user_patch| {
             let instruments = split.keys();
@@ -62,7 +62,7 @@ impl Performance {
             Format::Parallel
         };
 
-        let tracks: Result<Vec<_>, String> = split
+        let tracks: Result<Vec<_>, Error> = split
             .into_iter()
             .map(move |(i, p)| {
                 let mut track: Vec<_> =
@@ -94,10 +94,10 @@ impl Performance {
         &self,
         instrument: &InstrumentName,
         user_patch: &UserPatchMap,
-    ) -> Result<impl Iterator<Item = TimedMessage<'static>>, String> {
+    ) -> Result<impl Iterator<Item = TimedMessage<'static>>, Error> {
         let (channel, program) = user_patch
             .lookup(instrument)
-            .ok_or_else(|| format!("Not found instrument {instrument:?}"))?;
+            .ok_or_else(|| Error::NotFoundInstrument(instrument.clone()))?;
 
         let tempo = 1_000_000 / BEATS_PER_SECOND;
         let set_tempo = TrackEventKind::Meta(MetaMessage::Tempo(tempo.into()));
@@ -114,6 +114,30 @@ impl Performance {
             .chain(sorted))
     }
 }
+
+#[derive(Debug, Clone)]
+/// Error while converting to MIDI.
+pub enum Error {
+    /// Instrument cannot be found in the [`UserPatchMap`] provided.
+    NotFoundInstrument(InstrumentName),
+    /// Too many instruments provided to create the [`UserPatchMap`].
+    TooManyInstruments(usize),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotFoundInstrument(instrument) => {
+                write!(f, "Not found instrument {instrument:?}")
+            }
+            Self::TooManyInstruments(n) => {
+                write!(f, "Too many instruments: {n}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {}
 
 const DEFAULT_TIME_DIV: u15 = u15::new(96);
 

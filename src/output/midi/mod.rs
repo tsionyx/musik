@@ -7,9 +7,12 @@ use midly::num::{u4, u7};
 
 use crate::{instruments::InstrumentName, music::perf::Performance};
 
-pub use self::instruments::{Instrument, PercussionSound};
 #[cfg(feature = "play-midi")]
 pub use self::player::{Config as MidiPlayerConfig, MidiPlayer};
+pub use self::{
+    convert::Error,
+    instruments::{Instrument, PercussionSound},
+};
 
 mod convert;
 pub(crate) mod instruments;
@@ -77,11 +80,11 @@ impl UserPatchMap {
 
     /// Create the [`UserPatchMap`] by assigning
     /// given instruments to consecutive MIDI channels.
-    pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, String> {
+    pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, Error> {
         let available_channels = Self::available_channels();
         if instruments.len() > available_channels.len() {
             // TODO: extend the range of instruments by combining non-overlapping tracks
-            return Err(format!("Too many instruments: {}", instruments.len()));
+            return Err(Error::TooManyInstruments(instruments.len()));
         }
 
         let map = instruments.into_iter().scan(0, |idx, instrument| {
