@@ -42,11 +42,9 @@ impl Performance {
 
         let mut player = MidiPlayer::make_default()?;
 
-        let midly::Smf { header, tracks } = self.into_midi(None)?;
-        let tracks = tracks.into_iter().map(IntoIterator::into_iter);
-        let timing = header.timing;
+        let (tracks, timing) = self.into_lazy_midi(None);
 
-        let single_track = merge_tracks(tracks);
+        let single_track = merge_tracks(tracks)?;
         info!("Playing MIDI with {:?} events", single_track.size_hint());
         player.play(single_track, timing)?;
         Ok(())

@@ -34,12 +34,40 @@ pub(super) fn into_relative_time<'t>(
 }
 
 impl Performance {
-    /// Convert the [`Performance`] into MIDI representation
+    /// Convert the [`Performance`] into the MIDI stream representation
     /// to [save it into file][Self::save_to_file] or play.
     ///
     /// Optionally, the [patch map][UserPatchMap] could be provided to
     /// explicitly assign MIDI channels to instruments.
     pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, Error> {
+        let (tracks, timing) = self.into_lazy_midi(user_patch);
+        let tracks: Result<Vec<_>, _> = tracks.collect();
+        let tracks: Vec<_> = tracks?.into_iter().map(Iterator::collect).collect();
+
+        let file_type = if tracks.len() == 1 {
+            Format::SingleTrack
+        } else {
+            Format::Parallel
+        };
+        Ok(Smf {
+            header: Header::new(file_type, timing),
+            tracks,
+        })
+    }
+
+    /// Convert the [`Performance`] into the MIDI stream representation
+    /// to play ot to [save it into file][Self::save_to_file] it the stream is finite.
+    ///
+    /// Optionally, the [patch map][UserPatchMap] could be provided to
+    /// explicitly assign MIDI channels to instruments.
+    pub fn into_lazy_midi<'a>(
+        self,
+        user_patch: Option<&'a UserPatchMap>,
+    ) -> (
+        impl Iterator<Item = Result<Box<dyn Iterator<Item = TrackEvent<'static>> + 'a>, Error>> + 'a,
+        Timing,
+    ) {
+        // TODO: split lazily with `&mut UserPatchMap`
         let split = self.split_by_instruments();
         let user_patch = user_patch.and_then(|user_patch| {
             let instruments = split.keys();
@@ -54,31 +82,21 @@ impl Performance {
                 UserPatchMap::with_instruments(instruments).map(Cow::Owned)
             },
             Ok,
-        )?;
+        );
 
-        let file_type = if split.len() == 1 {
-            Format::SingleTrack
-        } else {
-            Format::Parallel
-        };
+        let stream = split.into_iter().map(move |(i, p)| {
+            let user_patch = user_patch.as_ref().map_err(Error::clone)?;
+            let track = into_relative_time(p.as_midi_track(&i, user_patch)?);
+            let track = track.chain(iter::once(TrackEvent {
+                delta: 0.into(),
+                kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
+            }));
 
-        let tracks: Result<Vec<_>, Error> = split
-            .into_iter()
-            .map(move |(i, p)| {
-                let mut track: Vec<_> =
-                    into_relative_time(p.as_midi_track(&i, &user_patch)?).collect();
-                track.push(TrackEvent {
-                    delta: 0.into(),
-                    kind: TrackEventKind::Meta(MetaMessage::EndOfTrack),
-                });
-                Ok(track)
-            })
-            .collect();
+            let ret: Box<dyn Iterator<Item = TrackEvent<'_>>> = Box::new(track);
+            Ok(ret)
+        });
 
-        tracks.map(|tracks| Smf {
-            header: Header::new(file_type, Timing::Metrical(DEFAULT_TIME_DIV)),
-            tracks,
-        })
+        (stream, Timing::Metrical(DEFAULT_TIME_DIV))
     }
 
     fn split_by_instruments(self) -> Map<InstrumentName, Self> {
@@ -199,22 +217,23 @@ fn to_absolute<'t>(
 /// - merge (<https://hackage.haskell.org/package/HCodecs-0.5.2/docs/src/Codec.Midi.html#merge>)
 /// - add `TrackEnd`
 pub fn merge_tracks<'t, Track>(
-    tracks: impl Iterator<Item = Track>,
-) -> impl Iterator<Item = TimedMessage<'t>>
+    tracks: impl Iterator<Item = Result<Track, Error>>,
+) -> Result<impl Iterator<Item = TimedMessage<'t>>, Error>
 where
     Track: Iterator<Item = TrackEvent<'t>> + 't,
 {
     let init: Box<dyn Iterator<Item = (u32, TrackEventKind<'t>)>> = Box::new(iter::empty());
     let single = tracks
-        .map(|t| to_absolute(t, true))
-        .fold(init, |acc, track| {
-            let acc = acc.merge_by(track, |(t1, _), (t2, _)| t1 < t2);
-            Box::new(acc)
-        });
+        .map(|t| t.map(|t| to_absolute(t, true)))
+        .try_fold(init, |acc, track| {
+            let acc = acc.merge_by(track?, |(t1, _), (t2, _)| t1 < t2);
+            let ret: Box<dyn Iterator<Item = (u32, TrackEventKind<'t>)>> = Box::new(acc);
+            Ok(ret)
+        })?;
 
-    append_with_last(single, |(last, _)| {
+    Ok(append_with_last(single, |(last, _)| {
         Some((last, TrackEventKind::Meta(MetaMessage::EndOfTrack)))
-    })
+    }))
 }
 
 pub(super) fn tick_size(timing: Timing) -> Duration {

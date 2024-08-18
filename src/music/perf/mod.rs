@@ -69,6 +69,15 @@ impl IntoIterator for &Performance {
     }
 }
 
+impl IntoIterator for Performance {
+    type Item = Event;
+    type IntoIter = LazyList<Event>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.repr
+    }
+}
+
 /// Allows some form of [`Music`]al value to be performed,
 /// i.e. converted to the abstract [`Performance`].
 pub trait Performable<P> {
