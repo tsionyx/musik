@@ -127,3 +127,76 @@ where
         (lo, hi.map(|hi| hi + 1))
     }
 }
+
+pub fn merge_pairs_by<I, T, F>(iter: I, is_first: F) -> MergePairsBy<I, T, F>
+where
+    I: Iterator<Item = (T, T)>,
+    F: FnMut(&T, &T) -> bool,
+{
+    MergePairsBy::new(iter, is_first)
+}
+
+pub struct MergePairsBy<I, T, F>
+where
+    I: Iterator<Item = (T, T)>,
+{
+    iter: I,
+    next1: Option<T>,
+    next2: Option<T>,
+    cmp_fn: F,
+}
+
+impl<I, T, F> MergePairsBy<I, T, F>
+where
+    I: Iterator<Item = (T, T)>,
+{
+    fn new(mut iter: I, cmp: F) -> Self {
+        let (next1, next2) = iter
+            .next()
+            .map_or((None, None), |(a, b)| (Some(a), Some(b)));
+        Self {
+            iter,
+            next1,
+            next2,
+            cmp_fn: cmp,
+        }
+    }
+}
+
+impl<I, T, F> Iterator for MergePairsBy<I, T, F>
+where
+    I: Iterator<Item = (T, T)>,
+    F: FnMut(&T, &T) -> bool,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.next1.take(), self.next2.take()) {
+            (Some(a), Some(b)) => {
+                if (self.cmp_fn)(&a, &b) {
+                    self.next2 = Some(b);
+                    Some(a)
+                } else {
+                    self.next1 = Some(a);
+                    Some(b)
+                }
+            }
+            (Some(next), None) | (None, Some(next)) => {
+                if let Some((next1, next2)) = self.iter.next() {
+                    self.next1 = Some(next1);
+                    self.next2 = Some(next2);
+                }
+                Some(next)
+            }
+            (None, None) => self.iter.next().map(|(a, b)| {
+                self.next2 = Some(b);
+                a
+            }),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (lo, hi) = self.iter.size_hint();
+        (lo * 2, hi.map(|hi| hi * 2))
+    }
+}

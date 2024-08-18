@@ -8,4 +8,7 @@ pub use self::{
     measure::Measure,
 };
 
-pub(crate) use self::{iter::append_with_last, r#ref::to_static};
+pub(crate) use self::{
+    iter::{append_with_last, merge_pairs_by},
+    r#ref::to_static,
+};

@@ -15,7 +15,7 @@ use crate::{
     instruments::InstrumentName,
     music::perf::{Event, Performance},
     prim::volume::Volume,
-    utils::append_with_last,
+    utils::{append_with_last, merge_pairs_by},
 };
 
 use super::{Channel, UserPatchMap};
@@ -109,15 +109,12 @@ impl Performance {
             message: MidiMessage::ProgramChange { program },
         };
 
-        let messages = self
-            .iter()
-            .filter_map(|e| e.as_midi(channel))
-            // TODO: sort the NoteOff more effective for the infinite `Performance`
-            .flat_map(|(on, off)| iter::once(on).chain(iter::once(off)))
-            .sorted_by_key(|(t, _)| *t);
+        let pairs = self.iter().filter_map(|e| e.as_midi(channel));
+
+        let sorted = merge_pairs_by(pairs, |e1, e2| e1.0 < e2.0);
         Ok(iter::once((0, set_tempo))
             .chain(iter::once((0, setup_instrument)))
-            .chain(messages)
+            .chain(sorted)
             .collect())
     }
 }
