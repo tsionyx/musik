@@ -33,7 +33,7 @@ impl<P> Music<P> {
     pub fn chord(musics: Vec<Self>) -> Self {
         musics
             .into_iter()
-            .rfold(Self::rest(Dur::ZERO), |acc, m| m | acc)
+            .rfold(Self::rest(Dur::ZERO), |acc, m| acc | m)
     }
 
     /// Strip away the [`Dur::ZERO`] occurrences that could appear

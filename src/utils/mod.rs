@@ -9,6 +9,6 @@ pub use self::{
 };
 
 pub(crate) use self::{
-    iter::{append_with_last, merge_pairs_by},
+    iter::{append_with_last, merge_pairs_by, partition},
     r#ref::to_static,
 };

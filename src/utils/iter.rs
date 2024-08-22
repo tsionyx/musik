@@ -200,3 +200,20 @@ where
         (lo * 2, hi.map(|hi| hi * 2))
     }
 }
+
+pub fn partition<I, T, F>(
+    iter: I,
+    predicate: F,
+) -> (
+    impl CloneableIterator<Item = T>,
+    impl CloneableIterator<Item = T>,
+)
+where
+    I: Iterator<Item = T> + Clone,
+    F: Fn(&T) -> bool + Clone + 'static,
+{
+    let f = predicate.clone();
+    let left = iter.clone().filter(move |x| f(x));
+    let right = iter.filter(move |x| !predicate(x));
+    (left, right)
+}

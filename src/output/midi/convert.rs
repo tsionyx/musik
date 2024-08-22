@@ -2,7 +2,7 @@
 
 #![cfg_attr(not(feature = "play-midi"), allow(dead_code))]
 
-use std::{borrow::Cow, collections::BTreeMap as Map, fmt, iter, time::Duration};
+use std::{fmt, iter, time::Duration};
 
 use itertools::Itertools as _;
 use midly::{
@@ -15,7 +15,7 @@ use crate::{
     instruments::InstrumentName,
     music::perf::{Event, Performance},
     prim::volume::Volume,
-    utils::{append_with_last, merge_pairs_by},
+    utils::{append_with_last, merge_pairs_by, partition, LazyList},
 };
 
 use super::{Channel, ProgNum, UserPatchMap};
@@ -39,7 +39,7 @@ impl Performance {
     ///
     /// Optionally, the [patch map][UserPatchMap] could be provided to
     /// explicitly assign MIDI channels to instruments.
-    pub fn into_midi(self, user_patch: Option<&UserPatchMap>) -> Result<Smf<'_>, Error> {
+    pub fn into_midi(self, user_patch: Option<UserPatchMap>) -> Result<Smf<'static>, Error> {
         let (tracks, timing) = self.into_lazy_midi(user_patch);
         let tracks: Result<Vec<_>, _> = tracks.collect();
         let tracks: Vec<_> = tracks?.into_iter().map(Iterator::collect).collect();
@@ -62,34 +62,16 @@ impl Performance {
     /// explicitly assign MIDI channels to instruments.
     pub fn into_lazy_midi<'a>(
         self,
-        user_patch: Option<&'a UserPatchMap>,
+        user_patch: Option<UserPatchMap>,
     ) -> (
         impl Iterator<Item = Result<Box<dyn Iterator<Item = TrackEvent<'static>> + 'a>, Error>> + 'a,
         Timing,
     ) {
-        // TODO: split lazily with `&mut UserPatchMap`
+        let mut user_patch = user_patch.unwrap_or_default();
+
         let split = self.split_by_instruments();
-        let user_patch = user_patch.and_then(|user_patch| {
-            let instruments = split.keys();
-            user_patch
-                .contains_all(instruments)
-                .then_some(Cow::Borrowed(user_patch))
-        });
-
-        let user_patch = user_patch.map_or_else(
-            || {
-                let instruments = split.keys().cloned().collect();
-                UserPatchMap::with_instruments(instruments).map(Cow::Owned)
-            },
-            Ok,
-        );
-
-        let stream = split.into_iter().map(move |(i, p)| {
-            let user_patch = user_patch.as_ref().map_err(Error::clone)?;
-
-            let (channel, program) = user_patch
-                .lookup(&i)
-                .ok_or_else(|| Error::NotFoundInstrument(i.clone()))?;
+        let stream = split.map(move |(i, p)| {
+            let (channel, program) = user_patch.get_or_insert(i)?;
 
             let track = into_relative_time(p.as_midi_track(channel, program));
             let track = track.chain(iter::once(TrackEvent {
@@ -104,13 +86,22 @@ impl Performance {
         (stream, Timing::Metrical(DEFAULT_TIME_DIV))
     }
 
-    fn split_by_instruments(self) -> Map<InstrumentName, Self> {
-        self.iter()
-            .map(|e| (e.instrument.clone(), e))
-            .into_group_map()
-            .into_iter()
-            .map(|(k, v)| (k, Self::with_events(v.into_iter())))
-            .collect()
+    fn split_by_instruments(self) -> impl Iterator<Item = (InstrumentName, Self)> {
+        let mut stream = {
+            let x: LazyList<_> = self.into_iter();
+            Some(x.peekable())
+        };
+
+        iter::from_fn(move || {
+            let mut current_stream = stream.take()?;
+            let head = current_stream.peek()?;
+            let instrument = head.instrument.clone();
+            let i = instrument.clone();
+
+            let (this_instrument, other) = partition(current_stream, move |e| e.instrument == i);
+            stream = Some(LazyList(Box::new(other)).peekable());
+            Some((instrument, Self::with_events(this_instrument)))
+        })
     }
 
     fn as_midi_track(
