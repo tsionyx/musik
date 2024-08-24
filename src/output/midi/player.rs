@@ -114,6 +114,9 @@ impl MidiPlayer {
 
         let start = Instant::now();
         for (t, msg) in real_time {
+            if !self.continue_play() {
+                break;
+            }
             while self.continue_play() {
                 let elapsed = start.elapsed();
                 // wait for the right time of the event
