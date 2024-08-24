@@ -115,5 +115,3 @@ return_self_not_must_use = "allow"
 missing_panics_doc = "allow"
 missing_errors_doc = "allow"
 module_name_repetitions = "allow"
-# TODO: remove when not 1.67
-#uninlined_format_args = "allow"
