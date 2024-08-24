@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Performance, Pitch, Volume};
+use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Volume};
 
 mod ch1;
 mod ch2;
@@ -97,10 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let perf = m.perform();
     if cli.mode.play {
-        // TODO: make the whole flow lazy (test on `ch6 shepard-desc`):
-        //  - introduce lazy `midly::Smf`, then check that it starts real sound almost instantly without any `take`;
-        let perf = Performance::with_events(perf.iter().take(10_000));
-        perf.play()?;
+        perf.clone().play()?;
     }
 
     if let Some(path) = cli.mode.save_into {

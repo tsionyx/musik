@@ -86,6 +86,9 @@ impl Performance {
         (stream, Timing::Metrical(DEFAULT_TIME_DIV))
     }
 
+    // after one hour stop trying to find new instruments in the Performance
+    const FIND_NEW_INSTRUMENTS_IN: Option<Duration> = Some(Duration::from_secs(3_600));
+
     fn split_by_instruments(self) -> impl Iterator<Item = (InstrumentName, Self)> {
         let mut stream = {
             let x: LazyList<_> = self.into_iter();
@@ -98,7 +101,12 @@ impl Performance {
             let instrument = head.instrument.clone();
             let i = instrument.clone();
 
-            let (this_instrument, other) = partition(current_stream, move |e| e.instrument == i);
+            let trying_fn = Self::FIND_NEW_INSTRUMENTS_IN.map(|max_dur| {
+                move |ev: &Event| u64::from(ev.start_time.to_integer()) < max_dur.as_secs()
+            });
+
+            let (this_instrument, other) =
+                partition(current_stream, move |e| e.instrument == i, trying_fn);
             stream = Some(LazyList(Box::new(other)).peekable());
             Some((instrument, Self::with_events(this_instrument)))
         })
