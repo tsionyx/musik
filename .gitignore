@@ -1,5 +1,9 @@
 /target
 Cargo.lock
 
+# IDE
+/.idea
+/.vscode
+
 # test Midi files
 *.mid
