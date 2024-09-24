@@ -355,6 +355,14 @@ pub fn funk_groove() -> Music {
         .with_tempo(3)
 }
 
+#[test]
+fn test_funk_groove() {
+    use musik::Performable as _;
+
+    let p = funk_groove().perform();
+    let _smf = p.into_midi(None).unwrap();
+}
+
 /// Exercise 6.7
 /// Write a program that generates all of the General MIDI
 /// percussion sounds, playing through each of them one at a time.
@@ -380,6 +388,16 @@ pub fn drum_pattern() -> Music {
     ((m1 | m2) + (m3 | m4))
         .with_instrument(InstrumentName::Percussion)
         .with_tempo(Ratio::new(4, 3))
+}
+
+#[test]
+fn test_drum_pattern() {
+    use musik::Performable as _;
+
+    let p = drum_pattern().perform();
+    // let x: Vec<_> = p.iter().collect();
+    // dbg!(x);
+    let _smf = p.into_midi(None).unwrap();
 }
 
 pub fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
