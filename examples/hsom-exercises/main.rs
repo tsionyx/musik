@@ -6,7 +6,12 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Volume};
+use musik::{
+    music::MusicAttr,
+    p,
+    perf::{Context, FancyPlayer},
+    AbsPitch, Dur, Interval, Music, Performable as _, Volume,
+};
 
 mod ch1;
 mod ch2;
@@ -21,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
-    let m: Music<(Pitch, Volume)> = match cli.chapter {
+    let m: MusicAttr = match cli.chapter {
         Chapter::Ch1(a) => match a.sample {
             Chapter1::Mel => ch1::harmonic::mel([p!(C 4), p!(E 4), p!(G 4)]).into(),
         },
@@ -36,7 +41,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .natural_minor_scale()
                     .map(|p| (Dur::QUARTER, (p, Volume::loudest())).into())
                     .collect(),
-            )),
+            ))
+            .into(),
             Chapter3::Chromatic => ch3::chromatic::chrom(p!(C 5), p!(F 5)).into(),
             Chapter3::BrotherJohn => ch3::brother_john::frere_jacques_four_part_round().into(),
         },
@@ -63,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Chapter6::FunkGroove => ch6::funk_groove().into(),
             Chapter6::Percussion => ch6::sequence_all_percussions().into(),
             Chapter6::Drum => ch6::drum_pattern().into(),
-            Chapter6::Volumed => ch6::test_volume(Volume::loudest()),
+            Chapter6::Volumed => ch6::test_volume(Volume::loudest()).into(),
             Chapter6::InsideOut => ch6::inside_out::example().into(),
             Chapter6::Recursion1 => ch6::crazy_recursion::example1().into(),
             Chapter6::Recursion2 => ch6::crazy_recursion::example2().into(),
@@ -78,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         (Cello, 99),
                     ],
                 )
+                .into()
             }
             Chapter6::ShepardDesc => {
                 use musik::midi::Instrument::*;
@@ -91,11 +98,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         (Flute, 7899),
                     ],
                 )
+                .into()
             }
         },
     };
 
-    let perf = m.perform();
+    let ctx = Context::with_default_player::<FancyPlayer>();
+    let perf = m.perform_with_context(ctx);
     if cli.mode.play {
         perf.clone().play()?;
     }

@@ -179,7 +179,6 @@ pub struct FancyPlayer {
 
 impl<A> Player<(Pitch, Vec<A>)> for FancyPlayer
 where
-    Self: EventAnnotator<Pitch, A>,
     DefaultPlayer: EventAnnotator<Pitch, A>,
     A: Clone,
 {
