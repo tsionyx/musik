@@ -11,7 +11,10 @@ use std::iter;
 use num_rational::Ratio;
 use num_traits::{CheckedSub as _, Zero as _};
 
-use crate::prim::{duration::Dur, interval::Interval};
+use crate::prim::{
+    duration::{Dur, DurT},
+    interval::Interval,
+};
 
 use super::{control::Control, phrase::TrillOptions, Music, Primitive, Temporal as _};
 
@@ -20,7 +23,11 @@ impl Music {
     /// by shortens the latter.
     ///
     /// See more: <https://en.wikipedia.org/wiki/Grace_note>
-    pub fn grace_note(&self, offset: Interval, grace_fraction: Ratio<u8>) -> Result<Self, String> {
+    pub fn grace_note(
+        &self,
+        offset: Interval,
+        grace_fraction: Ratio<DurT>,
+    ) -> Result<Self, String> {
         if let Self::Prim(Primitive::Note(d, p)) = self {
             Ok(Self::note(*d * grace_fraction, p.trans(offset))
                 + Self::note(*d * (Ratio::from_integer(1) - grace_fraction), *p))
@@ -41,20 +48,23 @@ impl Music {
             Self::Prim(Primitive::Note(d, p)) => {
                 let dur_seq: Box<dyn Iterator<Item = Dur>> = match opts.into() {
                     TrillOptions::Duration(single) => {
-                        let n: u8 = (d.into_ratio() / single.into_ratio()).to_integer();
-                        let last_dur: Ratio<u8> = d
+                        let n: DurT = (d.into_ratio() / single.into_ratio()).to_integer();
+                        let last_dur = d
                             .into_ratio()
                             .checked_sub(&(Ratio::from(n) * single.into_ratio()))
                             .expect("Parts total duration should not be bigger than the whole");
 
                         Box::new(
                             iter::repeat(single)
-                                .take(usize::from(n))
+                                .take(
+                                    usize::try_from(n)
+                                        .expect("The system should be at least 32-bit"),
+                                )
                                 .chain((!last_dur.is_zero()).then_some(Dur::from(last_dur))),
                         )
                     }
                     TrillOptions::Count(n) => {
-                        let single = *d / n;
+                        let single = *d / DurT::from(n);
                         Box::new(iter::repeat(single).take(usize::from(n)))
                     }
                 };
@@ -71,13 +81,13 @@ impl Music {
                 ))
             }
             Self::Prim(Primitive::Rest(_)) => Err("Cannot construct trill from the Rest".into()),
-            Self::Sequential(_, _) | Self::Parallel(_, _) => {
+            Self::Sequential(_, _) | Self::Parallel(_, _) | Self::Lazy(_) => {
                 Err("Cannot construct trill from the complex".into())
             }
             Self::Modify(Control::Tempo(r), m) => {
                 let single = match opts.into() {
                     TrillOptions::Duration(single) => single,
-                    TrillOptions::Count(n) => m.duration() / n,
+                    TrillOptions::Count(n) => m.duration() / DurT::from(n),
                 };
                 m.trill(interval, single * *r).map(|m| m.with_tempo(*r))
             }
@@ -107,18 +117,21 @@ mod tests {
         let oc4 = Octave::OneLined;
         let m = Music::C(oc4, Dur::WHOLE);
 
+        let mut expected = Vec::from(Music::with_dur(
+            vec![
+                Pitch::C(oc4),
+                Pitch::D(oc4),
+                Pitch::C(oc4),
+                Pitch::D(oc4),
+                Pitch::C(oc4),
+            ],
+            Dur::DOTTED_EIGHTH,
+        ));
+        expected.push(Music::D(oc4, Dur::SIXTEENTH));
+
         assert_eq!(
             m.trill(Interval::tone(), Dur::EIGHTH.dotted()).unwrap(),
-            Music::with_dur(
-                vec![
-                    Pitch::C(oc4),
-                    Pitch::D(oc4),
-                    Pitch::C(oc4),
-                    Pitch::D(oc4),
-                    Pitch::C(oc4)
-                ],
-                Dur::DOTTED_EIGHTH
-            ) + Music::D(oc4, Dur::SIXTEENTH)
+            Music::line(expected)
         );
     }
 

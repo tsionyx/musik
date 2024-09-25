@@ -92,4 +92,13 @@ impl<P> Music<P> {
                 .collect(),
         )
     }
+
+    /// Construct a sequence of [`Music`]al notes of the same duration.
+    pub fn with_dur_lazy<I>(keys: I, dur: Dur) -> Self
+    where
+        P: Clone,
+        I: Iterator<Item = P> + Clone + 'static,
+    {
+        Self::lazy_line(keys.map(move |pitch| Self::note(dur, pitch)))
+    }
 }

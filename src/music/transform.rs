@@ -20,15 +20,7 @@ impl Music {
     ///
     /// See more: <https://en.wikipedia.org/wiki/Transposition_(music)>
     pub fn trans(self, delta: Interval) -> Self {
-        match self {
-            Self::Prim(Primitive::Note(duration, pitch)) => {
-                Self::note(duration, pitch.trans(delta))
-            }
-            Self::Prim(Primitive::Rest(duration)) => Self::rest(duration),
-            Self::Sequential(m1, m2) => m1.trans(delta) + m2.trans(delta),
-            Self::Parallel(m1, m2) => m1.trans(delta) | m2.trans(delta),
-            Self::Modify(control, m) => m.trans(delta).with(control),
-        }
+        self.map(move |pitch| pitch.trans(delta))
     }
 
     /// Get the inverted [musical line][Self::line]
@@ -43,7 +35,7 @@ impl Music {
         let line = Vec::from(self.clone());
         if let Some(Self::Prim(Primitive::Note(_, first_pitch))) = line.first() {
             let first_pitch = *first_pitch;
-            let inv = |m| {
+            let inv = move |m| {
                 if let Self::Prim(Primitive::Note(d, p)) = m {
                     let inverted_pitch = 2 * u16::from(first_pitch.abs().get_inner())
                         - u16::from(p.abs().get_inner());
@@ -56,7 +48,7 @@ impl Music {
                     m
                 }
             };
-            Self::line(line.into_iter().map(inv).collect())
+            Self::lazy_line(line.into_iter().map(inv))
         } else {
             self
         }
@@ -93,8 +85,11 @@ impl<P> Music<P> {
     /// Playing the reversed version of a simple [musical line][Self::line].
     ///
     /// It is more simple version of the more exact [`Self::reverse`].
-    pub fn retrograde(self) -> Self {
-        Self::line(Vec::from(self).into_iter().rev().collect())
+    pub fn retrograde(self) -> Self
+    where
+        P: Clone,
+    {
+        Self::lazy_line(Vec::from(self).into_iter().rev())
     }
 
     /// Play the [`Music`] backwards.
@@ -104,21 +99,25 @@ impl<P> Music<P> {
     /// not just the simple [succession of values][Self::line].
     ///
     /// Also could be used in the form `-Music`
-    pub fn reverse(self) -> Self {
-        match self {
-            n @ Self::Prim(_) => n,
-            Self::Sequential(m1, m2) => m2.reverse() + m1.reverse(),
-            Self::Parallel(m1, m2) => {
+    pub fn reverse(self) -> Self
+    where
+        P: Clone,
+    {
+        self.fold(
+            Self::Prim,
+            |m1, m2| m2 + m1,
+            (Self::rest(Dur::ZERO), |acc, m| m + acc),
+            |m1, m2| {
                 let d1 = m1.duration();
                 let d2 = m2.duration();
                 if d1 > d2 {
-                    m1.reverse() | (Self::rest(d1 - d2) + m2.reverse())
+                    m1 | (Self::rest(d1 - d2) + m2)
                 } else {
-                    (Self::rest(d2 - d1) + m1.reverse()) | m2.reverse()
+                    (Self::rest(d2 - d1) + m1) | m2
                 }
-            }
-            Self::Modify(c, m) => m.reverse().with(c),
-        }
+            },
+            |c, m| m.with(c),
+        )
     }
 }
 
@@ -127,9 +126,6 @@ impl<P: Clone> Music<P> {
     ///
     /// Also could be used in the form `Music * n`.
     pub fn times(&self, n: usize) -> Self {
-        // TODO: think about an 'infinite' Music
-        std::iter::repeat(self.clone())
-            .take(n)
-            .fold(Self::rest(Dur::ZERO), |acc, m| acc + m)
+        Self::lazy_line(std::iter::repeat(self.clone()).take(n))
     }
 }

@@ -17,6 +17,7 @@ use crate::{
         scale::KeySig,
         volume::Volume,
     },
+    utils::{CloneableIterator, Measure},
 };
 
 use super::{player::Player, Context, Duration, Event, Performance, TimePoint};
@@ -44,7 +45,7 @@ impl Player<Pitch> for DefaultPlayer {
 
     fn play_note(&self, (dur, note_pitch): (Dur, &Pitch), ctx: Context<'_, Pitch>) -> Performance {
         let event = default_event_from_note((dur, *note_pitch), ctx);
-        Performance::with_events(vec![event])
+        Performance::with_events(iter::once(event))
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -65,7 +66,7 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
     ) -> Performance {
         let event = default_event_from_note((dur, note_pitch), ctx);
         let event = Event { volume, ..event };
-        Performance::with_events(vec![event])
+        Performance::with_events(iter::once(event))
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -74,14 +75,16 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
 }
 
 fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<'_, P>) -> Event {
+    let start_time = ctx.start_time();
     let Context {
-        start_time,
+        start_time: _ignore,
         player: _ignore_player,
         instrument,
         whole_note,
         transpose_interval,
         volume,
         key: _ignore_key,
+        depth: _ignore_depth,
     } = ctx;
     Event {
         start_time,
@@ -94,16 +97,17 @@ fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<'_, P>) -> Event 
 }
 
 fn default_interpret_phrase(perf: Performance, attr: &PhraseAttribute) -> Performance {
+    let attr = *attr;
     match attr {
-        PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(|event| Event {
+        PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(move |event| Event {
             volume: Volume::from((x * Ratio::from_integer(u8::from(event.volume.0))).to_integer()),
             ..event
         }),
-        PhraseAttribute::Art(Articulation::Staccato(x)) => perf.map(|event| Event {
+        PhraseAttribute::Art(Articulation::Staccato(x)) => perf.map(move |event| Event {
             duration: x * event.duration,
             ..event
         }),
-        PhraseAttribute::Art(Articulation::Legato(x)) => perf.map(|event| Event {
+        PhraseAttribute::Art(Articulation::Legato(x)) => perf.map(move |event| Event {
             duration: x * event.duration,
             ..event
         }),
@@ -135,7 +139,7 @@ where
         let event = attrs.iter().fold(init, |acc, attr| {
             self.modify_event_with_attr(acc, attr, &ctx)
         });
-        Performance::with_events(vec![event])
+        Performance::with_events(iter::once(event))
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -197,7 +201,7 @@ where
         music: &Music<(Pitch, Vec<A>)>,
         attrs: &[PhraseAttribute],
         mut ctx: Context<'_, (Pitch, Vec<A>)>,
-    ) -> (Performance, Duration) {
+    ) -> (Performance, Measure<Duration>) {
         let key = ctx.key;
 
         let last_volume_phrase = attrs.iter().fold(None, |found, pa| match pa {
@@ -219,17 +223,22 @@ where
             (perf, dur)
         };
 
-        let t0 = match perf.repr.first().map(|e| e.start_time) {
-            Some(t) => t,
-            None => {
-                return (perf, dur);
-            }
+        let e = perf.iter().next();
+        let t0 = if let Some(e) = e {
+            e.start_time
+        } else {
+            return (perf, dur);
         };
 
-        let inflate = |event: Event, coef: Ratio<u32>, sign: bool| {
-            let r = coef / dur;
-            let dt = event.start_time - t0;
-            let coef_event = dt * r;
+        let inflate = move |event: Event, coef: Ratio<u32>, sign: bool| {
+            let coef_event = match dur {
+                Measure::Finite(dur) => {
+                    let r = coef / dur;
+                    let dt = event.start_time - t0;
+                    dt * r
+                }
+                Measure::Infinite => Ratio::from_integer(0),
+            };
             let shift = if sign {
                 Ratio::one() + coef_event
             } else {
@@ -245,8 +254,12 @@ where
             }
         };
 
-        let stretch = |event: Event, coef: Ratio<u32>, sign: bool| {
-            let r = coef / dur;
+        let stretch = move |event: Event, coef: Ratio<u32>, sign: bool| {
+            let r = match dur {
+                Measure::Finite(dur) => coef / dur,
+                Measure::Infinite => Ratio::from_integer(0),
+            };
+
             let dt = event.start_time - t0;
             let time_coef_event = dt * r;
             let dur_coef_event = (Ratio::from(2) * dt + event.duration) * r;
@@ -280,65 +293,49 @@ where
 
         attrs
             .iter()
-            .fold((perf, dur), |(perf, dur), attr| match attr {
+            .fold((perf, dur), move |(perf, dur), attr| match *attr {
                 PhraseAttribute::Dyn(Dynamic::Crescendo(x)) => {
-                    let perf = perf.map(|e| inflate(e, *x, true));
+                    let perf = perf.map(move |e| inflate(e, x, true));
                     (perf, dur)
                 }
                 PhraseAttribute::Dyn(Dynamic::Diminuendo(x)) => {
-                    let perf = perf.map(|e| inflate(e, *x, false));
+                    let perf = perf.map(move |e| inflate(e, x, false));
                     (perf, dur)
                 }
                 PhraseAttribute::Tmp(Tempo::Ritardando(x)) => {
-                    let perf = perf.map(|e| stretch(e, *x, true));
-                    let dur = (Ratio::one() + *x) * dur;
+                    let perf = perf.map(move |e| stretch(e, x, true));
+                    let dur = dur * (Ratio::one() + x);
                     (perf, dur)
                 }
                 PhraseAttribute::Tmp(Tempo::Accelerando(x)) => {
-                    let perf = perf.map(|e| stretch(e, *x, false));
-                    let dur = Ratio::one().checked_sub(x).unwrap_or_default() * dur;
+                    let perf = perf.map(move |e| stretch(e, x, false));
+                    let dur = dur * Ratio::one().checked_sub(&x).unwrap_or_default();
                     (perf, dur)
                 }
                 PhraseAttribute::Orn(Ornament::Trill(opts)) => {
                     // exercise 8.2.1
-                    let events = perf
-                        .into_events()
-                        .into_iter()
-                        .flat_map(|e| trill(e, *opts, key))
-                        .collect();
+                    let events = perf.iter().flat_map(move |e| trill(e, opts, key));
                     (Performance::with_events(events), dur)
                 }
                 PhraseAttribute::Orn(Ornament::Mordent) => {
                     // exercise 8.2.2
-                    let events = perf
-                        .into_events()
-                        .into_iter()
-                        .flat_map(|e| mordent(e, true, false, key))
-                        .collect();
+                    let events = perf.iter().flat_map(move |e| mordent(e, true, false, key));
                     (Performance::with_events(events), dur)
                 }
                 PhraseAttribute::Orn(Ornament::InvMordent) => {
                     // exercise 8.2.3
-                    let events = perf
-                        .into_events()
-                        .into_iter()
-                        .flat_map(|e| mordent(e, false, false, key))
-                        .collect();
+                    let events = perf.iter().flat_map(move |e| mordent(e, false, false, key));
                     (Performance::with_events(events), dur)
                 }
                 PhraseAttribute::Orn(Ornament::DoubleMordent) => {
                     // exercise 8.2.4
-                    let events = perf
-                        .into_events()
-                        .into_iter()
-                        .flat_map(|e| mordent(e, true, true, key))
-                        .collect();
+                    let events = perf.iter().flat_map(move |e| mordent(e, true, true, key));
                     (Performance::with_events(events), dur)
                 }
                 PhraseAttribute::Orn(Ornament::DiatonicTrans(i)) => {
                     // exercise 8.5
-                    let perf = perf.map(|e| Event {
-                        pitch: e.pitch.diatonic_trans(key, *i),
+                    let perf = perf.map(move |e| Event {
+                        pitch: e.pitch.diatonic_trans(key, i),
                         ..e
                     });
                     (perf, dur)
@@ -348,8 +345,8 @@ where
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
-        match attr {
-            PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(|event| Event {
+        match *attr {
+            PhraseAttribute::Dyn(Dynamic::Accent(x)) => perf.map(move |event| Event {
                 volume: Volume::from(
                     (x * Ratio::from_integer(u8::from(event.volume.0))).to_integer(),
                 ),
@@ -359,19 +356,19 @@ where
                 // already handled in the `self.interpret_phrases`
                 perf
             }
-            PhraseAttribute::Art(Articulation::Staccato(x)) => perf.map(|event| Event {
+            PhraseAttribute::Art(Articulation::Staccato(x)) => perf.map(move |event| Event {
                 duration: x * event.duration,
                 ..event
             }),
-            PhraseAttribute::Art(Articulation::Legato(x)) => perf.map(|event| Event {
+            PhraseAttribute::Art(Articulation::Legato(x)) => perf.map(move |event| Event {
                 duration: x * event.duration,
                 ..event
             }),
             PhraseAttribute::Art(Articulation::Slurred(x)) => {
                 // the same as Legato, but do not extend the duration of the last note(s)
-                let last_start_time = perf.repr.iter().map(|e| e.start_time).max();
+                let last_start_time = perf.iter().map(|e| e.start_time).max();
                 if let Some(last_start_time) = last_start_time {
-                    perf.map(|event| {
+                    perf.map(move |event| {
                         if event.start_time < last_start_time {
                             Event {
                                 duration: x * event.duration,
@@ -388,9 +385,9 @@ where
             PhraseAttribute::Art(Articulation::Pedal) => {
                 // exercise 8.2.1
                 // all the notes will sustain until the end of the phrase
-                let end_of_the_phrase = perf.repr.iter().map(|e| e.start_time + e.duration).max();
+                let end_of_the_phrase = perf.iter().map(|e| e.start_time + e.duration).max();
                 if let Some(last_event_end) = end_of_the_phrase {
-                    perf.map(|event| {
+                    perf.map(move |event| {
                         if let Some(lengthened_duration) =
                             last_event_end.checked_sub(&event.start_time)
                         {
@@ -408,10 +405,10 @@ where
                 }
             }
             PhraseAttribute::Orn(Ornament::ArpeggioUp) => {
-                Performance::with_events(arpeggio(perf.into_events(), true))
+                Performance::with_events(arpeggio(perf.iter(), true).into_iter())
             }
             PhraseAttribute::Orn(Ornament::ArpeggioDown) => {
-                Performance::with_events(arpeggio(perf.into_events(), false))
+                Performance::with_events(arpeggio(perf.iter(), false).into_iter())
             }
             PhraseAttribute::Art(_) | PhraseAttribute::Orn(_) => perf,
         }
@@ -421,13 +418,17 @@ where
 impl Performance {
     fn map<F>(self, f: F) -> Self
     where
-        F: FnMut(Event) -> Event,
+        F: FnMut(Event) -> Event + Clone + 'static,
     {
-        Self::with_events(self.repr.into_iter().map(f).collect())
+        Self::with_events(self.iter().map(f))
     }
 }
 
-fn trill(event: Event, opts: TrillOptions<Ratio<u32>>, key: KeySig) -> impl Iterator<Item = Event> {
+fn trill(
+    event: Event,
+    opts: TrillOptions<Ratio<u32>>,
+    key: KeySig,
+) -> impl Iterator<Item = Event> + Clone {
     let main_pitch = event.pitch;
     let mut trill_pitch = main_pitch.diatonic_trans(key, 1);
     if trill_pitch == main_pitch {
@@ -437,7 +438,7 @@ fn trill(event: Event, opts: TrillOptions<Ratio<u32>>, key: KeySig) -> impl Iter
     assert!(trill_pitch > main_pitch);
 
     let d = event.duration;
-    let dur_seq: Box<dyn Iterator<Item = Duration>> = match opts {
+    let dur_seq: Box<dyn CloneableIterator<Item = Duration>> = match opts {
         TrillOptions::Duration(single) => {
             let n = (d / single).to_integer();
             let last_dur = d
@@ -462,8 +463,8 @@ fn trill(event: Event, opts: TrillOptions<Ratio<u32>>, key: KeySig) -> impl Iter
 fn alternate_pitch(
     event: Event,
     auxiliary: AbsPitch,
-    durations: impl Iterator<Item = Duration>,
-) -> impl Iterator<Item = Event> {
+    durations: impl Iterator<Item = Duration> + Clone,
+) -> impl Iterator<Item = Event> + Clone {
     let principal = event.pitch;
     durations
         .enumerate()
@@ -481,7 +482,12 @@ fn alternate_pitch(
         })
 }
 
-fn mordent(event: Event, upper: bool, double: bool, key: KeySig) -> impl Iterator<Item = Event> {
+fn mordent(
+    event: Event,
+    upper: bool,
+    double: bool,
+    key: KeySig,
+) -> impl Iterator<Item = Event> + Clone {
     let main_pitch = event.pitch;
     let aux_pitch = if upper {
         let mut pitch = main_pitch.diatonic_trans(key, 1);
@@ -503,7 +509,7 @@ fn mordent(event: Event, upper: bool, double: bool, key: KeySig) -> impl Iterato
 
     let d = event.duration;
     let mordent = d / 8;
-    let dur_seq: Box<dyn Iterator<Item = Duration>> = if double {
+    let dur_seq: Box<dyn CloneableIterator<Item = Duration>> = if double {
         Box::new(
             iter::repeat(mordent)
                 .take(4)
@@ -519,8 +525,8 @@ fn mordent(event: Event, upper: bool, double: bool, key: KeySig) -> impl Iterato
     alternate_pitch(event, aux_pitch, dur_seq)
 }
 
-fn arpeggio(events: Vec<Event>, up: bool) -> Vec<Event> {
-    let chord_groups = events.into_iter().group_by(|e| (e.start_time, e.duration));
+fn arpeggio(events: impl Iterator<Item = Event>, up: bool) -> Vec<Event> {
+    let chord_groups = events.group_by(|e| (e.start_time, e.duration));
     chord_groups
         .into_iter()
         .flat_map(|(_, chord)| arpeggio_chord(chord.collect(), up))

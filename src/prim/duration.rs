@@ -5,11 +5,13 @@ use std::{
 
 use num_rational::Ratio;
 
+pub type DurT = u32;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// [Duration][Dur] is the length of time a pitch, or tone, is sounded.
 ///
 /// See more: <https://en.wikipedia.org/wiki/Duration_(music)>
-pub struct Dur(u8, u8);
+pub struct Dur(DurT, DurT);
 
 impl PartialOrd for Dur {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -19,7 +21,7 @@ impl PartialOrd for Dur {
 
 impl Ord for Dur {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.into_ratio::<u8>().cmp(&other.into_ratio())
+        self.into_ratio::<DurT>().cmp(&other.into_ratio())
     }
 }
 
@@ -42,7 +44,7 @@ macro_rules! dur {
 }
 
 impl Dur {
-    const fn from_integer(i: u8) -> Self {
+    const fn from_integer(i: DurT) -> Self {
         Self(i, 1)
     }
 
@@ -50,15 +52,15 @@ impl Dur {
     ///
     /// It is almost always better to use predefined constants,
     /// or functions. Also the [handy macro][crate::dur] is available.
-    pub const fn new(num: u8, denom: u8) -> Self {
+    pub const fn new(num: DurT, denom: DurT) -> Self {
         Self(num, denom)
     }
 
     /// Convert a [`Dur`] into a [`Ratio`]
-    /// of any type `T` that can be constructed from `u8`.
+    /// of any type `T` that can be constructed from `DurT`.
     pub fn into_ratio<T>(self) -> Ratio<T>
     where
-        T: From<u8> + Clone + num_integer::Integer,
+        T: From<DurT> + Clone + num_integer::Integer,
     {
         Ratio::new(T::from(self.0), T::from(self.1))
     }
@@ -161,7 +163,7 @@ impl Dur {
     /// Get the [`Dur`] corresponding to `1/fraction` of note size.
     ///
     /// As the special case, the `Dur:recip(0)` is simply [`Dur::ZERO`].
-    pub const fn recip(fraction: u8) -> Self {
+    pub const fn recip(fraction: DurT) -> Self {
         if fraction == 0 {
             Self::ZERO
         } else {
@@ -204,14 +206,14 @@ impl Dur {
     }
 }
 
-impl From<u8> for Dur {
-    fn from(value: u8) -> Self {
+impl From<DurT> for Dur {
+    fn from(value: DurT) -> Self {
         Self::from_integer(value)
     }
 }
 
-impl From<Ratio<u8>> for Dur {
-    fn from(value: Ratio<u8>) -> Self {
+impl From<Ratio<DurT>> for Dur {
+    fn from(value: Ratio<DurT>) -> Self {
         Self::new(*value.numer(), *value.denom())
     }
 }
@@ -232,34 +234,34 @@ impl Sub for Dur {
     }
 }
 
-impl Mul<u8> for Dur {
+impl Mul<DurT> for Dur {
     type Output = Self;
 
-    fn mul(self, rhs: u8) -> Self::Output {
+    fn mul(self, rhs: DurT) -> Self::Output {
         (self.into_ratio() * rhs).into()
     }
 }
 
-impl Mul<Ratio<u8>> for Dur {
+impl Mul<Ratio<DurT>> for Dur {
     type Output = Self;
 
-    fn mul(self, rhs: Ratio<u8>) -> Self::Output {
+    fn mul(self, rhs: Ratio<DurT>) -> Self::Output {
         (self.into_ratio() * rhs).into()
     }
 }
 
-impl Div<u8> for Dur {
+impl Div<DurT> for Dur {
     type Output = Self;
 
-    fn div(self, rhs: u8) -> Self::Output {
+    fn div(self, rhs: DurT) -> Self::Output {
         (self.into_ratio() / rhs).into()
     }
 }
 
-impl Div<Ratio<u8>> for Dur {
+impl Div<Ratio<DurT>> for Dur {
     type Output = Self;
 
-    fn div(self, rhs: Ratio<u8>) -> Self::Output {
+    fn div(self, rhs: Ratio<DurT>) -> Self::Output {
         (self.into_ratio() / rhs).into()
     }
 }

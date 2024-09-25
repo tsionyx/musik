@@ -40,7 +40,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().retrograde().retrograde(), m);
+        let m2 = m.clone().retrograde().retrograde();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 
     #[test]
@@ -63,7 +65,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().invert().invert(), m);
+        let m2 = m.clone().invert().invert();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 
     #[test]
@@ -81,7 +85,9 @@ mod retro_invert {
             ])
         };
 
-        assert_eq!(m.clone().invert_retro().retro_invert(), m);
+        let m2 = m.clone().invert_retro().retro_invert();
+        assert_ne!(m, m2); // Lazy != Lazy
+        assert_eq!(Vec::from(m), Vec::from(m2)); // but individual notes match
     }
 }
 
@@ -190,7 +196,7 @@ fn retro_pitches(m: Music) -> Option<Music> {
 
 #[cfg(test)]
 mod tests {
-    use musik::{Dur, Octave};
+    use musik::{n, Dur, Octave};
 
     use super::*;
 
@@ -217,10 +223,22 @@ mod tests {
     fn strip_zeros() {
         let oc4 = Octave::OneLined;
         let m = M::C(oc4, Dur::EIGHTH) + M::D(oc4, Dur::EIGHTH).times(16);
+        assert_ne!(
+            m.clone().skip(Dur::HALF).take(Dur::HALF).remove_zeros(),
+            M::D(oc4, Dur::EIGHTH).times(4)
+        ); // Lazy != Lazy
+
         assert_eq!(
-            m.skip(Dur::HALF).take(Dur::HALF).remove_zeros(),
-            M::D(oc4, Dur::EIGHTH).times(4).remove_zeros()
-        );
+            Vec::from(m.clone().skip(Dur::HALF).take(Dur::HALF).remove_zeros()),
+            Vec::from(M::D(oc4, Dur::EIGHTH).times(4))
+        ); // but individual notes match
+
+        assert_eq!(
+            Vec::from(m.skip(Dur::HALF).take(Dur::HALF).remove_zeros()),
+            (0..4)
+                .map(|_| M::Prim(n!(D 4 / 8).into()))
+                .collect::<Vec<_>>()
+        ); // but individual notes match
     }
 }
 
@@ -337,17 +355,21 @@ pub fn funk_groove() -> Music {
         .with_tempo(3)
 }
 
+#[test]
+fn test_funk_groove() {
+    use musik::Performable as _;
+
+    let p = funk_groove().perform();
+    let _smf = p.into_midi(None).unwrap();
+}
+
 /// Exercise 6.7
 /// Write a program that generates all of the General MIDI
 /// percussion sounds, playing through each of them one at a time.
 pub fn sequence_all_percussions() -> Music {
     let dur = Dur::QUARTER;
-    Music::line(
-        enum_iterator::all::<PercussionSound>()
-            .map(|s| s.note(dur))
-            .collect(),
-    )
-    .with_instrument(InstrumentName::Percussion)
+    Music::lazy_line(enum_iterator::all::<PercussionSound>().map(move |s| s.note(dur)))
+        .with_instrument(InstrumentName::Percussion)
 }
 
 // TODO: Exercise 6.8
@@ -368,6 +390,16 @@ pub fn drum_pattern() -> Music {
         .with_tempo(Ratio::new(4, 3))
 }
 
+#[test]
+fn test_drum_pattern() {
+    use musik::Performable as _;
+
+    let p = drum_pattern().perform();
+    // let x: Vec<_> = p.iter().collect();
+    // dbg!(x);
+    let _smf = p.into_midi(None).unwrap();
+}
+
 pub fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
     let oc4 = Octave::OneLined;
     Music::line(vec![
@@ -384,7 +416,7 @@ pub fn test_volume(vol: Volume) -> Music<(Pitch, Volume)> {
 /// Using mMap, define a function that
 /// scales the volume of each note in `m` by the factor `s`.
 fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume)> {
-    m.map(|(p, v)| {
+    m.map(move |(p, v)| {
         let new = (Ratio::from_integer(u8::from(v.get_inner())) * s).to_integer();
         (p, Volume::from(new))
     })
@@ -393,21 +425,11 @@ fn scale_volume(m: Music<(Pitch, Volume)>, s: Ratio<u8>) -> Music<(Pitch, Volume
 #[allow(dead_code)]
 /// Exercise 6.10
 /// Redefine `revM` from Section 6.6 using `mFold`.
-fn rev<P>(m: Music<P>) -> Music<P> {
-    m.fold(
-        Music::Prim,
-        |m1, m2| m2 + m1,
-        |m1, m2| {
-            let d1 = m1.duration();
-            let d2 = m2.duration();
-            if d1 > d2 {
-                m1 | (Music::rest(d1 - d2) + m2)
-            } else {
-                (Music::rest(d2 - d1) + m1) | m2
-            }
-        },
-        |c, m| m.with(c),
-    )
+fn rev<P>(m: Music<P>) -> Music<P>
+where
+    P: Clone,
+{
+    m.reverse()
 }
 
 /// Exercise 6.11
@@ -423,14 +445,30 @@ fn rev<P>(m: Music<P>) -> Music<P> {
 pub mod inside_out {
     use super::*;
 
-    #[allow(dead_code)]
-    fn inside_out(m: Music) -> Music {
-        m.fold(
-            Music::Prim,
-            |m1, m2| m1 | m2,
-            |m1, m2| m1 + m2,
-            |c, m| m.with(c),
-        )
+    #[cfg(test)]
+    mod tests {
+        use musik::Performable;
+
+        use super::*;
+
+        fn inside_out(m: Music) -> Music {
+            m.fold(
+                Music::Prim,
+                |m1, m2| m1 | m2,
+                (Music::rest(Dur::ZERO), |acc, m| acc | m),
+                |m1, m2| m1 + m2,
+                |c, m| m.with(c),
+            )
+        }
+
+        #[test]
+        fn transpose_test() {
+            let p1: Vec<_> = example().perform().iter().collect();
+
+            let transpositioned = inside_out(example());
+            let p2: Vec<_> = transpositioned.perform().iter().collect();
+            assert_eq!(p1, p2);
+        }
     }
 
     /// If we represent the `Music` value as a matrix
@@ -443,8 +481,8 @@ pub mod inside_out {
     /// E.g.:
     ///           1st QN   2nd QN   3rd QN
     /// voice1     C4        -         D4
-    /// voice2     -         -         D4
-    /// voice3     D4        D4        E4
+    /// voice2     -         -         F4
+    /// voice3     D4        F4        E4
     pub fn example() -> Music {
         let oc4 = Octave::OneLined;
         Music::line(vec![
@@ -454,10 +492,10 @@ pub mod inside_out {
         ]) | Music::line(vec![
             rests::QUARTER,
             rests::QUARTER,
-            Music::D(oc4, Dur::QUARTER),
+            Music::F(oc4, Dur::QUARTER),
         ]) | Music::line(vec![
             Music::D(oc4, Dur::QUARTER),
-            Music::D(oc4, Dur::QUARTER),
+            Music::F(oc4, Dur::QUARTER),
             Music::E(oc4, Dur::QUARTER),
         ])
     }
@@ -609,9 +647,16 @@ mod intervals {
 pub mod shepard_scale {
     use std::iter;
 
-    use musik::{midi::Instrument, AbsPitch, Dur, Interval, Music, Octave, Pitch, Volume};
+    use musik::{
+        midi::Instrument, utils::CloneableIterator, AbsPitch, Dur, Interval, Music, Octave, Pitch,
+        Volume,
+    };
 
-    fn interval_line(start: Pitch, dur: Dur, delta: Interval) -> impl Iterator<Item = Music> {
+    fn interval_line(
+        start: Pitch,
+        dur: Dur,
+        delta: Interval,
+    ) -> impl CloneableIterator<Item = Music> + Clone {
         iter::successors(Some(start), move |prev| Some(prev.trans(delta)))
             .map(move |p| Music::note(dur, p))
     }
@@ -674,29 +719,28 @@ pub mod shepard_scale {
             }
         }
 
-        fn scale(&self) -> Music<(Pitch, Volume)> {
+        fn scale(self) -> Music<(Pitch, Volume)> {
             let max_volume = u8::from(Volume::loudest().get_inner());
             let min_volume = u8::from(Volume::softest().get_inner());
 
             let fade_out_parts = (max_volume / self.fade_out_volume_step).min(self.size);
 
             let mut volume = min_volume;
-            Music::line(
-                interval_line(self.start, self.dur, self.delta)
-                    .take(self.size as usize)
-                    .zip(0..)
-                    .map(|(step, i)| {
-                        if i < self.size - fade_out_parts {
-                            volume = (volume + self.fade_in_volume_step).min(max_volume);
-                        } else {
-                            volume = volume.saturating_sub(self.fade_out_volume_step);
-                        }
+            let it = interval_line(self.start, self.dur, self.delta)
+                .take(self.size as usize)
+                .enumerate()
+                .map(move |(i, step)| {
+                    let i = u8::try_from(i).expect("Limited by self.size");
+                    if i < self.size - fade_out_parts {
+                        volume = (volume + self.fade_in_volume_step).min(max_volume);
+                    } else {
+                        volume = volume.saturating_sub(self.fade_out_volume_step);
+                    }
 
-                        Music::with_volume(step, Volume::from(volume))
-                    })
-                    .chain(Some(Music::rest(self.trailing_delay)))
-                    .collect(),
-            )
+                    Music::with_volume(step, Volume::from(volume))
+                })
+                .chain(Some(Music::rest(self.trailing_delay)));
+            Music::lazy_line(it)
         }
     }
 
@@ -714,18 +758,64 @@ pub mod shepard_scale {
             lines
                 .iter()
                 .map(|(instrument, seed)| {
-                    Music::line(
+                    Music::lazy_line(
                         iter::successors(Some(*seed), |x| Some(pseudo_random_gen(*x)))
-                            // TODO: make it infinite by changing
-                            //  Music::Sequential to wrap an Iterator<Item=Music>
-                            //  Without that `.take(638)` leads to stack overflow
-                            .take(100)
-                            .map(|x| LineConfig::from_number(x, delta).scale())
-                            .collect(),
+                            .map(move |x| LineConfig::from_number(x, delta).scale()),
                     )
                     .with_instrument(*instrument)
                 })
                 .collect(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests_deterministic {
+    use musik::Performable;
+
+    use super::*;
+
+    #[test]
+    fn performance_determinstic_for_complex() {
+        use musik::midi::Instrument::*;
+        let m = shepard_scale::music(
+            -Interval::semi_tone(),
+            &[
+                (AcousticGrandPiano, 2323),
+                (ElectricGuitarClean, 9940),
+                (Flute, 7899),
+                (Cello, 15000),
+            ],
+        );
+
+        let init_perf: Vec<_> = m.clone().perform().iter().take(10_000).collect();
+        assert_eq!(init_perf.len(), 10_000);
+
+        for _ in 0..10 {
+            let perf: Vec<_> = m.clone().perform().iter().take(10_000).collect();
+            assert_eq!(perf, init_perf);
+        }
+    }
+
+    #[test]
+    fn midi_output_determinstic_for_complex() {
+        use musik::{midi::Instrument::*, Performance};
+
+        let m = shepard_scale::music(
+            -Interval::semi_tone(),
+            &[
+                (AcousticGrandPiano, 2323),
+                (ElectricGuitarClean, 9940),
+                (Flute, 7899),
+                (Cello, 15000),
+            ],
+        );
+
+        let perf = Performance::with_events(m.perform().iter().take(10_000));
+        let init_midi = perf.clone().into_midi(None).unwrap();
+        for _ in 0..10 {
+            let midi = perf.clone().into_midi(None).unwrap();
+            assert_eq!(midi, init_midi);
+        }
     }
 }

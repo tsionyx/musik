@@ -9,6 +9,7 @@ mod instruments;
 pub mod music;
 mod output;
 mod prim;
+pub mod utils;
 
 pub use self::{
     instruments::InstrumentName,

@@ -8,6 +8,7 @@ use log::{info, warn};
 use crate::{
     music::{combinators::MapToOther, phrase::PhraseAttribute, Music},
     prim::duration::Dur,
+    utils::Measure,
 };
 
 use super::{Context, Duration, Performance};
@@ -35,7 +36,7 @@ pub trait Player<P>: DynClone + CastFrom {
         music: &Music<P>,
         attrs: &[PhraseAttribute],
         ctx: Context<'_, P>,
-    ) -> (Performance, Duration) {
+    ) -> (Performance, Measure<Duration>) {
         let (perf, dur) = music.perf(ctx);
         let perf = attrs
             .iter()

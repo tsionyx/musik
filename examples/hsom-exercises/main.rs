@@ -84,10 +84,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ch6::shepard_scale::music(
                     -Interval::semi_tone(),
                     &[
+                        // ascending by Instrument to ease debug
                         (AcousticGrandPiano, 2323),
                         (ElectricGuitarClean, 9940),
-                        (Flute, 7899),
                         (Cello, 15000),
+                        (Flute, 7899),
                     ],
                 )
             }

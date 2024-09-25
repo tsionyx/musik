@@ -98,7 +98,7 @@ mod jazz_man {
             let event = attrs.iter().fold(init, |acc, attr| {
                 self.default_player.modify_event_with_attr(acc, attr, &ctx)
             });
-            Performance::with_events(vec![event])
+            Performance::with_events(std::iter::once(event))
         }
 
         fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -129,7 +129,7 @@ mod jazz_man {
             let perf = m.with_player(SwingPlayer::default()).perform();
 
             assert_eq!(
-                perf.into_events(),
+                perf.iter().collect::<Vec<Event>>(),
                 [
                     Event {
                         start_time: Ratio::from_integer(0),

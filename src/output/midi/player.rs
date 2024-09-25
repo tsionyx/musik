@@ -15,10 +15,12 @@ use midly::{
     num::{u4, u7},
     MidiMessage, Timing, TrackEventKind,
 };
+// TODO: replace with `use std::sync::LazyLock as Lazy;`
+// when the MSRV will reach 1.80
 use once_cell::sync::Lazy;
 
 use super::{
-    convert::{tick_size, AbsTimeTrack},
+    convert::{tick_size, TimedMessage},
     io::Connection,
 };
 
@@ -103,14 +105,20 @@ impl MidiPlayer {
 
     /// Play the series of [MIDI events][midly::TrackEventKind]
     /// by adjusting the playback speed with [`Timing`].
-    pub fn play(&mut self, track: AbsTimeTrack<'_>, timing: Timing) -> std::io::Result<()> {
+    #[allow(single_use_lifetimes)] // false positive
+    pub fn play<'t>(
+        &mut self,
+        track: impl Iterator<Item = TimedMessage<'t>>,
+        timing: Timing,
+    ) -> std::io::Result<()> {
         let sec_per_tick = tick_size(timing);
-        let real_time = track
-            .into_iter()
-            .map(|(ticks, msg)| (ticks * sec_per_tick, msg));
+        let real_time = track.map(|(ticks, msg)| (ticks * sec_per_tick, msg));
 
         let start = Instant::now();
         for (t, msg) in real_time {
+            if !self.continue_play() {
+                break;
+            }
             while self.continue_play() {
                 let elapsed = start.elapsed();
                 // wait for the right time of the event

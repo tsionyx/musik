@@ -1,15 +1,18 @@
 //! Saving MIDI files and playing via MIDI devices.
-use std::{collections::HashMap, path::Path};
+use std::{collections::BTreeMap as Map, path::Path};
 
 use enum_map::Enum;
-use log::info;
+use log::{info, trace};
 use midly::num::{u4, u7};
 
 use crate::{instruments::InstrumentName, music::perf::Performance};
 
-pub use self::instruments::{Instrument, PercussionSound};
 #[cfg(feature = "play-midi")]
 pub use self::player::{Config as MidiPlayerConfig, MidiPlayer};
+pub use self::{
+    convert::Error,
+    instruments::{Instrument, PercussionSound},
+};
 
 mod convert;
 pub(crate) mod instruments;
@@ -26,6 +29,16 @@ impl Performance {
     pub fn save_to_file<P: AsRef<Path>>(self, path: P) -> Result<(), AnyError> {
         let midi = self.into_midi(None)?;
         info!("Saving to MIDI file {}", path.as_ref().display());
+
+        if log::log_enabled!(log::Level::Trace) {
+            trace!("{:?}", midi.header);
+            for (i, tr) in midi.tracks.iter().enumerate() {
+                trace!("Track #{i}");
+                for (j, ev) in tr.iter().enumerate() {
+                    trace!("{i}.{j}.{ev:?}");
+                }
+            }
+        }
         midi.save(path)?;
         Ok(())
     }
@@ -38,11 +51,12 @@ impl Performance {
         use self::convert::merge_tracks;
 
         let mut player = MidiPlayer::make_default()?;
-        let midly::Smf { header, tracks } = self.into_midi(None)?;
-        let single_track = merge_tracks(tracks);
 
-        info!("Playing MIDI with {} events", single_track.len());
-        player.play(single_track, header.timing)?;
+        let (tracks, timing) = self.into_lazy_midi(None);
+
+        let single_track = merge_tracks(tracks)?;
+        info!("Playing MIDI with {:?} events", single_track.size_hint());
+        player.play(single_track, timing)?;
         Ok(())
     }
 }
@@ -53,11 +67,11 @@ type Channel = u4;
 // up to 128 instruments
 type ProgNum = u7;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// The [patch map][UserPatchMap]
 /// assigns MIDI channels to instruments.
 pub struct UserPatchMap {
-    repr: HashMap<InstrumentName, Channel>,
+    repr: Map<InstrumentName, Channel>,
 }
 
 impl UserPatchMap {
@@ -74,11 +88,11 @@ impl UserPatchMap {
 
     /// Create the [`UserPatchMap`] by assigning
     /// given instruments to consecutive MIDI channels.
-    pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, String> {
+    pub fn with_instruments(instruments: Vec<InstrumentName>) -> Result<Self, Error> {
         let available_channels = Self::available_channels();
         if instruments.len() > available_channels.len() {
             // TODO: extend the range of instruments by combining non-overlapping tracks
-            return Err(format!("Too many instruments: {}", instruments.len()));
+            return Err(Error::TooManyInstruments(instruments.len()));
         }
 
         let map = instruments.into_iter().scan(0, |idx, instrument| {
@@ -98,7 +112,7 @@ impl UserPatchMap {
 
     /// Given the [instrument][InstrumentName],
     /// find the MIDI channel for it, and its Program Number (ID).
-    pub fn lookup(&self, instrument: &InstrumentName) -> Option<(Channel, ProgNum)> {
+    fn lookup(&self, instrument: &InstrumentName) -> Option<(Channel, ProgNum)> {
         let channel = self.repr.get(instrument)?;
         let prog_num = match instrument {
             InstrumentName::Midi(i) => i
@@ -113,7 +127,32 @@ impl UserPatchMap {
         ))
     }
 
-    fn contains_all(&self, instruments: &[InstrumentName]) -> bool {
-        instruments.iter().all(|i| self.lookup(i).is_some())
+    fn get_or_insert(&mut self, instrument: InstrumentName) -> Result<(Channel, ProgNum), Error> {
+        if let Some(x) = self.lookup(&instrument) {
+            return Ok(x);
+        }
+
+        let available_channels = Self::available_channels();
+        let occupied: Vec<_> = self.repr.values().copied().collect();
+
+        if occupied.len() >= available_channels.len() {
+            return Err(Error::TooManyInstruments(available_channels.len()));
+        }
+
+        if instrument == InstrumentName::Percussion {
+            let x = self.repr.insert(instrument.clone(), Self::PERCUSSION);
+            assert!(x.is_none());
+            return Ok(self.lookup(&instrument).expect("Just inserted"));
+        }
+
+        for i in available_channels {
+            if !occupied.contains(&i) {
+                let x = self.repr.insert(instrument.clone(), i);
+                assert!(x.is_none());
+                return Ok(self.lookup(&instrument).expect("Just inserted"));
+            }
+        }
+
+        Err(Error::NotFoundInstrument(instrument))
     }
 }
