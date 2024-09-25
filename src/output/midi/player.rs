@@ -15,6 +15,8 @@ use midly::{
     num::{u4, u7},
     MidiMessage, Timing, TrackEventKind,
 };
+// TODO: replace with `use std::sync::LazyLock as Lazy;`
+// when the MSRV will reach 1.80
 use once_cell::sync::Lazy;
 
 use super::{

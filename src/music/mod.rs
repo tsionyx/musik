@@ -1,10 +1,11 @@
 //! The module defines central notion of [`Music`]
 //! which is the high-level representation of music
-//! kinda musical score. In fact, it resembles
+//! kinda musical score.
+//!
+//! In fact, it resembles
 //! most of the score's functionality but rather
 //! representing the music with declarative syntax,
 //! instead of fancy musical symbols.
-//!
 //! Also, a number of high-level abstractions are defined
 //! to reduce the burden of repetitions.
 mod combinators;

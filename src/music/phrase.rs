@@ -109,8 +109,10 @@ pub enum Tempo {
 
 #[allow(missing_docs)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-/// Articulation is a musical parameter that determines how a single note
-/// or other discrete event is sounded. Articulations primarily structure
+/// [`Articulation`] is a musical parameter that determines how a single note
+/// or other discrete event is sounded.
+///
+/// Articulations primarily structure
 /// an event's start and end, determining the length of its sound
 /// and the shape of its attack and decay.
 ///

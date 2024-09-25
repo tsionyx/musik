@@ -112,6 +112,9 @@ impl Performance {
         })
     }
 
+    // TODO: enable in 1.82 or fix:
+    // #[expect(impl_trait_overcaptures)]
+    #[allow(impl_trait_overcaptures)]
     fn as_midi_track(
         &self,
         channel: Channel,

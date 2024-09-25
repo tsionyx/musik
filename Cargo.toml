@@ -49,13 +49,19 @@ clap = { version = "4.5", features = ["derive"] }
 # do not warn on older Rust versions
 unknown_lints = "allow"
 
-# The following list was generated with the command
+# The following list was generated with the command:
 #   $ rustc -W help | grep ' allow ' | awk '{print $1}' | tr - _ | sort | xargs -I{} echo '{} = "warn"' | xclip -sel clip
+#
+# It is also available for the latest version of rustc at:
+#   https://doc.rust-lang.org/rustc/lints/listing/allowed-by-default.html
 absolute_paths_not_starting_with_crate = "warn"
 # deprecated in 1.81
 #box_pointers = "warn"
+closure_returning_async_block = "warn"
 deprecated_in_future = "warn"
-deprecated_safe = "warn"
+deprecated_safe = { level = "warn", priority = -1 }
+# using new expr is Ok
+edition_2024_expr_fragment_specifier = "allow"
 elided_lifetimes_in_paths = "warn"
 explicit_outlives_requirements = "warn"
 ffi_unwind_calls = "warn"
@@ -90,12 +96,14 @@ unit_bindings = "warn"
 unnameable_types = "warn"
 # conflicts with the `clippy::redundant_pub_crate`
 unreachable_pub = "allow"
+unsafe_attr_outside_unsafe = "warn"
 # NO UNSAFE
 unsafe_code = "forbid"
 unsafe_op_in_unsafe_fn = "warn"
 unstable_features = "warn"
 # TODO: "warn" after fixing false-positive detecting
 #  no usage of [dev-dependencies] that are used in examples
+#  https://github.com/rust-lang/rust/issues/95513
 unused_crate_dependencies = "allow"
 unused_extern_crates = "warn"
 unused_import_braces = "warn"
