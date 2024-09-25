@@ -18,8 +18,6 @@ impl<T> PartialEq for LazyList<T> {
     }
 }
 
-impl<T> Eq for LazyList<T> {}
-
 impl<T> PartialOrd for LazyList<T> {
     fn partial_cmp(&self, _other: &Self) -> Option<Ordering> {
         // TODO: define rules for partial cmp
@@ -64,6 +62,9 @@ impl<T> Iterator for LazyList<T> {
 }
 
 impl<T> LazyList<T> {
+    // Cannot `impl<T> std::iter::Extend<T>`
+    // because of the additional requirement below
+    // `where I::IntoIter: Clone + 'static`
     pub(crate) fn extend<I>(&mut self, iter: I)
     where
         T: 'static,

@@ -57,7 +57,7 @@ impl<P> From<(Dur, P)> for Music<P> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd)]
+#[derive(Debug, PartialEq, Clone, PartialOrd)]
 /// High-level representation of music.
 pub enum Music<P: 'static = Pitch> {
     /// Single atomic building block of music,

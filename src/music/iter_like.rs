@@ -82,10 +82,13 @@ impl<P> Temporal for Music<P> {
             },
             |d1, d2| d1 + d2,
             (Dur::ZERO, |d, md| d + md),
-            Ord::max,
-            |ctrl, d| match ctrl {
-                Control::Tempo(r) => d / *r,
-                _ => d,
+            Dur::max,
+            |ctrl, d| {
+                if let Control::Tempo(r) = ctrl {
+                    d / *r
+                } else {
+                    d
+                }
             },
         )
     }
