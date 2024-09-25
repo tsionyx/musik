@@ -15,7 +15,7 @@ use crate::{
     instruments::InstrumentName,
     music::perf::{Event, Performance},
     prim::volume::Volume,
-    utils::{append_with_last, merge_pairs_by, partition, LazyList},
+    utils::iter::{append_with_last, merge_pairs_by, partition, LazyList},
 };
 
 use super::{Channel, ProgNum, UserPatchMap};

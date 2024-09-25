@@ -1,5 +1,5 @@
 //! Utilities independent from music domain.
-mod iter;
+pub(crate) mod iter;
 mod measure;
 mod r#ref;
 
@@ -8,7 +8,4 @@ pub use self::{
     measure::Measure,
 };
 
-pub(crate) use self::{
-    iter::{append_with_last, merge_pairs_by, partition},
-    r#ref::to_static,
-};
+pub(crate) use self::r#ref::to_static;
