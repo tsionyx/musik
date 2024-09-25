@@ -149,8 +149,124 @@ pub fn child_song_6() -> Music {
         .with_instrument(Instrument::RhodesPiano)
 }
 
-// TODO: Exercise 4.1
-//  https://musescore.com/bntt-piano/moonlight-sonata
+#[allow(clippy::cognitive_complexity, clippy::similar_names)]
+/// Exercise 4.1
+///
+/// First 15 bars of the Beethohen's Moonlight Sonata.
+///
+/// See the full score at <https://musescore.com/bntt-piano/moonlight-sonata>
+pub fn moonlight() -> Music {
+    // C#, D#, F#, G#
+    use musik::{
+        attributes::{Dynamic, StdLoudness},
+        dur, m,
+        music::Control,
+        n, p, Interval, Music as M, PhraseAttribute,
+    };
+
+    fn twelfth<const N: usize>(start: Pitch, intervals: [i8; N]) -> Music {
+        let pitches = start
+            .get_scale(std::iter::once(0).chain(intervals))
+            .collect();
+        M::with_dur(pitches, dur!(1 / 12))
+    }
+
+    fn with_octave_lower(note @ (d, p): (Dur, Pitch)) -> Music {
+        let lower = p << Interval::octave();
+        M::from(note) | M::from((d, lower))
+    }
+
+    let m1 = twelfth(p!(G # 3), [5, 3]);
+    let b1 = with_octave_lower(n!(C # 3 / 1));
+
+    let b2 = with_octave_lower(n!(B 2 / 1));
+
+    let m3 = twelfth(p!(A 3), [4, 3]) * 2 + twelfth(p!(A 3), [5, 4]) * 2;
+    let b3 = with_octave_lower(n!(A 2 / 2)) + with_octave_lower(n!(F # 2 / 2));
+
+    let m4 = twelfth(p!(G # 3), [4, 6])
+        + twelfth(p!(G # 3), [5, 3])
+        + twelfth(p!(G # 3), [5, 2])
+        + twelfth(p!(F # 3), [6, 3]);
+    let b4 = with_octave_lower(n!(G # 2 / 2)) * 2;
+
+    let m5 = twelfth(p!(E 3), [4, 5])
+        + twelfth(p!(G # 3), [5, 3]) * 2
+        + (twelfth(p!(F # 3), [7, 4]) | m!( {G # 4 / .8}, {G # 4 / 16}));
+    let b5 = with_octave_lower(n!(C # 3 / 1)) | m!(G # 2 / 1);
+
+    let full_pp = vec![
+        (m1.clone() * 4) | b1,
+        (m1 * 4) | b2,
+        m3 | b3,
+        m4 | b4,
+        m5 | b5,
+    ];
+
+    let m6 = ((twelfth(p!(G # 3), [7, 3]) * 3) | m!(G # 4 / .2))
+        + (twelfth(p!(G # 3), [7, 3]) | m!({G # 4 / .8}, {G # 4 / 16}));
+    let b6 = with_octave_lower(n!(B # 2 / 1)) | m!(G # 2 / 1);
+
+    let m7 = ((twelfth(p!(G # 3), [5, 3]) * 2) | m!(G # 4 / 2))
+        + ((twelfth(p!(A 3), [4, 5]) * 2) | m!(A 4 / 2));
+    let b7 = with_octave_lower(n!(C # 3 / 2)) + with_octave_lower(n!(F # 2 / 2));
+
+    let m8 = ((twelfth(p!(G # 3), [3, 5]) * 2) | m!(G # 4 / 2))
+        + ((twelfth(p!(A 3), [2, 4]) * 2) | m!({F # 4 / 4}, {B 4 / 4}));
+    let b8 = with_octave_lower(n!(B 2 / 2)) * 2;
+
+    let m9 = (twelfth(p!(G # 3), [3, 5]) * 2) | m!(E 4 / 4);
+    let b9 = with_octave_lower(n!(E 3 / 2));
+
+    let m10 =
+        (twelfth(p!(G 3), [4, 5]) * 3) + (twelfth(p!(G 3), [4, 5]) | m!({G 4 / .8}, {G 4 / 16}));
+    let b10 = with_octave_lower(n!(E 3 / 1));
+
+    let m11 = ((twelfth(p!(G 3), [4, 6]) * 3) | m!(G 4 / .2))
+        + (twelfth(p!(G 3), [4, 6]) | m!({G 4 / .8}, {G 4 / 16}));
+    let b11 = with_octave_lower(n!(D 3 / 1));
+
+    let m12 = (((twelfth(p!(G 3), [5, 4]) * 2) + twelfth(p!(G 3), [6, 3])) | m!(G 4 / .2))
+        + (twelfth(p!(F # 3), [7, 3]) | m!(F # 4 / 4));
+    let b12 = with_octave_lower(n!(C 3 / 4))
+        + with_octave_lower(n!(B 2 / 4))
+        + with_octave_lower(n!(A # 2 / 2));
+
+    let m13 = ((twelfth(p!(F # 3), [5, 3]) * 2) | m!(F # 4 / 2))
+        + (twelfth(p!(G 3), [4, 2]) | m!(G 4 / 4))
+        + (twelfth(p!(E 3), [7, 2]) | m!(E 4 / 4));
+    let b13 = with_octave_lower(n!(B 2 / 2)) + m!({E 2 / 4}, {G 2 / 4});
+
+    let m14 = ((twelfth(p!(F # 3), [5, 3]) * 2) | m!(F # 4 / 2))
+        + ((twelfth(p!(F # 3), [4, 3]) * 2) | m!(F # 4 / 2));
+    let b14 = m!(F 2 / 2) + with_octave_lower(n!(F 2 / 2));
+
+    let m15 = (twelfth(p!(B 3), [3, 4]) * 2)
+        + twelfth(p!(B 3), [4, 3])
+        + (twelfth(p!(B 3), [4, 3]) | m!(B 4 / 4));
+    let b15 = with_octave_lower(n!(B 2 / 1));
+
+    let full_p = vec![
+        m6 | b6,
+        m7 | b7,
+        m8 | b8,
+        m9 | b9,
+        m10 | b10,
+        m11 | b11,
+        m12 | b12,
+        m13 | b13,
+        m14 | b14,
+        m15 | b15,
+    ];
+
+    let pp = PhraseAttribute::Dyn(Dynamic::StdLoudness(StdLoudness::Pianissimo));
+    let p = PhraseAttribute::Dyn(Dynamic::StdLoudness(StdLoudness::Piano));
+    let full = (M::line(full_pp) & Control::Phrase(vec![pp]))
+        + (M::line(full_p) & Control::Phrase(vec![p]));
+
+    // let full = musik::Temporal::skip(full, Dur::new(17, 2));
+    full & Control::Tempo(Ratio::new(56, 120))
+}
 
 fn prefixes<T: Clone>(xs: Vec<T>) -> Vec<Vec<T>> {
     xs.into_iter()
