@@ -50,6 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Chapter4::ChildSong => ch4::child_song_6().into(),
             Chapter4::Prefixed1 => ch4::prefixed_mel_1().into(),
             Chapter4::Prefixed2 => ch4::prefixed_mel_2().into(),
+            Chapter4::Moonlight => ch4::moonlight().into(),
         },
         Chapter::Ch5(a) => match a.sample {
             Chapter5::WithPairs => {
@@ -182,6 +183,7 @@ enum Chapter4 {
     ChildSong,
     Prefixed1,
     Prefixed2,
+    Moonlight,
 }
 
 #[derive(Debug, Copy, Clone, Subcommand)]
