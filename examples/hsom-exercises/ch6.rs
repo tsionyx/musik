@@ -445,15 +445,30 @@ where
 pub mod inside_out {
     use super::*;
 
-    #[allow(dead_code)]
-    fn inside_out(m: Music) -> Music {
-        m.fold(
-            Music::Prim,
-            |m1, m2| m1 | m2,
-            (Music::rest(Dur::ZERO), |acc, m| acc | m),
-            |m1, m2| m1 + m2,
-            |c, m| m.with(c),
-        )
+    #[cfg(test)]
+    mod tests {
+        use musik::Performable;
+
+        use super::*;
+
+        fn inside_out(m: Music) -> Music {
+            m.fold(
+                Music::Prim,
+                |m1, m2| m1 | m2,
+                (Music::rest(Dur::ZERO), |acc, m| acc | m),
+                |m1, m2| m1 + m2,
+                |c, m| m.with(c),
+            )
+        }
+
+        #[test]
+        fn transpose_test() {
+            let p1: Vec<_> = example().perform().iter().collect();
+
+            let transpositioned = inside_out(example());
+            let p2: Vec<_> = transpositioned.perform().iter().collect();
+            assert_eq!(p1, p2);
+        }
     }
 
     /// If we represent the `Music` value as a matrix
@@ -466,8 +481,8 @@ pub mod inside_out {
     /// E.g.:
     ///           1st QN   2nd QN   3rd QN
     /// voice1     C4        -         D4
-    /// voice2     -         -         D4
-    /// voice3     D4        D4        E4
+    /// voice2     -         -         F4
+    /// voice3     D4        F4        E4
     pub fn example() -> Music {
         let oc4 = Octave::OneLined;
         Music::line(vec![
@@ -477,10 +492,10 @@ pub mod inside_out {
         ]) | Music::line(vec![
             rests::QUARTER,
             rests::QUARTER,
-            Music::D(oc4, Dur::QUARTER),
+            Music::F(oc4, Dur::QUARTER),
         ]) | Music::line(vec![
             Music::D(oc4, Dur::QUARTER),
-            Music::D(oc4, Dur::QUARTER),
+            Music::F(oc4, Dur::QUARTER),
             Music::E(oc4, Dur::QUARTER),
         ])
     }
