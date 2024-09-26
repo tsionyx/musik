@@ -3,7 +3,14 @@ use std::{cmp::Ordering, fmt, ops::Deref};
 use super::CloneableIterator;
 
 /// Wrapper around an iterator with additional abilities like cloning.
-pub struct LazyList<T>(pub(crate) Box<dyn CloneableIterator<Item = T>>);
+pub struct LazyList<T>(Box<dyn CloneableIterator<Item = T>>);
+
+impl<T> LazyList<T> {
+    /// Create a new [`LazyList`].
+    pub fn new(it: impl Iterator<Item = T> + Clone + 'static) -> Self {
+        Self(Box::new(it))
+    }
+}
 
 impl<T> Clone for LazyList<T> {
     fn clone(&self) -> Self {
@@ -62,10 +69,12 @@ impl<T> Iterator for LazyList<T> {
 }
 
 impl<T> LazyList<T> {
-    // Cannot `impl<T> std::iter::Extend<T>`
-    // because of the additional requirement below
-    // `where I::IntoIter: Clone + 'static`
-    pub(crate) fn extend<I>(&mut self, iter: I)
+    /// Extend the [`LazyList`] with items from [`IntoIterator`] type.
+    ///
+    /// Cannot `impl<T> std::iter::Extend<T>`
+    /// because of the additional requirement below
+    /// `where I::IntoIter: Clone + 'static`
+    pub fn extend<I>(&mut self, iter: I)
     where
         T: 'static,
         I: IntoIterator<Item = T>,
