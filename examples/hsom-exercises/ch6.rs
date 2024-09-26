@@ -4,6 +4,7 @@ use num_rational::Ratio;
 
 use musik::{
     attributes::TrillOptions,
+    dur, m,
     midi::{Instrument, PercussionSound},
     music::{rests, Primitive},
     Dur, InstrumentName, Interval, Music, Octave, Pitch, Temporal as _, Volume,
@@ -372,22 +373,156 @@ pub fn sequence_all_percussions() -> Music {
         .with_instrument(InstrumentName::Percussion)
 }
 
-// TODO: Exercise 6.8
-
 /// Exercise 6.8
-///
-/// TODO: test more at <https://en.wikipedia.org/wiki/Drum_beat>
-///   <https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295>
 pub fn drum_pattern() -> Music {
-    let m1 = PercussionSound::ClosedHiHat.note(Dur::QUARTER).times(4);
-    let m2 = Music::rest(Dur::HALF) + PercussionSound::AcousticSnare.note(Dur::HALF);
+    use musik::midi::PercussionSound::*;
 
-    let m3 = (PercussionSound::ClosedHiHat.note(Dur::EIGHTH) + Music::rest(Dur::EIGHTH)).times(4);
-    let m4 = Music::rest(Dur::HALF) + PercussionSound::AcousticSnare.note(Dur::QUARTER);
+    // AcousticSnare = D2
+    // ClosedHiHat = F#2
+    let m1 = m!(F # 2 / 4) * 4;
+    let m2 = m!(_ / 2) + m!(D 2 / 2);
+
+    let m3 = (ClosedHiHat.note(Dur::EIGHTH) + m!(_ / 8)) * 4;
+    let m4 = m!(_ / 2) + AcousticSnare.note(Dur::QUARTER);
 
     ((m1 | m2) + (m3 | m4))
         .with_instrument(InstrumentName::Percussion)
         .with_tempo(Ratio::new(4, 3))
+}
+
+// The following are some of the drum patterns from the wiki article
+// <https://en.wikipedia.org/wiki/Drum_beat>
+
+pub fn straight_blues_drum() -> Music {
+    use musik::midi::PercussionSound::*;
+
+    let sub = OpenHiHat.note(dur!(1 / 8)) * 4;
+    let pulse = AcousticBassDrum.note(dur!(1 / 4)) + AcousticSnare.note(dur!(1 / 4));
+
+    ((sub | pulse) * 4).with_instrument(InstrumentName::Percussion)
+}
+
+pub fn compound_triple_drum() -> Music {
+    use musik::midi::PercussionSound::*;
+
+    let sub = OpenHiHat.note(dur!(1 / 8)) * 9;
+    let pulse = AcousticBassDrum.note(dur!(3 / 8)) + (AcousticSnare.note(dur!(3 / 8)) * 2);
+
+    ((sub | pulse) * 2).with_instrument(InstrumentName::Percussion)
+}
+
+pub fn fill_groove_drum() -> Music {
+    use musik::midi::PercussionSound::*;
+
+    let sub1 = OpenHiHat.note(dur!(1 / 8)) * 7;
+    let pulse1 = AcousticBassDrum.note(dur!(1 / 4))
+        + AcousticSnare.note(dur!(1 / 4))
+        + AcousticBassDrum.note(dur!(1 / 4))
+        + (AcousticSnare.note(dur!(1 / 8)) + (AcousticSnare.note(dur!(1 / 16)) * 2));
+
+    let sub2 = OpenHiHat.note(dur!(1 / 8)) * 8;
+    let pulse2 = AcousticBassDrum.note(dur!(1 / 4))
+        + AcousticSnare.note(dur!(1 / 4))
+        + (AcousticBassDrum.note(dur!(1 / 8)) * 2)
+        + AcousticSnare.note(dur!(1 / 4));
+
+    (((sub1 | pulse1) + (sub2 | pulse2)) * 2).with_instrument(InstrumentName::Percussion)
+}
+
+pub fn heavy_metal_gallop_drum() -> Music {
+    use musik::midi::PercussionSound::*;
+
+    let hi_hat = OpenHiHat.note(dur!(1 / 4)) * 2;
+    let snare = m!(_ / 4) + AcousticSnare.note(dur!(1 / 4));
+    let pulse =
+        (AcousticBassDrum.note(dur!(1 / 8)) + (AcousticBassDrum.note(dur!(1 / 16)) * 2)) * 2;
+
+    ((hi_hat | snare | pulse) * 4).with_instrument(InstrumentName::Percussion)
+}
+
+/// Some of the starting beats of the
+/// 'In Bloom' by Nirvana.
+///
+/// <https://www.songsterr.com/a/wsa/nirvana-in-bloom-drum-tab-s295>
+///
+/// See more notation legend:
+/// <https://en.wikipedia.org/wiki/Percussion_notation>
+pub fn nirvana_in_bloom_drum() -> Music {
+    use musik::midi::PercussionSound::{
+        AcousticBassDrum as B, AcousticSnare as S, ClosedHiHat as HH, CrashCymbal1 as C,
+        HighFloorTom as HFT, LowMidTom as LMT, OpenHiHat as OHH,
+    };
+
+    const D8: Dur = Dur::EIGHTH;
+    const D16: Dur = Dur::SIXTEENTH;
+    const D32: Dur = Dur::THIRTY_SECOND;
+
+    let intro = Music::line(vec![
+        HH.note(D8) | C.note(D8) | B.note(D8),
+        OHH.note(D16),
+        B.note(D16),
+        OHH.note(D8) | S.note(D8),
+        HH.note(D8) | C.note(D8) | B.note(D8),
+        m!(_ / 16),
+        S.note(D16),
+        S.note(D16),
+        B.note(D16),
+        LMT.note(D16),
+        B.note(D16),
+        HFT.note(D16),
+        B.note(D16),
+    ]);
+
+    let pre_verse_1 = Music::line(vec![
+        HH.note(D16) | C.note(D16) | B.note(D16),
+        OHH.note(D16) * 3,
+        OHH.note(D16) | S.note(D16),
+        OHH.note(D16) * 3,
+        (OHH.note(D16) | B.note(D16)) * 2,
+        OHH.note(D16) * 2,
+        OHH.note(D16) | S.note(D16),
+        OHH.note(D16) * 3,
+    ]);
+
+    let pre_verse_2 = Music::line(vec![
+        (OHH.note(D16) | B.note(D16)) * 2,
+        OHH.note(D16) * 2,
+        OHH.note(D16) | S.note(D16),
+        OHH.note(D16) * 3,
+    ]);
+
+    let verse1_1 = Music::line(vec![
+        (HH.note(D16) | B.note(D16)) * 2,
+        HH.note(D16) * 2,
+        HH.note(D16) | S.note(D16),
+        HH.note(D16) * 3,
+    ]);
+
+    let verse1_2 = Music::line(vec![
+        (HH.note(D16) | B.note(D16)) * 2,
+        HH.note(D16) * 2,
+        HH.note(D16) | S.note(D16),
+        HH.note(D16),
+        HH.note(D16) | S.note(D16),
+        S.note(D32) * 2,
+    ]);
+
+    let verse1_3 = Music::line(vec![B.note(D32) | S.note(D32), S.note(D32) * 3]);
+
+    (Music::line(vec![
+        intro * 4,
+        pre_verse_1.clone(),
+        pre_verse_2.clone() * 6,
+        verse1_1 * 7,
+        verse1_2,
+        pre_verse_1.clone(),
+        pre_verse_2.clone() * 2,
+        pre_verse_1,
+        pre_verse_2,
+        verse1_3 * 4,
+    ]))
+    .with_instrument(InstrumentName::Percussion)
+    .with_tempo(Ratio::new(79, 120))
 }
 
 #[test]

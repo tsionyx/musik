@@ -149,57 +149,65 @@ pub enum Instrument {
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Enum, Sequence)]
 #[allow(missing_docs)]
 pub enum PercussionSound {
-    AcousticBassDrum,
-    BassDrum1,
-    SideStick,
-    AcousticSnare,
-    HandClap,
-    ElectricSnare,
-    LowFloorTom,
-    ClosedHiHat,
-    HighFloorTom,
-    PedalHiHat,
-    LowTom,
-    OpenHiHat,
-    LowMidTom,
-    HiMidTom,
-    CrashCymbal1,
-    HighTom,
-    RideCymbal1,
-    ChineseCymbal,
-    RideBell,
-    Tambourine,
-    SplashCymbal,
-    Cowbell,
-    CrashCymbal2,
-    Vibraslap,
-    RideCymbal2,
-    HiBongo,
-    LowBongo,
-    MuteHiConga,
-    OpenHiConga,
-    LowConga,
-    HighTimbale,
-    LowTimbale,
-    HighAgogo,
-    LowAgogo,
-    Cabasa,
-    Maracas,
-    ShortWhistle,
-    LongWhistle,
-    ShortGuiro,
-    LongGuiro,
-    Claves,
-    HiWoodBlock,
-    LowWoodBlock,
-    MuteCuica,
-    OpenCuica,
-    MuteTriangle,
-    OpenTriangle,
+    // the following comments specify the location of the instrument
+    // on the musical score sheet (as if it were a treble clef)
+    //
+    // <https://en.wikipedia.org/wiki/Percussion_notation#Key_or_legend_for_drum_kit>
+    // <https://drumbeatsonline.com/blog/drum-notation-sheet-music-how-to-read-it>
+    AcousticBassDrum, // F4
+    BassDrum1,        // E4
+    SideStick,        // C5 with diagonal slash through note head
+    AcousticSnare,    // C5
+    HandClap,         // -
+    ElectricSnare,    // C5
+    LowFloorTom,      // G4
+    ClosedHiHat,      // G5 with X head
+    HighFloorTom,     // A4
+    PedalHiHat,       // D4 with X head
+    LowTom,           // B4
+    OpenHiHat,        // G5 with diamond head or small circle above
+    LowMidTom,        // D5
+    HiMidTom,         // E5
+    CrashCymbal1,     // A5 with X head
+    HighTom,          // F5
+    RideCymbal1,      // F5 with X head
+    ChineseCymbal,    // C6 with X head (+maybe encircled)
+    RideBell,         // F5 with diamond head?
+    Tambourine,       // B4 with triangle head
+    SplashCymbal,     // B5 with X head (or C6 with X head)
+    Cowbell,          // E5 with triangle head
+    CrashCymbal2,     // B5 with X head
+    Vibraslap,        // -
+    RideCymbal2,      // D5 with X head
+    HiBongo,          // Bongos and congas
+    LowBongo,         //   are normally notated
+    MuteHiConga,      //   on a two lined staff,
+    OpenHiConga,      //   with one line representing
+    LowConga,         //   each of the drums.
+    HighTimbale,      // -
+    LowTimbale,       // -
+    HighAgogo,        // -
+    LowAgogo,         // -
+    Cabasa,           // -
+    Maracas,          // -
+    ShortWhistle,     // -
+    LongWhistle,      // -
+    ShortGuiro,       // -
+    LongGuiro,        // -
+    Claves,           // -
+    HiWoodBlock,      // D5 with triangle head
+    LowWoodBlock,     // C5 with triangle head
+    MuteCuica,        // -
+    OpenCuica,        // -
+    MuteTriangle,     // A5 with triangle head and stopped symbol ('+' above)
+    OpenTriangle,     // A5 with triangle head
 }
 
 impl PercussionSound {
     /// Produce a MIDI note for the [`PercussionSound`].
+    ///
+    /// The corresponding MIDI notes are spanned
+    /// the same interval as MIDI 35..=81, i.e. B1..=A5 pitches.
     pub fn note(self, dur: Dur) -> Music {
         let midi_key = u7::try_from(self.into_usize())
             .expect("<=46 fits into u7")
