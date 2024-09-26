@@ -45,7 +45,7 @@ impl Player<Pitch> for DefaultPlayer {
 
     fn play_note(&self, (dur, note_pitch): (Dur, &Pitch), ctx: Context<'_, Pitch>) -> Performance {
         let event = default_event_from_note((dur, *note_pitch), ctx);
-        Performance::with_events(iter::once(event))
+        Performance::with_events(event.into_iter())
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -65,8 +65,8 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
         ctx: Context<'_, (Pitch, Volume)>,
     ) -> Performance {
         let event = default_event_from_note((dur, note_pitch), ctx);
-        let event = Event { volume, ..event };
-        Performance::with_events(iter::once(event))
+        let event = event.map(|event| Event { volume, ..event });
+        Performance::with_events(event.into_iter())
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -74,26 +74,28 @@ impl Player<(Pitch, Volume)> for DefaultPlayer {
     }
 }
 
-fn default_event_from_note<P>(note: (Dur, Pitch), ctx: Context<'_, P>) -> Event {
-    let start_time = ctx.start_time();
-    let Context {
-        start_time: _ignore,
-        player: _ignore_player,
-        instrument,
-        whole_note,
-        transpose_interval,
-        volume,
-        key: _ignore_key,
-        depth: _ignore_depth,
-    } = ctx;
-    Event {
-        start_time,
-        instrument,
-        pitch: note.1.abs() + transpose_interval,
-        duration: note.0.into_ratio() * whole_note,
-        volume,
-        params: vec![],
-    }
+fn default_event_from_note<P>((d, p): (Dur, Pitch), ctx: Context<'_, P>) -> Option<Event> {
+    (d > Dur::ZERO).then(|| {
+        let start_time = ctx.start_time();
+        let Context {
+            start_time: _ignore,
+            player: _ignore_player,
+            instrument,
+            whole_note,
+            transpose_interval,
+            volume,
+            key: _ignore_key,
+            depth: _ignore_depth,
+        } = ctx;
+        Event {
+            start_time,
+            instrument,
+            pitch: p.abs() + transpose_interval,
+            duration: d.into_ratio() * whole_note,
+            volume,
+            params: vec![],
+        }
+    })
 }
 
 fn default_interpret_phrase(perf: Performance, attr: &PhraseAttribute) -> Performance {
@@ -136,10 +138,12 @@ where
         ctx: Context<'_, (Pitch, Vec<A>)>,
     ) -> Performance {
         let init = default_event_from_note((dur, *note_pitch), ctx.clone());
-        let event = attrs.iter().fold(init, |acc, attr| {
-            self.modify_event_with_attr(acc, attr, &ctx)
+        let event = init.map(|init| {
+            attrs.iter().fold(init, |acc, attr| {
+                self.modify_event_with_attr(acc, attr, &ctx)
+            })
         });
-        Performance::with_events(iter::once(event))
+        Performance::with_events(event.into_iter())
     }
 
     fn interpret_phrase(&self, perf: Performance, attr: &PhraseAttribute) -> Performance {
