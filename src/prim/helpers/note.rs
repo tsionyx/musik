@@ -30,22 +30,28 @@ macro_rules! n {
         }
     }};
 
-    // TODO: dotted durations
+    (_/ . $rhythm:expr ) => {
+        $crate::n!(_/ $rhythm).dotted()
+    };
 
-    ($pitch:tt ## $octave:tt / $rhythm:expr) => {{
-        let dur = $crate::n!(_/ $rhythm);
+    (_/ . . $rhythm:expr ) => {{
+        $crate::n!(_/ $rhythm) * 7 / 4
+    }};
+
+    ($pitch:tt ## $octave:tt / $($rhythm:tt)+) => {{
+        let dur = $crate::n!(_/ $($rhythm)+);
         let pc = $crate::p!($pitch ## $octave);
         (dur, pc)
     }};
 
-    ($pitch:tt $accidental:tt $octave:tt / $rhythm:expr) => {{
-        let dur = $crate::n!(_/ $rhythm);
+    ($pitch:tt $accidental:tt $octave:tt / $($rhythm:tt)+) => {{
+        let dur = $crate::n!(_/ $($rhythm)+);
         let pc = $crate::p!($pitch $accidental $octave);
         (dur, pc)
     }};
 
-    ($pitch:tt $octave:tt / $rhythm:expr) => {{
-        let dur = $crate::n!(_/ $rhythm);
+    ($pitch:tt $octave:tt / $($rhythm:tt)+) => {{
+        let dur = $crate::n!(_/ $($rhythm)+);
         let pc = $crate::p!($pitch $octave);
         (dur, pc)
     }};
@@ -146,6 +152,54 @@ mod tests {
     }
 
     #[test]
+    fn all_dotted_durations() {
+        let n = n!(_ / .1);
+        assert_eq!(n, Dur::DOTTED_WHOLE);
+
+        let n = n!(_ / .2);
+        assert_eq!(n, Dur::DOTTED_HALF);
+
+        let n = n!(_ / .4);
+        assert_eq!(n, Dur::DOTTED_QUARTER);
+
+        let n = n!(_ / .8);
+        assert_eq!(n, Dur::DOTTED_EIGHTH);
+
+        let n = n!(_ / .16);
+        assert_eq!(n, Dur::DOTTED_SIXTEENTH);
+
+        let n = n!(_ / .32);
+        assert_eq!(n, Dur::DOTTED_THIRTY_SECOND);
+
+        let n = n!(_ / .64);
+        assert_eq!(n, Dur::new(3, 128));
+    }
+
+    #[test]
+    fn all_double_dotted_durations() {
+        let n = n!(_ / . .1);
+        assert_eq!(n, Dur::DOUBLE_DOTTED_WHOLE);
+
+        let n = n!(_ / . .2);
+        assert_eq!(n, Dur::DOUBLE_DOTTED_HALF);
+
+        let n = n!(_ / . .4);
+        assert_eq!(n, Dur::DOUBLE_DOTTED_QUARTER);
+
+        let n = n!(_ / . .8);
+        assert_eq!(n, Dur::DOUBLE_DOTTED_EIGHTH);
+
+        let n = n!(_ / . .16);
+        assert_eq!(n, Dur::new(7, 64));
+
+        let n = n!(_ / . .32);
+        assert_eq!(n, Dur::new(7, 128));
+
+        let n = n!(_ / . .64);
+        assert_eq!(n, Dur::new(7, 256));
+    }
+
+    #[test]
     #[allow(clippy::cognitive_complexity)]
     fn all_durations_notes() {
         let n = n!(A 4 / 1);
@@ -187,5 +241,69 @@ mod tests {
         let n = n!(A ## 4 / 64);
         assert_eq!(n.0, Dur::SIXTY_FOURTH);
         assert_eq!(n.1, Pitch::new(PitchClass::Ass, Octave::OneLined));
+    }
+
+    #[test]
+    #[allow(clippy::cognitive_complexity)]
+    fn all_dotted_durations_notes() {
+        let n = n!(A 4 / .1);
+        assert_eq!(n.0, Dur::DOTTED_WHOLE);
+        assert_eq!(n.1, Pitch::new(PitchClass::A, Octave::OneLined));
+
+        let n = n!(Bf 4 / .2);
+        assert_eq!(n.0, Dur::DOTTED_HALF);
+        assert_eq!(n.1, Pitch::new(PitchClass::Bf, Octave::OneLined));
+
+        let n = n!(Cb 4 / .4);
+        assert_eq!(n.0, Dur::DOTTED_QUARTER);
+        assert_eq!(n.1, Pitch::new(PitchClass::Cf, Octave::OneLined));
+
+        let n = n!(D b 4 / .8);
+        assert_eq!(n.0, Dur::DOTTED_EIGHTH);
+        assert_eq!(n.1, Pitch::new(PitchClass::Df, Octave::OneLined));
+
+        let n = n!(Fbb 4 / .16);
+        assert_eq!(n.0, Dur::DOTTED_SIXTEENTH);
+        assert_eq!(n.1, Pitch::new(PitchClass::Fff, Octave::OneLined));
+
+        let n = n!(F bb 4 / .16);
+        assert_eq!(n.0, Dur::DOTTED_SIXTEENTH);
+        assert_eq!(n.1, Pitch::new(PitchClass::Fff, Octave::OneLined));
+
+        let n = n!(Gs 4 / .32);
+        assert_eq!(n.0, Dur::DOTTED_THIRTY_SECOND);
+        assert_eq!(n.1, Pitch::new(PitchClass::Gs, Octave::OneLined));
+
+        let n = n!(G # 4 / .32);
+        assert_eq!(n.0, Dur::DOTTED_THIRTY_SECOND);
+        assert_eq!(n.1, Pitch::new(PitchClass::Gs, Octave::OneLined));
+
+        let n = n!(Ass 4 / .64);
+        assert_eq!(n.0, Dur::new(3, 128));
+        assert_eq!(n.1, Pitch::new(PitchClass::Ass, Octave::OneLined));
+
+        let n = n!(A ## 4 / .64);
+        assert_eq!(n.0, Dur::new(3, 128));
+        assert_eq!(n.1, Pitch::new(PitchClass::Ass, Octave::OneLined));
+    }
+
+    #[test]
+    #[allow(clippy::cognitive_complexity)]
+    fn double_dotted_durations_notes() {
+        let n = n!(A # 4 / . .1);
+        assert_eq!(n.0, Dur::DOUBLE_DOTTED_WHOLE);
+        assert_eq!(n.1, Pitch::new(PitchClass::As, Octave::OneLined));
+
+        let n = n!(Bf 4 / . .2);
+        assert_eq!(n.0, Dur::DOUBLE_DOTTED_HALF);
+        assert_eq!(n.1, Pitch::new(PitchClass::Bf, Octave::OneLined));
+
+        let n = n!(Cb 4 / . .4);
+        assert_eq!(n.0, Dur::DOUBLE_DOTTED_QUARTER);
+        assert_eq!(n.1, Pitch::new(PitchClass::Cf, Octave::OneLined));
+
+        let n = n!(D b 4 / . .8);
+        assert_eq!(n.0, Dur::DOUBLE_DOTTED_EIGHTH);
+        assert_eq!(n.1, Pitch::new(PitchClass::Df, Octave::OneLined));
     }
 }
