@@ -1,6 +1,6 @@
 use num_rational::Ratio;
 
-use musik::{midi::Instrument, Dur, Music, Octave, Pitch};
+use musik::{midi::Instrument, utils::LazyList, Dur, Music, Octave, Pitch};
 
 type M = Music;
 type P = Pitch;
@@ -268,20 +268,23 @@ pub fn moonlight() -> Music {
     full & Control::Tempo(Ratio::new(56, 120))
 }
 
-fn prefixes<T: Clone>(xs: Vec<T>) -> Vec<Vec<T>> {
-    xs.into_iter()
-        .scan(vec![], |pref, x| {
-            pref.push(x);
-            Some(pref.clone())
-        })
-        .collect()
+fn prefixes<T: Clone + 'static>(
+    xs: impl Iterator<Item = T> + Clone + 'static,
+) -> impl Iterator<Item = LazyList<T>> + Clone {
+    let init = LazyList::new(std::iter::empty());
+    xs.scan(init, |pref, x| {
+        pref.extend(Some(x));
+        Some(pref.clone())
+    })
 }
 
 #[test]
 fn test_prefix() {
-    let v = (1..=5).collect();
+    let v = 1..=5;
     assert_eq!(
-        prefixes(v),
+        prefixes(v)
+            .map(|p| p.collect::<Vec<_>>())
+            .collect::<Vec<_>>(),
         [
             vec![1],
             vec![1, 2],
@@ -293,14 +296,9 @@ fn test_prefix() {
 }
 
 fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
-    let m1 = Music::line(prefixes(mel.clone()).into_iter().flatten().collect());
-    let m2 = Music::line(
-        prefixes(mel.into_iter().rev().collect())
-            .into_iter()
-            .flatten()
-            .collect(),
-    )
-    .with_transpose(12.into());
+    let m1 = Music::line(prefixes(mel.clone().into_iter()).flatten().collect());
+    let m2 =
+        Music::line(prefixes(mel.into_iter().rev()).flatten().collect()).with_transpose(12.into());
     let m = m1.with_instrument(Instrument::Flute) | m2.with_instrument(Instrument::VoiceOohs);
     m.clone() + m.clone().with_transpose(5.into()) + m
 }
@@ -337,4 +335,39 @@ pub fn prefixed_mel_2() -> Music {
     ])
 }
 
-// TODO: Exercises 4.2, 4.3
+/// Exercise 4.2.
+/// Try using `prefix` on your own melodies.
+/// Indeed, note that the list of notes could in general
+/// be a list of any `Music` values.
+pub fn prefixed_251() -> Music {
+    let m1 = super::ch2::two_five_one(musik::p!(F # 3), Dur::DOTTED_THIRTY_SECOND);
+    let m2 = super::ch2::two_five_one(musik::p!(C # 4), Dur::DOTTED_THIRTY_SECOND).retrograde();
+
+    prefix((m1 + m2).into())
+}
+
+fn prefix_other<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
+    let m1 = Music::line(prefixes(mel.clone().into_iter()).flatten().collect());
+    let m2 =
+        Music::line(prefixes(mel.into_iter().rev()).flatten().collect()).with_transpose(12.into());
+    let m = m1.with_instrument(Instrument::ElectricGuitarClean)
+        | m2.with_instrument(Instrument::Violin);
+
+    Music::lazy_line((1_u8..=4).map(move |i| {
+        let tempo = Ratio::new(4, 4 - (u32::from(i) % 2));
+        let interval = i8::try_from(i).unwrap();
+        m.clone().with_transpose(interval.into()).with_tempo(tempo)
+    }))
+}
+
+/// Exercise 4.3.
+/// Try making the following changes to `prefix`:
+/// 1. Use different instruments.
+/// 2. Change the definition of `m` in some way.
+/// 3. Compose the result in a different way.
+pub fn prefixed_251_other() -> Music {
+    let m1 = super::ch2::two_five_one(musik::p!(F # 3), Dur::EIGHTH);
+    let m2 = super::ch2::two_five_one(musik::p!(C # 4), Dur::QUARTER).retrograde();
+
+    prefix_other((m1 + m2).into())
+}
