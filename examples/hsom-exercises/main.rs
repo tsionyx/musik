@@ -81,6 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Chapter6::InsideOut => ch6::inside_out::example().into(),
             Chapter6::Recursion1 => ch6::crazy_recursion::example1().into(),
             Chapter6::Recursion2 => ch6::crazy_recursion::example2().into(),
+            Chapter6::Intervals => ch6::intervals::interval_music().into(),
             Chapter6::ShepardAsc => {
                 use musik::midi::Instrument::*;
                 ch6::shepard_scale::music(
@@ -215,6 +216,7 @@ enum Chapter6 {
     InsideOut,
     Recursion1,
     Recursion2,
+    Intervals,
     ShepardAsc,
     ShepardDesc,
 }

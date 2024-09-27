@@ -701,19 +701,23 @@ pub mod crazy_recursion {
 ///    and returns its interval closure.
 /// 4. Define a function `interval_closures` that takes an N-element list
 ///    and returns an infinite sequence of interval closures.
-/// 5. Now for the open-ended part of this exercise:  // TODO and play
-///    Interpret the outputs of any of the functions above to create some “interesting” music.
-mod intervals {
-    fn adjacent_diff<T: Copy + std::ops::Sub<Output = T>>(numbers: &[T]) -> Vec<T> {
+/// 5. Now for the open-ended part of this exercise:
+///    Interpret the outputs of any of the functions above to create some 'interesting' music.
+pub mod intervals {
+    use num_traits::CheckedSub;
+
+    use musik::{p, Dur, Music, Pitch, Volume};
+
+    fn adjacent_diff<T: Copy + CheckedSub<Output = T> + Default>(numbers: &[T]) -> Vec<T> {
         numbers
             .iter()
             .skip(1)
             .zip(numbers.iter())
-            .map(|(next, prev)| *next - *prev)
+            .map(|(next, prev)| (*next).checked_sub(prev).unwrap_or_default())
             .collect()
     }
 
-    fn to_intervals<T: Copy + std::ops::Sub<Output = T>>(numbers: Vec<T>) -> Vec<Vec<T>> {
+    fn to_intervals<T: Copy + CheckedSub<Output = T> + Default>(numbers: Vec<T>) -> Vec<Vec<T>> {
         std::iter::successors(Some(numbers), |xs| {
             (xs.len() > 1).then(|| adjacent_diff(xs))
         })
@@ -724,17 +728,16 @@ mod intervals {
         s.iter().filter_map(|xs| xs.first()).copied().collect()
     }
 
-    fn interval_closure<T: Copy + std::ops::Sub<Output = T>>(numbers: Vec<T>) -> Vec<T> {
+    fn interval_closure<T: Copy + CheckedSub<Output = T> + Default>(numbers: Vec<T>) -> Vec<T> {
         get_heads(&to_intervals(numbers))
             .into_iter()
             .rev()
             .collect()
     }
 
-    #[allow(dead_code)]
-    fn interval_closures<T: Copy + std::ops::Sub<Output = T>>(
+    fn interval_closures<T: Copy + CheckedSub<Output = T> + Default>(
         numbers: Vec<T>,
-    ) -> impl Iterator<Item = Vec<T>> {
+    ) -> impl Iterator<Item = Vec<T>> + Clone {
         std::iter::successors(Some(numbers), |xs| Some(interval_closure(xs.clone())))
     }
 
@@ -758,6 +761,39 @@ mod intervals {
             interval_closure(vec![1, 5, 3, 6, 5, 0, 1, 1]),
             vec![0, -28, 29, -20, 11, -6, 4, 1]
         );
+    }
+
+    pub fn interval_music() -> Music<(Pitch, Volume)> {
+        let start_pitch = p!(C 4);
+        let seed = vec![1, 5, 3, 6, 5, 0, 1, 1, 2];
+        let all_durs: [_; 4] = [Dur::EIGHTH, Dur::QUARTER, Dur::DOTTED_EIGHTH, Dur::HALF];
+
+        let it = interval_closures(seed).flat_map(move |mut intervals| {
+            assert_eq!(intervals.len(), 9);
+            let volume: Volume = u8::try_from(
+                100_i8
+                    .saturating_add(intervals.pop().unwrap())
+                    .clamp(0, 127),
+            )
+            .unwrap()
+            .into();
+
+            assert_eq!(intervals.len(), 8);
+            let dur1 = all_durs[usize::try_from(intervals.pop().unwrap().abs() % 4).unwrap()];
+            let dur2 = all_durs[usize::try_from(intervals.pop().unwrap().abs() % 4).unwrap()];
+
+            assert_eq!(intervals.len(), 6);
+            intervals
+                .into_iter()
+                .zip([dur1, dur2].into_iter().cycle())
+                .map(move |(i, dur)| {
+                    let delta = (i % 20).into();
+                    let pitch = start_pitch.trans(delta);
+                    Music::from((dur, (pitch, volume)))
+                })
+        });
+
+        Music::lazy_line(it)
     }
 }
 
