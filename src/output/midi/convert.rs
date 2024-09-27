@@ -107,7 +107,7 @@ impl Performance {
 
             let (this_instrument, other) =
                 partition(current_stream, move |e| e.instrument == i, trying_fn);
-            stream = Some(LazyList(Box::new(other)).peekable());
+            stream = Some(LazyList::new(other).peekable());
             Some((instrument, Self::with_events(this_instrument)))
         })
     }
