@@ -9,7 +9,7 @@ use ux2::u7;
 
 use crate::{
     music::Music,
-    prim::{duration::Dur, pitch::AbsPitch},
+    prim::{duration::Dur, interval::Interval, pitch::AbsPitch},
 };
 
 // https://github.com/rust-lang/rfcs/issues/284#issuecomment-1592343574
@@ -209,10 +209,17 @@ impl PercussionSound {
     /// The corresponding MIDI notes are spanned
     /// the same interval as MIDI 35..=81, i.e. B1..=A5 pitches.
     pub fn note(self, dur: Dur) -> Music {
+        let pitch = AbsPitch::from(u7::new(0)) + self.as_interval();
+        Music::note(dur, pitch.into())
+    }
+
+    /// Get an [`Interval`] corresponding to the [`PercussionSound`].
+    pub fn as_interval(self) -> Interval {
         let midi_key = u7::try_from(self.into_usize())
             .expect("<=46 fits into u7")
             .checked_add(u7::new(35))
             .expect("<=81 fits into u7");
-        Music::note(dur, AbsPitch::from(midi_key).into())
+        let midi_i8 = i8::try_from(u8::from(midi_key)).expect("u7 should convert to i8 seamlessly");
+        Interval::from(midi_i8)
     }
 }

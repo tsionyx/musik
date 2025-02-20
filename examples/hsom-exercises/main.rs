@@ -21,7 +21,9 @@ mod ch5;
 mod ch6;
 mod ch7;
 mod ch8;
+mod ch9;
 
+#[expect(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
@@ -110,6 +112,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .into()
             }
         },
+        Chapter::Ch9(a) => match a.sample {
+            Chapter9::Tm0 => ch9::tm0(),
+            Chapter9::Ttm0 => ch9::ttm0(),
+            Chapter9::Tm1 => ch9::tm1(),
+            Chapter9::Tm2 => ch9::tm2(),
+            Chapter9::Tm3 => ch9::tm3(),
+            Chapter9::Ttm3 => ch9::ttm3(),
+            Chapter9::Tm4 => ch9::tm4(),
+            Chapter9::Experimental => ch9::experimental(),
+            Chapter9::Ss5 => ch9::ss5(),
+            Chapter9::Ss6 => ch9::ss6(),
+        }
+        .into(),
     };
 
     let ctx = Context::with_default_player::<FancyPlayer>();
@@ -156,6 +171,7 @@ enum Chapter {
     Ch4(ChArgs<Chapter4>),
     Ch5(ChArgs<Chapter5>),
     Ch6(ChArgs<Chapter6>),
+    Ch9(ChArgs<Chapter9>),
 }
 
 #[derive(Debug, Copy, Clone, Args)]
@@ -219,4 +235,18 @@ enum Chapter6 {
     Intervals,
     ShepardAsc,
     ShepardDesc,
+}
+
+#[derive(Debug, Copy, Clone, Subcommand)]
+enum Chapter9 {
+    Tm0,
+    Ttm0,
+    Tm1,
+    Tm2,
+    Tm3,
+    Ttm3,
+    Tm4,
+    Experimental,
+    Ss5,
+    Ss6,
 }
