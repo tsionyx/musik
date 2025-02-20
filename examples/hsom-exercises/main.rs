@@ -21,6 +21,7 @@ mod ch5;
 mod ch6;
 mod ch7;
 mod ch8;
+mod ch9;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -110,6 +111,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .into()
             }
         },
+        Chapter::Ch9(a) => match a.sample {
+            Chapter9::Tm0 => ch9::tm0().into(),
+        },
     };
 
     let ctx = Context::with_default_player::<FancyPlayer>();
@@ -156,6 +160,7 @@ enum Chapter {
     Ch4(ChArgs<Chapter4>),
     Ch5(ChArgs<Chapter5>),
     Ch6(ChArgs<Chapter6>),
+    Ch9(ChArgs<Chapter9>),
 }
 
 #[derive(Debug, Copy, Clone, Args)]
@@ -219,4 +224,9 @@ enum Chapter6 {
     Intervals,
     ShepardAsc,
     ShepardDesc,
+}
+
+#[derive(Debug, Copy, Clone, Subcommand)]
+enum Chapter9 {
+    Tm0,
 }
