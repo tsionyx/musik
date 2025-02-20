@@ -2,10 +2,9 @@ use num_rational::Ratio;
 
 use musik::{midi::Instrument, AbsPitch, Dur, Interval, Music};
 
-#[derive(Debug, Clone)]
 struct RoseTree<T> {
     root: T,
-    children: Vec<Self>,
+    children: Box<dyn Iterator<Item = Self>>,
 }
 
 impl<T> RoseTree<T>
@@ -14,41 +13,39 @@ where
 {
     fn self_sim<F>(init: T, seed: &[T], mutate: F) -> Self
     where
-        F: Fn(&T, &T) -> T,
+        F: Fn(T, T) -> T,
     {
         // workaround to emulate recursive closures
         // https://stackoverflow.com/a/16953239/10491406
         struct MkCluster<'s, T> {
-            f: &'s dyn Fn(&Self, &T) -> RoseTree<T>,
+            f: &'s dyn Fn(&Self, T) -> RoseTree<T>,
         }
         let maker = MkCluster {
-            f: &|maker, item: &T| {
+            f: &|maker, item: T| {
                 let children = seed
                     .iter()
-                    .map(|i| (maker.f)(maker, &mutate(item, i)))
-                    .collect();
+                    .cloned()
+                    .map(|i| (maker.f)(maker, mutate(item.clone(), i)));
                 Self {
                     root: item.clone(),
-                    children,
+                    children: Box::new(children),
                 }
             },
         };
 
         Self {
             root: init,
-            children: seed.iter().map(|i| (maker.f)(&maker, i)).collect(),
+            children: Box::new(seed.iter().map(|i| (maker.f)(&maker, i.clone()))),
         }
     }
 
     fn fringe(&self, level: usize) -> Vec<T> {
+        dbg!(level);
         if level == 0 {
             return vec![self.root.clone()];
         }
 
-        self.children
-            .iter()
-            .flat_map(|c| c.fringe(level - 1))
-            .collect()
+        self.children.flat_map(|c| c.fringe(level - 1)).collect()
     }
 }
 
@@ -66,7 +63,7 @@ fn sim_to_music(notes: Vec<SNote>) -> Music {
 
 fn ss(pat: &[SNote], level: usize, trans_delta: Interval, tempo: Ratio<u32>) -> Music {
     let init = (Dur::ZERO, AbsPitch::from(ux2::u7::new(0)));
-    let add_mult = |(d0, p0): &SNote, (d1, p1): &SNote| {
+    let add_mult = |(d0, p0): SNote, (d1, p1): SNote| {
         let d = Dur::from(d0.into_ratio() * d1.into_ratio());
         let p = p0.get_u8() + p1.get_u8();
         let p = p.min(127);
