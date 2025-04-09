@@ -13,6 +13,7 @@ where
     F: Fn(&T) -> bool + Clone + 'static,
     TakeF: Fn(&T) -> bool + Clone + 'static,
 {
+    #[allow(clippy::unnecessary_map_or)] // TODO: remove this when MSRV is 1.82
     let take = move |x: &T| take_only.as_ref().map_or(true, |take_only| take_only(x));
     let filter = move |x: &T| predicate(x);
 

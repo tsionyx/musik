@@ -23,7 +23,7 @@ fn get_default_port(out: &MidiOutput) -> Option<MidiOutputPort> {
     } else {
         let mut without_midi_through = ports.iter().filter(|p| {
             out.port_name(p)
-                .map_or(false, |name| !name.contains("Midi Through"))
+                .is_ok_and(|name| !name.contains("Midi Through"))
         });
 
         without_midi_through

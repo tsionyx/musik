@@ -100,7 +100,7 @@ where
 
     fn perform_with_context(self, ctx: Context<'_, AttrNote>) -> Performance {
         let (perf, dur) = MusicAttr::from(self).perf(ctx);
-        info!("Produced a performance of {:?} seconds long", dur);
+        info!("Produced a performance of {dur:?} seconds long");
         perf
     }
 }
@@ -180,7 +180,7 @@ impl<P: 'static> Music<P> {
             let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));
             (perf, Measure::Infinite)
         } else {
-            debug!("The Music::Lazy has finite items: {:?}", size_hint);
+            debug!("The Music::Lazy has finite items: {size_hint:?}");
             // TODO: calculate the duration more intelligently (maybe some `Measure::Lazy`)
             let d = Measure::max_in_iter(events_with_max_dur.clone().map(|(_, d)| d));
             let perf = Performance::with_events(events_with_max_dur.flat_map(|(e, _)| e));

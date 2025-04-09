@@ -15,9 +15,11 @@ use midly::{
     num::{u4, u7},
     MidiMessage, Timing, TrackEventKind,
 };
-// TODO: replace with `use std::sync::LazyLock as Lazy;`
-// when the MSRV will reach 1.80
+
+#[rustversion::before(1.80)]
 use once_cell::sync::Lazy;
+#[rustversion::since(1.80)]
+use std::sync::LazyLock as Lazy;
 
 use super::{
     convert::{tick_size, TimedMessage},
@@ -155,20 +157,10 @@ impl MidiPlayer {
         if let LiveEvent::Midi { channel, message } = event {
             match message {
                 MidiMessage::NoteOn { key, vel } => {
-                    trace!(
-                        "Playing MIDI #{} on channel {} with volume {}",
-                        key,
-                        channel,
-                        vel
-                    );
+                    trace!("Playing MIDI #{key} on channel {channel} with volume {vel}");
                 }
                 MidiMessage::NoteOff { key, vel } => {
-                    trace!(
-                        "Stopping MIDI #{} on channel {} with volume {}",
-                        key,
-                        channel,
-                        vel
-                    );
+                    trace!("Stopping MIDI #{key} on channel {channel} with volume {vel}");
                 }
                 _ => {}
             }
@@ -185,13 +177,13 @@ impl MidiPlayer {
                 MidiMessage::NoteOn { key, vel } => {
                     let note = (*channel, *key, *vel);
                     if !self.currently_played.insert(note) {
-                        warn!("Repeating note: {:?}", note);
+                        warn!("Repeating note: {note:?}");
                     }
                 }
                 MidiMessage::NoteOff { key, vel } => {
                     let note = (*channel, *key, *vel);
                     if !self.currently_played.remove(&(*channel, *key, *vel)) {
-                        warn!("Stopping the note that was not started: {:?}", note);
+                        warn!("Stopping the note that was not started: {note:?}");
                     }
                 }
                 _ => {}
@@ -224,7 +216,7 @@ impl MidiPlayer {
 impl Drop for MidiPlayer {
     fn drop(&mut self) {
         if let Err(err) = self.stop_all() {
-            warn!("Stopping the player failed: {:?}", err);
+            warn!("Stopping the player failed: {err:?}");
         }
     }
 }

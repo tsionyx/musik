@@ -79,6 +79,7 @@ impl<P> Music<P> {
     ///
     /// Also could be used in the form `dur + Music`
     pub fn with_delay(self, dur: Dur) -> Self {
+        #![allow(clippy::missing_const_for_fn)] // false positive lint for non-const `Music::add`
         Self::rest(dur) + self
     }
 

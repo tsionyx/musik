@@ -24,6 +24,7 @@ intertrait = "0.2"
 linkme = "0.2"
 ux2 = { version = "0.8", default-features = false, features = ["8"] }
 log = "0.4"
+rustversion = "1.0"
 
 # MIDI stuff
 midly = { version = "0.5", default-features = false, features = ["std"] }
@@ -123,3 +124,6 @@ return_self_not_must_use = "allow"
 missing_panics_doc = "allow"
 missing_errors_doc = "allow"
 module_name_repetitions = "allow"
+
+# suppress until MSRV reaches 1.82
+manual_repeat_n = "allow"
