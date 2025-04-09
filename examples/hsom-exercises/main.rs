@@ -6,7 +6,12 @@ use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 use ux2::u7;
 
-use musik::{p, AbsPitch, Dur, Interval, Music, Performable as _, Pitch, Volume};
+use musik::{
+    music::MusicAttr,
+    p,
+    perf::{Context, FancyPlayer},
+    AbsPitch, Dur, Interval, Music, Performable as _, Volume,
+};
 
 mod ch1;
 mod ch2;
@@ -16,12 +21,13 @@ mod ch5;
 mod ch6;
 mod ch7;
 mod ch8;
+mod ch9;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
-    let m: Music<(Pitch, Volume)> = match cli.chapter {
+    let m: MusicAttr = match cli.chapter {
         Chapter::Ch1(a) => match a.sample {
             Chapter1::Mel => ch1::harmonic::mel([p!(C 4), p!(E 4), p!(G 4)]).into(),
         },
@@ -36,7 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .natural_minor_scale()
                     .map(|p| (Dur::QUARTER, (p, Volume::loudest())).into())
                     .collect(),
-            )),
+            ))
+            .into(),
             Chapter3::Chromatic => ch3::chromatic::chrom(p!(C 5), p!(F 5)).into(),
             Chapter3::BrotherJohn => ch3::brother_john::frere_jacques_four_part_round().into(),
         },
@@ -44,6 +51,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Chapter4::ChildSong => ch4::child_song_6().into(),
             Chapter4::Prefixed1 => ch4::prefixed_mel_1().into(),
             Chapter4::Prefixed2 => ch4::prefixed_mel_2().into(),
+            Chapter4::Prefixed251 => ch4::prefixed_251().into(),
+            Chapter4::Prefixed251Other => ch4::prefixed_251_other().into(),
+            Chapter4::Moonlight => ch4::moonlight().into(),
         },
         Chapter::Ch5(a) => match a.sample {
             Chapter5::WithPairs => {
@@ -63,10 +73,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Chapter6::FunkGroove => ch6::funk_groove().into(),
             Chapter6::Percussion => ch6::sequence_all_percussions().into(),
             Chapter6::Drum => ch6::drum_pattern().into(),
-            Chapter6::Volumed => ch6::test_volume(Volume::loudest()),
+            Chapter6::DrumStraightBlues => ch6::straight_blues_drum().into(),
+            Chapter6::DrumCompoundTriple => ch6::compound_triple_drum().into(),
+            Chapter6::DrumFillGroove => ch6::fill_groove_drum().into(),
+            Chapter6::DrumHeavyMetalGallop => ch6::heavy_metal_gallop_drum().into(),
+            Chapter6::DrumNirvanaInBloom => ch6::nirvana_in_bloom_drum().into(),
+            Chapter6::Volumed => ch6::test_volume(Volume::loudest()).into(),
             Chapter6::InsideOut => ch6::inside_out::example().into(),
             Chapter6::Recursion1 => ch6::crazy_recursion::example1().into(),
             Chapter6::Recursion2 => ch6::crazy_recursion::example2().into(),
+            Chapter6::Intervals => ch6::intervals::interval_music().into(),
             Chapter6::ShepardAsc => {
                 use musik::midi::Instrument::*;
                 ch6::shepard_scale::music(
@@ -78,6 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         (Cello, 99),
                     ],
                 )
+                .into()
             }
             Chapter6::ShepardDesc => {
                 use musik::midi::Instrument::*;
@@ -91,11 +108,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         (Flute, 7899),
                     ],
                 )
+                .into()
             }
+        },
+        Chapter::Ch9(a) => match a.sample {
+            Chapter9::Tm0 => ch9::tm0().into(),
         },
     };
 
-    let perf = m.perform();
+    let ctx = Context::with_default_player::<FancyPlayer>();
+    let perf = m.perform_with_context(ctx);
     if cli.mode.play {
         perf.clone().play()?;
     }
@@ -138,6 +160,7 @@ enum Chapter {
     Ch4(ChArgs<Chapter4>),
     Ch5(ChArgs<Chapter5>),
     Ch6(ChArgs<Chapter6>),
+    Ch9(ChArgs<Chapter9>),
 }
 
 #[derive(Debug, Copy, Clone, Args)]
@@ -173,6 +196,9 @@ enum Chapter4 {
     ChildSong,
     Prefixed1,
     Prefixed2,
+    Prefixed251,
+    Prefixed251Other,
+    Moonlight,
 }
 
 #[derive(Debug, Copy, Clone, Subcommand)]
@@ -186,10 +212,21 @@ enum Chapter6 {
     FunkGroove,
     Percussion,
     Drum,
+    DrumStraightBlues,
+    DrumCompoundTriple,
+    DrumFillGroove,
+    DrumHeavyMetalGallop,
+    DrumNirvanaInBloom,
     Volumed,
     InsideOut,
     Recursion1,
     Recursion2,
+    Intervals,
     ShepardAsc,
     ShepardDesc,
+}
+
+#[derive(Debug, Copy, Clone, Subcommand)]
+enum Chapter9 {
+    Tm0,
 }

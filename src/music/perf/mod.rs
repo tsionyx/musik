@@ -36,10 +36,10 @@ impl Performance {
     /// Create a [`Performance`] from a number of [`Event`]s.
     pub fn with_events<I>(events: I) -> Self
     where
-        I: CloneableIterator<Item = Event> + 'static,
+        I: Iterator<Item = Event> + Clone + 'static,
     {
         Self {
-            repr: LazyList(Box::new(events)),
+            repr: LazyList::new(events),
         }
     }
 

@@ -1,12 +1,10 @@
-use super::CloneableIterator;
-
 pub fn partition<I, T, F, TakeF>(
     iter: I,
     predicate: F,
     take_only: Option<TakeF>,
 ) -> (
-    impl CloneableIterator<Item = T>,
-    impl CloneableIterator<Item = T>,
+    impl Iterator<Item = T> + Clone,
+    impl Iterator<Item = T> + Clone,
 )
 where
     I: Iterator<Item = T> + Clone,
