@@ -147,6 +147,7 @@ mod eq_ord_music {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum Color {
     Red,
     Green,
