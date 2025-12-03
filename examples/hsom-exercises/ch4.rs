@@ -1,6 +1,6 @@
 use num_rational::Ratio;
 
-use musik::{midi::Instrument, Dur, Music, Octave, Pitch};
+use musik::{midi::Instrument, utils::LazyList, Dur, Music, Octave, Pitch};
 
 type M = Music;
 type P = Pitch;
@@ -149,23 +149,142 @@ pub fn child_song_6() -> Music {
         .with_instrument(Instrument::RhodesPiano)
 }
 
-// TODO: Exercise 4.1
-//  https://musescore.com/bntt-piano/moonlight-sonata
+#[allow(clippy::cognitive_complexity, clippy::similar_names)]
+/// Exercise 4.1
+///
+/// First 15 bars of the Beethohen's Moonlight Sonata.
+///
+/// See the full score at <https://musescore.com/bntt-piano/moonlight-sonata>
+pub fn moonlight() -> Music {
+    // C#, D#, F#, G#
+    use musik::{
+        attributes::{Dynamic, StdLoudness},
+        dur, m,
+        music::Control,
+        n, p, Interval, Music as M, PhraseAttribute,
+    };
 
-fn prefixes<T: Clone>(xs: Vec<T>) -> Vec<Vec<T>> {
-    xs.into_iter()
-        .scan(vec![], |pref, x| {
-            pref.push(x);
-            Some(pref.clone())
-        })
-        .collect()
+    fn twelfth<const N: usize>(start: Pitch, intervals: [i8; N]) -> Music {
+        let pitches = start
+            .get_scale(std::iter::once(0).chain(intervals))
+            .collect();
+        M::with_dur(pitches, dur!(1 / 12))
+    }
+
+    fn with_octave_lower(note @ (d, p): (Dur, Pitch)) -> Music {
+        let lower = p << Interval::octave();
+        M::from(note) | M::from((d, lower))
+    }
+
+    let m1 = twelfth(p!(G # 3), [5, 3]);
+    let b1 = with_octave_lower(n!(C # 3 / 1));
+
+    let b2 = with_octave_lower(n!(B 2 / 1));
+
+    let m3 = twelfth(p!(A 3), [4, 3]) * 2 + twelfth(p!(A 3), [5, 4]) * 2;
+    let b3 = with_octave_lower(n!(A 2 / 2)) + with_octave_lower(n!(F # 2 / 2));
+
+    let m4 = twelfth(p!(G # 3), [4, 6])
+        + twelfth(p!(G # 3), [5, 3])
+        + twelfth(p!(G # 3), [5, 2])
+        + twelfth(p!(F # 3), [6, 3]);
+    let b4 = with_octave_lower(n!(G # 2 / 2)) * 2;
+
+    let m5 = twelfth(p!(E 3), [4, 5])
+        + twelfth(p!(G # 3), [5, 3]) * 2
+        + (twelfth(p!(F # 3), [7, 4]) | m!( {G # 4 / .8}, {G # 4 / 16}));
+    let b5 = with_octave_lower(n!(C # 3 / 1)) | m!(G # 2 / 1);
+
+    let full_pp = vec![
+        (m1.clone() * 4) | b1,
+        (m1 * 4) | b2,
+        m3 | b3,
+        m4 | b4,
+        m5 | b5,
+    ];
+
+    let m6 = ((twelfth(p!(G # 3), [7, 3]) * 3) | m!(G # 4 / .2))
+        + (twelfth(p!(G # 3), [7, 3]) | m!({G # 4 / .8}, {G # 4 / 16}));
+    let b6 = with_octave_lower(n!(B # 2 / 1)) | m!(G # 2 / 1);
+
+    let m7 = ((twelfth(p!(G # 3), [5, 3]) * 2) | m!(G # 4 / 2))
+        + ((twelfth(p!(A 3), [4, 5]) * 2) | m!(A 4 / 2));
+    let b7 = with_octave_lower(n!(C # 3 / 2)) + with_octave_lower(n!(F # 2 / 2));
+
+    let m8 = ((twelfth(p!(G # 3), [3, 5]) * 2) | m!(G # 4 / 2))
+        + ((twelfth(p!(A 3), [2, 4]) * 2) | m!({F # 4 / 4}, {B 4 / 4}));
+    let b8 = with_octave_lower(n!(B 2 / 2)) * 2;
+
+    let m9 = (twelfth(p!(G # 3), [3, 5]) * 2) | m!(E 4 / 4);
+    let b9 = with_octave_lower(n!(E 3 / 2));
+
+    let m10 =
+        (twelfth(p!(G 3), [4, 5]) * 3) + (twelfth(p!(G 3), [4, 5]) | m!({G 4 / .8}, {G 4 / 16}));
+    let b10 = with_octave_lower(n!(E 3 / 1));
+
+    let m11 = ((twelfth(p!(G 3), [4, 6]) * 3) | m!(G 4 / .2))
+        + (twelfth(p!(G 3), [4, 6]) | m!({G 4 / .8}, {G 4 / 16}));
+    let b11 = with_octave_lower(n!(D 3 / 1));
+
+    let m12 = (((twelfth(p!(G 3), [5, 4]) * 2) + twelfth(p!(G 3), [6, 3])) | m!(G 4 / .2))
+        + (twelfth(p!(F # 3), [7, 3]) | m!(F # 4 / 4));
+    let b12 = with_octave_lower(n!(C 3 / 4))
+        + with_octave_lower(n!(B 2 / 4))
+        + with_octave_lower(n!(A # 2 / 2));
+
+    let m13 = ((twelfth(p!(F # 3), [5, 3]) * 2) | m!(F # 4 / 2))
+        + (twelfth(p!(G 3), [4, 2]) | m!(G 4 / 4))
+        + (twelfth(p!(E 3), [7, 2]) | m!(E 4 / 4));
+    let b13 = with_octave_lower(n!(B 2 / 2)) + m!({E 2 / 4}, {G 2 / 4});
+
+    let m14 = ((twelfth(p!(F # 3), [5, 3]) * 2) | m!(F # 4 / 2))
+        + ((twelfth(p!(F # 3), [4, 3]) * 2) | m!(F # 4 / 2));
+    let b14 = m!(F 2 / 2) + with_octave_lower(n!(F 2 / 2));
+
+    let m15 = (twelfth(p!(B 3), [3, 4]) * 2)
+        + twelfth(p!(B 3), [4, 3])
+        + (twelfth(p!(B 3), [4, 3]) | m!(B 4 / 4));
+    let b15 = with_octave_lower(n!(B 2 / 1));
+
+    let full_p = vec![
+        m6 | b6,
+        m7 | b7,
+        m8 | b8,
+        m9 | b9,
+        m10 | b10,
+        m11 | b11,
+        m12 | b12,
+        m13 | b13,
+        m14 | b14,
+        m15 | b15,
+    ];
+
+    let pp = PhraseAttribute::Dyn(Dynamic::StdLoudness(StdLoudness::Pianissimo));
+    let p = PhraseAttribute::Dyn(Dynamic::StdLoudness(StdLoudness::Piano));
+    let full = (M::line(full_pp) & Control::Phrase(vec![pp]))
+        + (M::line(full_p) & Control::Phrase(vec![p]));
+
+    // let full = musik::Temporal::skip(full, Dur::new(17, 2));
+    full & Control::Tempo(Ratio::new(56, 120))
+}
+
+fn prefixes<T: Clone + 'static>(
+    xs: impl Iterator<Item = T> + Clone + 'static,
+) -> impl Iterator<Item = LazyList<T>> + Clone {
+    let init = LazyList::new(std::iter::empty());
+    xs.scan(init, |pref, x| {
+        pref.extend(Some(x));
+        Some(pref.clone())
+    })
 }
 
 #[test]
 fn test_prefix() {
-    let v = (1..=5).collect();
+    let v = 1..=5;
     assert_eq!(
-        prefixes(v),
+        prefixes(v)
+            .map(|p| p.collect::<Vec<_>>())
+            .collect::<Vec<_>>(),
         [
             vec![1],
             vec![1, 2],
@@ -177,14 +296,9 @@ fn test_prefix() {
 }
 
 fn prefix<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
-    let m1 = Music::line(prefixes(mel.clone()).into_iter().flatten().collect());
-    let m2 = Music::line(
-        prefixes(mel.into_iter().rev().collect())
-            .into_iter()
-            .flatten()
-            .collect(),
-    )
-    .with_transpose(12.into());
+    let m1 = Music::line(prefixes(mel.clone().into_iter()).flatten().collect());
+    let m2 =
+        Music::line(prefixes(mel.into_iter().rev()).flatten().collect()).with_transpose(12.into());
     let m = m1.with_instrument(Instrument::Flute) | m2.with_instrument(Instrument::VoiceOohs);
     m.clone() + m.clone().with_transpose(5.into()) + m
 }
@@ -221,4 +335,39 @@ pub fn prefixed_mel_2() -> Music {
     ])
 }
 
-// TODO: Exercises 4.2, 4.3
+/// Exercise 4.2.
+/// Try using `prefix` on your own melodies.
+/// Indeed, note that the list of notes could in general
+/// be a list of any `Music` values.
+pub fn prefixed_251() -> Music {
+    let m1 = super::ch2::two_five_one(musik::p!(F # 3), Dur::DOTTED_THIRTY_SECOND);
+    let m2 = super::ch2::two_five_one(musik::p!(C # 4), Dur::DOTTED_THIRTY_SECOND).retrograde();
+
+    prefix((m1 + m2).into())
+}
+
+fn prefix_other<P: Clone>(mel: Vec<Music<P>>) -> Music<P> {
+    let m1 = Music::line(prefixes(mel.clone().into_iter()).flatten().collect());
+    let m2 =
+        Music::line(prefixes(mel.into_iter().rev()).flatten().collect()).with_transpose(12.into());
+    let m = m1.with_instrument(Instrument::ElectricGuitarClean)
+        | m2.with_instrument(Instrument::Violin);
+
+    Music::lazy_line((1_u8..=4).map(move |i| {
+        let tempo = Ratio::new(4, 4 - (u32::from(i) % 2));
+        let interval = i8::try_from(i).unwrap();
+        m.clone().with_transpose(interval.into()).with_tempo(tempo)
+    }))
+}
+
+/// Exercise 4.3.
+/// Try making the following changes to `prefix`:
+/// 1. Use different instruments.
+/// 2. Change the definition of `m` in some way.
+/// 3. Compose the result in a different way.
+pub fn prefixed_251_other() -> Music {
+    let m1 = super::ch2::two_five_one(musik::p!(F # 3), Dur::EIGHTH);
+    let m2 = super::ch2::two_five_one(musik::p!(C # 4), Dur::QUARTER).retrograde();
+
+    prefix_other((m1 + m2).into())
+}

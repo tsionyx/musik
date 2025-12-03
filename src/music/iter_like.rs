@@ -1,7 +1,4 @@
-use crate::{
-    prim::duration::Dur,
-    utils::{CloneableIterator, LazyList},
-};
+use crate::{prim::duration::Dur, utils::LazyList};
 
 use super::{control::Control, Music, Primitive};
 
@@ -22,9 +19,9 @@ impl<P> Music<P> {
     /// See more: <https://en.wikipedia.org/wiki/Melody>
     pub fn lazy_line<I>(musics: I) -> Self
     where
-        I: CloneableIterator<Item = Self> + 'static,
+        I: Iterator<Item = Self> + Clone + 'static,
     {
-        Self::Lazy(LazyList(Box::new(musics)))
+        Self::Lazy(LazyList::new(musics))
     }
 
     /// A set of musical parts that are supposed to play simultaneously.
